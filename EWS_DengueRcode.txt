@@ -1,0 +1,2570 @@
+
+
+# Load necessary libraries
+library(ggplot2)
+library(readxl)
+library(dplyr)
+library(gridExtra)
+library(grid)  # For grid.newpage and grid.draw
+library(scales) # Needed for comma format
+
+# Load the data (update the file paths as needed)
+data_path <- "C:/R/LABSTAT/dengueData00-21.xlsx"
+
+# Load climate data
+climate_data <- read_excel(data_path, sheet = "dengue cases and climate data")
+
+# Function to create boxplot for each climate factor with bold labels and values
+create_boxplot <- function(data, factor) {
+  data_long <- data %>%
+    select(Year, Months, !!sym(factor)) %>%
+    mutate(Month = factor(Months, levels = month.abb))
+  
+  ggplot(data_long, aes(x = Month, y = get(factor))) +
+    geom_boxplot(aes(fill = "red"), outlier.shape = 16, outlier.colour = "black", outlier.fill = "black", outlier.size = 3, color = "black") +
+    scale_fill_manual(values = c("red" = "red")) +
+    stat_summary(fun = mean, geom = "point", shape = 21, size = 3, fill = "blue") +
+    labs(
+      x = "Month",
+      y = factor) +
+    theme_minimal() +
+    theme(
+      legend.position = "none",  # Hide the legend
+      axis.title.x = element_text(face = "bold", size = 16),  # Bold x-axis title
+      axis.title.y = element_text(face = "bold", size = 16),  # Bold y-axis title
+      axis.text.x = element_text(angle = 90, hjust = 1,face = "bold", size = 18),   # Bold x-axis tick mark labels
+      axis.text.y = element_text(face = "bold", size = 18)    # Bold y-axis tick mark labels
+    )
+}
+
+# Create boxplots for each climate factor
+plot_x1 <- create_boxplot(climate_data, "x1")
+plot_x2 <- create_boxplot(climate_data, "x2")
+plot_x3 <- create_boxplot(climate_data, "x3")
+plot_x4 <- create_boxplot(climate_data, "x4")
+plot_x5 <- create_boxplot(climate_data, "x5")
+plot_x6 <- create_boxplot(climate_data, "x6")
+plot_x7 <- create_boxplot(climate_data, "x7")
+
+# Create an empty plot for the 7th position
+empty_plot <- ggplot() + theme_void()
+
+# Load required library
+library(gridExtra)
+library(grid)
+
+# Arrange the plots
+climate_combined <- grid.arrange(
+  arrangeGrob(
+    plot_x1, plot_x2, plot_x3, 
+    plot_x4, plot_x5, plot_x6, 
+    plot_x7,empty_plot, 
+    ncol = 4, nrow = 2
+  ),
+  top = textGrob(
+    "(a) Climate factors",  # Title text
+    gp = gpar(fontsize = 24, fontface = "bold")  # Font size and bold style
+  )
+)
+
+# Save the combined figure
+ggsave(
+  filename = "climate_combined_boxplots.png",  # Output file name
+  plot = climate_combined,
+  width = 40,                                 # Width in cm
+  height = 20,                                 # Height in cm
+  units = "cm",                               # Unit of dimensions
+  dpi = 300                                   # Resolution in DPI
+)
+
+# Display a message to confirm saving
+cat("Combined boxplot figure saved successfully as 'climate_combined_boxplots.png'")
+
+climate_combined
+
+
+
+# Save the combined plot to a file
+ggsave(
+  filename = "11111climate_combinedbox.png",  # Output file name
+  plot = climate_combined,                # Plot to save
+  width = 24,                          # Width in cm
+  height = 12,                          # Height in cm
+  units = "in",                        # Unit of dimensions
+  dpi = 300                            # Resolution in DPI
+)
+
+# Display a message to confirm saving
+cat("Plot saved successfully as '111climate_combinedbox.png'")
+
+
+
+# Create a grob tree with a border around the combined plot
+bordered_plot_climate <- grobTree(
+  rectGrob(gp = gpar(lwd = 2, col = "black", fill = NA)),
+  climate_combined
+)
+bordered_plot_climate
+# Create the title grob with "Fig." bold
+title_grob_climate <- textGrob(
+  bquote(bold("Fig.")~"3a Climate Factors"),
+  gp = gpar(fontsize = 20, col = "black")
+)
+
+afinal_plot_with_title <- arrangeGrob(
+  bordered_plot_climate,
+  title_grob_climate,
+  ncol = 1,
+  heights = unit.c(unit(1, "npc") - unit(2, "lines"), unit(2, "lines"))
+)
+
+
+
+
+# Load socio-demographic data
+socio_data <- read_excel(data_path, sheet = "Socio-demographic dataset ")
+
+# Define colors for each plot
+plot_colors <- c("red", "green", "blue", "purple", "orange", "brown", "pink", "yellow", "cyan", "magenta", "gray")
+
+# Function to create bar plot for each socio-demographic factor with at least 5 y-axis labels
+create_barplot <- function(data, factor, color) {
+  max_y <- max(data[[factor]], na.rm = TRUE)
+  y_breaks <- pretty(c(0, max_y), n = 5)
+  
+  ggplot(data, aes(x = factor(Year), y = get(factor))) +
+    geom_bar(stat = "identity", fill = color, color = "black", width = 0.6) +
+    scale_y_continuous(breaks = y_breaks) +
+    labs(
+      x = "Year",
+      y = factor) +
+    theme_minimal() +
+    theme(
+      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, face = "bold", size = 14),
+      axis.text.y = element_text(face = "bold", size = 14),
+      axis.title.x = element_text(face = "bold", size = 16),
+      axis.title.y = element_text(face = "bold", size = 16),
+      plot.title = element_text(hjust = 0.5)
+    )
+}
+
+# Enhance plot for x17 to ensure y-axis values are clear with at least 5 labels
+plot_x17 <- ggplot(socio_data, aes(x = factor(Year), y = x17)) +
+  geom_bar(stat = "identity", fill = plot_colors[10], color = "black", width = 0.6) +
+  scale_y_continuous(breaks = seq(0, 7000000, by = 1000000), labels = scales::comma) +
+  labs(
+    x = "Year",
+    y = "X17") +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, face = "bold", size = 14),
+    axis.text.y = element_text(face = "bold", size = 14),
+    axis.title.x = element_text(face = "bold", size = 16),
+    axis.title.y = element_text(face = "bold", size = 16),
+    plot.title = element_text(hjust = 0.5)
+  )
+
+# Create bar plots for each socio-demographic factor with different colors and adjusted y-axis
+plot_x8 <- create_barplot(socio_data, "x8", plot_colors[1])
+plot_x9 <- create_barplot(socio_data, "x9", plot_colors[2])
+plot_x10 <- create_barplot(socio_data, "x10", plot_colors[3])
+plot_x11 <- create_barplot(socio_data, "x11", plot_colors[4])
+plot_x12 <- create_barplot(socio_data, "x12", plot_colors[5])
+plot_x13 <- create_barplot(socio_data, "x13", plot_colors[6])
+plot_x14 <- create_barplot(socio_data, "x14", plot_colors[7])
+plot_x15 <- create_barplot(socio_data, "x15", plot_colors[8])
+plot_x16 <- create_barplot(socio_data, "x16", plot_colors[9])
+
+plot_x18 <- create_barplot(socio_data, "x18", plot_colors[11])
+
+# Combine all bar plots into one figure
+# Load required libraries
+library(gridExtra)
+library(grid)
+
+# Arrange the plots in the specified layout
+socio_combined <- grid.arrange(
+  arrangeGrob(
+    plot_x8, plot_x9, plot_x10,
+    plot_x11, plot_x12, plot_x13,
+    plot_x14, plot_x15, plot_x16,
+    plot_x17, plot_x18, 
+    ncol = 4, nrow = 3
+  ),
+  top = textGrob(
+    "(b) Socio-demographic factors",  # Title text
+    gp = gpar(fontsize = 24, fontface = "bold")  # Font size and bold style
+  )
+)
+
+# Save the combined figure
+ggsave(
+  filename = "1socio_combined_boxplots.png",  # Output file name
+  plot = socio_combined,
+  width = 30,                                # Width in cm
+  height = 10,                                # Height in cm
+  units = "in",                              # Unit of dimensions
+  dpi = 300                                  # Resolution in DPI
+)
+
+# Display a message to confirm saving
+cat("Socio-demographic boxplot figure saved successfully as '1socio_combined_boxplots.png'")
+
+
+
+
+# Load landscape data
+landscape_data <- read_excel(data_path, sheet = "Landscape dataset")
+
+# Function to create time series plot for each landscape factor with a specified color
+create_timeseries_plot <- function(data, factor, color) {
+  ggplot(data, aes(x = Year, y = get(factor))) +
+    geom_line(color = color, size = 1) +
+    labs(
+      x = "Year",
+      y = factor
+    ) +
+    theme_minimal() +
+    theme(
+      axis.text.x = element_text(face = "bold", size = 14),
+      axis.text.y = element_text(face = "bold", size = 14),
+      axis.title.x = element_text(face = "bold", size = 14),
+      axis.title.y = element_text(face = "bold", size = 14)
+    )
+}
+
+# Create time series plots for each landscape factor with different colors
+plot_x19 <- create_timeseries_plot(landscape_data, "x19", "blue")
+plot_x20 <- create_timeseries_plot(landscape_data, "x20", "red")
+plot_x21 <- create_timeseries_plot(landscape_data, "x21", "green")
+plot_x22 <- create_timeseries_plot(landscape_data, "x22", "purple")
+
+
+# Load required libraries
+library(gridExtra)
+library(grid)
+
+# Combine the time series plots into one figure
+landscape_combined <- grid.arrange(
+  arrangeGrob(
+    plot_x19, plot_x20, plot_x21, plot_x22,  # The time series plots
+    ncol = 1, nrow = 4                      # 1 column and 4 rows
+  ),
+  top = textGrob(
+    "(c) Landscape factors",  # Title text
+    gp = gpar(fontsize = 20, fontface = "bold")  # Font size and bold style
+  )
+)
+
+# Save the combined figure
+ggsave(
+  filename = "landscape_combined_timeseries.png",  # Output file name
+  plot = landscape_combined,
+  width = 40,                                     # Width in cm
+  height = 25,                                    # Height in cm
+  units = "cm",                                   # Unit of dimensions
+  dpi = 300                                       # Resolution in DPI
+)
+
+# Display a message to confirm saving
+cat("Landscape time series figure saved successfully as 'landscape_combined_timeseries.png'")
+
+
+
+
+# Combine the three combined plots into one figure
+final_combined <- grid.arrange(
+  arrangeGrob(
+    climate_combined, 
+    socio_combined, 
+    landscape_combined, 
+    ncol = 1  # Arrange in 1 column
+  )
+)
+
+# Save the final combined figure
+ggsave(
+  filename = "final_combined_features.png",  # Output file name
+  plot = final_combined,
+  width = 80,                                # Width in cm
+  height = 60,                               # Height in cm (adjust for total rows)
+  units = "cm",                              # Unit of dimensions
+  dpi = 300                                  # Resolution in DPI
+)
+
+# Display a message to confirm saving
+cat("Final combined figure saved successfully as 'final_combined_features.png'")
+
+
+
+
+#################################################SHAP############
+
+# Load required libraries
+library(randomForest)
+library(fastshap)
+library(ggplot2)
+library(dplyr)
+library(readxl)
+library(tidyr)
+library(VIM) # Load VIM for KNN imputation
+
+# Load data
+data_path <- "C:/R/LABSTAT/dengueData00-21.xlsx"
+data <- read_excel(data_path, sheet = "data1")
+
+# Handle duplicate column names from the Excel sheet
+colnames(data) <- make.names(colnames(data), unique = TRUE)
+
+# Impute missing values (zeros) in the 'Cases' column using KNN
+data$Cases[data$Cases == 0] <- NA
+data <- kNN(data, variable = "Cases", k = 6)
+
+# Log-transform cases
+data <- data %>% mutate(log_cases = log(Cases + 1))
+
+# Filter relevant columns (x1 to x7 and log_cases)
+climate_data <- data %>% select(Year, x1:x7, log_cases)
+
+# Split data into training (2000-2018) and testing (2019-2021) sets
+train_data <- climate_data %>% filter(Year >= 2000 & Year <= 2018)
+test_data <- climate_data %>% filter(Year >= 2019 & Year <= 2021)
+
+# Prepare data for Random Forest
+train_x <- as.data.frame(train_data %>% select(x1:x7))
+train_y <- train_data$log_cases
+test_x <- as.data.frame(test_data %>% select(x1:x7))
+test_y <- test_data$log_cases
+
+# Train a Random Forest model
+rf_model <- randomForest(x = train_x, y = train_y, ntree = 10000)
+
+# Custom prediction function for fastshap
+predict_function <- function(model, newdata) {
+  predict(model, newdata)
+}
+
+# Compute SHAP values using fastshap::explain
+shap_values_rf <- fastshap::explain(rf_model, X = train_x, pred_wrapper = predict_function)
+
+# Convert SHAP values to a dataframe and take absolute values
+shap_rf <- as.data.frame(shap_values_rf)
+shap_rf <- abs(shap_rf)
+colnames(shap_rf) <- colnames(train_x)
+
+# Summary of SHAP values
+shap_summary_rf <- shap_rf %>%
+  as_tibble() %>% # Convert to tibble
+  pivot_longer(cols = everything(), names_to = "variable", values_to = "value") %>%
+  group_by(variable) %>%
+  summarize(mean_shap_value = mean(value)) %>%
+  arrange(desc(mean_shap_value)) # Sort by descending SHAP value
+
+# Debugging: Print the structure of shap_summary_rf
+print(str(shap_summary_rf))  # Check the structure
+
+# Select the top n important climate features
+top_n <- 5 # Number of top features to display
+shap_summary_rf_top <- shap_summary_rf %>%
+  slice_head(n = top_n) # Retain top n rows
+
+# Debugging: Print shap_summary_rf_top to verify it's correctly created
+print(shap_summary_rf_top)
+
+# Define a color palette
+color_palette <- scale_fill_manual(values = c("skyblue", "orange", "yellowgreen","royalblue", "red4" ))
+
+# Plot the SHAP summary for top important climate features
+a11 <- ggplot(shap_summary_rf_top, aes(x = reorder(variable, mean_shap_value), y = mean_shap_value, fill = variable)) +
+  geom_bar(stat = "identity", width = 0.7) +
+  color_palette +
+  theme_minimal() +
+  labs(title = "RF", 
+       x = "climate factors", 
+       y = "mean SHAP value") +
+  coord_flip() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 18, face = "bold"),
+    axis.title = element_text(size = 16),
+    axis.text = element_text(size = 14),
+    legend.position = "none" # Remove legend
+  )
+
+# Display the plot
+print(a11)
+
+
+
+
+
+# Load required libraries
+library(xgboost)
+library(fastshap)
+
+library(ggplot2)
+library(dplyr)
+library(readxl)
+library(tidyr)
+library(VIM) # Load VIM for KNN imputation
+
+# Load data
+data_path <- "C:/R/LABSTAT/dengueData00-21.xlsx"
+data <- read_excel(data_path, sheet = "data1")
+
+# Handle duplicate column names from the Excel sheet
+colnames(data) <- make.names(colnames(data), unique = TRUE)
+
+# Impute missing values (zeros) in the 'Cases' column using KNN
+data$Cases[data$Cases == 0] <- NA
+data <- kNN(data, variable = "Cases", k = 6)
+
+# Log-transform cases
+data <- data %>% mutate(log_cases = log(Cases + 1))
+
+# Filter relevant columns (x1 to x7 and log_cases)
+climate_data <- data %>% select(Year, x1:x7, log_cases)
+
+# Split data into training (2000-2018) and testing (2019-2021) sets
+train_data <- climate_data %>% filter(Year >= 2000 & Year <= 2018)
+test_data <- climate_data %>% filter(Year >= 2019 & Year <= 2021)
+
+# Prepare data for XGBoost
+train_x <- as.matrix(train_data %>% select(x1:x7))
+train_y <- train_data$log_cases
+test_x <- as.matrix(test_data %>% select(x1:x7))
+test_y <- test_data$log_cases
+
+# Train an XGBoost model
+dtrain <- xgb.DMatrix(data = train_x, label = train_y)
+dtest <- xgb.DMatrix(data = test_x, label = test_y)
+params <- list(objective = "reg:squarederror", eval_metric = "rmse")
+xgb_model <- xgboost(params = params, data = dtrain, nrounds = 10000, verbose = 0)
+
+# Custom prediction function for fastshap
+predict_function <- function(model, newdata) {
+  predict(model, newdata)
+}
+
+# Compute SHAP values using fastshap::explain
+shap_values_xgb <- fastshap::explain(xgb_model, X = train_x, pred_wrapper = predict_function)
+
+# Convert SHAP values to a dataframe and take absolute values
+shap_xgb <- as.data.frame(shap_values_xgb)
+shap_xgb <- abs(shap_xgb)
+colnames(shap_xgb) <- colnames(train_x)
+
+# Summary of SHAP values
+shap_summary_xgb <- shap_xgb %>%
+  as_tibble() %>%
+  pivot_longer(cols = everything(), names_to = "variable", values_to = "value") %>%
+  group_by(variable) %>%
+  summarize(mean_shap_value = mean(value)) %>%
+  arrange(desc(mean_shap_value))
+
+# Select the top n important climate features
+top_n <- 5
+shap_summary_xgb_top <- shap_summary_xgb %>%
+  slice_head(n = top_n)
+
+# Define a color palette
+color_palette <- scale_fill_manual(values = c("skyblue", "orange", "yellowgreen", "royalblue", "red4"))
+
+# Plot the SHAP summary for top important climate features
+a12 <- ggplot(shap_summary_xgb_top, aes(x = reorder(variable, mean_shap_value), y = mean_shap_value, fill = variable)) +
+  geom_bar(stat = "identity", width = 0.7) +
+  color_palette +
+  theme_minimal() +
+  labs(title = "XGBoost", 
+       x = "climate factors", 
+       y = "mean SHAP value") +
+  coord_flip() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 18, face = "bold"),
+    axis.title = element_text(size = 16),
+    axis.text = element_text(size = 14),
+    legend.position = "none"
+  )
+
+# Display the plot
+print(a12)
+
+
+
+# Load required libraries
+library(lightgbm)
+library(fastshap)
+library(ggplot2)
+library(dplyr)
+library(readxl)
+library(tidyr)
+library(VIM) # Load VIM for KNN imputation
+
+# Load data
+data_path <- "C:/R/LABSTAT/dengueData00-21.xlsx"
+data <- read_excel(data_path, sheet = "data1")
+
+# Handle duplicate column names from the Excel sheet
+colnames(data) <- make.names(colnames(data), unique = TRUE)
+
+# Impute missing values (zeros) in the 'Cases' column using KNN
+data$x[data$x == 0] <- NA
+data <- kNN(data, variable = "x", k = 6)
+
+# Log-transform cases
+data <- data %>% mutate(log_cases = log(x + 1))
+
+# Filter relevant columns (x1 to x7 and log_cases)
+climate_data <- data %>% select(Year, x1:x7, log_cases)
+
+# Split data into training (2000-2018) and testing (2019-2021) sets
+train_data <- climate_data %>% filter(Year >= 2000 & Year <= 2018)
+test_data <- climate_data %>% filter(Year >= 2019 & Year <= 2021)
+
+# Prepare data for LightGBM
+train_x <- as.matrix(train_data %>% select(x1:x7))
+train_y <- train_data$log_cases
+test_x <- as.matrix(test_data %>% select(x1:x7))
+test_y <- test_data$log_cases
+
+# Create LightGBM datasets
+dtrain <- lgb.Dataset(data = train_x, label = train_y)
+dtest <- lgb.Dataset(data = test_x, label = test_y, reference = dtrain)
+
+# Set parameters for LightGBM
+params <- list(objective = "regression", metric = "rmse")
+
+# Train a LightGBM model
+lgb_model <- lgb.train(params = params, data = dtrain, nrounds = 10000, verbose = -1)
+
+# Custom prediction function for fastshap
+predict_function <- function(model, newdata) {
+  predict(model, newdata)
+}
+
+# Compute SHAP values using fastshap::explain
+shap_values_lgb <- fastshap::explain(lgb_model, X = train_x, pred_wrapper = predict_function)
+
+# Convert SHAP values to a dataframe and take absolute values
+shap_lgb <- as.data.frame(shap_values_lgb)
+shap_lgb <- abs(shap_lgb)
+colnames(shap_lgb) <- colnames(train_x)
+
+# Summary of SHAP values
+shap_summary_lgb <- shap_lgb %>%
+  as_tibble() %>%
+  pivot_longer(cols = everything(), names_to = "variable", values_to = "value") %>%
+  group_by(variable) %>%
+  summarize(mean_shap_value = mean(value)) %>%
+  arrange(desc(mean_shap_value))
+shap_summary_lgb
+# Select the top n important climate features
+top_n <- 5
+shap_summary_lgb_top <- shap_summary_lgb %>%
+  slice_head(n = top_n)
+
+# Define a color palette
+color_palette <- scale_fill_manual(values = c("skyblue", "orange", "yellowgreen", "royalblue", "red4"))
+
+# Plot the SHAP summary for top important climate features
+a13 <- ggplot(shap_summary_lgb_top, aes(x = reorder(variable, mean_shap_value), y = mean_shap_value, fill = variable)) +
+  geom_bar(stat = "identity", width = 0.7) +
+  color_palette +
+  theme_minimal() +
+  labs(title = "LightGBM", 
+       x = "climate factors", 
+       y = "mean SHAP value") +
+  coord_flip() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 18, face = "bold"),
+    axis.title = element_text(size = 16),
+    axis.text = element_text(size = 14),
+    legend.position = "none"
+  )
+
+# Display the plot
+print(a13)
+
+
+
+# Load required library
+library(gridExtra)
+
+# Combine the plots with a13 in the middle on the second row
+a= grid.arrange(a11, a12, a13, nrow = 1, ncol = 3)
+a
+
+
+
+library(gridExtra)
+library(grid)
+
+# Create the combined plot
+a <- grid.arrange(a11, a12, a13, nrow = 1, ncol = 3)
+
+# Add a border around the combined plot
+b1= grid.rect(gp = gpar(lwd = 2, col = "black"))
+
+# Load required libraries
+library(gridExtra)
+library(grid)
+
+# Assuming a11, a12, and a13 are pre-defined ggplot objects
+
+# Save the combined plot with high resolution
+png("1combined_climate_features.png", width = 15, height = 4, units = "in", res = 300)
+
+# Create the combined plot for Climate Features
+grid.newpage()  # Ensure a new page is created
+a <- grid.arrange(a11, a12, a13, nrow = 1, ncol = 3)  # Arrange the plots in a 1x3 grid
+
+# Close the PNG device and save the file
+dev.off()
+
+
+
+
+
+##############################################
+
+
+
+
+# Load required libraries
+library(randomForest)
+library(fastshap)
+library(ggplot2)
+library(dplyr)
+library(readxl)
+library(tidyr)
+library(VIM) # Load VIM for KNN imputation
+
+# Load data
+data_path <- "C:/R/LABSTAT/dengueData00-21.xlsx"
+data <- read_excel(data_path, sheet = "data1")
+
+# Handle duplicate column names from the Excel sheet
+colnames(data) <- make.names(colnames(data), unique = TRUE)
+
+# Impute missing values (zeros) in the 'Cases' column using KNN
+data$Cases[data$Cases == 0] <- NA
+data <- kNN(data, variable = "Cases", k = 6)
+
+# Log-transform cases
+data <- data %>% mutate(log_cases = log(Cases + 1))
+
+# Filter relevant columns (x8 to x18 and log_cases)
+climate_data <- data %>% select(Year, x8:x18, log_cases)
+
+# Split data into training (2000-2018) and testing (2019-2021) sets
+train_data <- climate_data %>% filter(Year >= 2000 & Year <= 2018)
+test_data <- climate_data %>% filter(Year >= 2019 & Year <= 2021)
+
+# Prepare data for Random Forest
+train_x <- as.data.frame(train_data %>% select(x8:x18))
+train_y <- train_data$log_cases
+test_x <- as.data.frame(test_data %>% select(x8:x18))
+test_y <- test_data$log_cases
+
+# Train a Random Forest model
+rf_model <- randomForest(x = train_x, y = train_y, ntree = 100000)
+
+# Custom prediction function for fastshap
+predict_function <- function(model, newdata) {
+  predict(model, newdata)
+}
+
+# Compute SHAP values using fastshap::explain
+shap_values_rf <- fastshap::explain(rf_model, X = train_x, pred_wrapper = predict_function)
+
+# Convert SHAP values to a dataframe and take absolute values
+shap_rf <- as.data.frame(shap_values_rf)
+shap_rf <- abs(shap_rf)
+colnames(shap_rf) <- colnames(train_x)
+
+# Summary of SHAP values
+shap_summary_rf <- shap_rf %>%
+  pivot_longer(cols = everything(), names_to = "variable", values_to = "value") %>%
+  group_by(variable) %>%
+  summarize(mean_shap_value = mean(value)) %>%
+  arrange(desc(mean_shap_value)) # Sort by descending SHAP value
+
+# Select the top 5 important features
+top_5 <- 5 # Number of top features to display
+shap_summary_rf_top <- shap_summary_rf %>%
+  slice_head(n = top_5)
+
+# Define a color palette
+color_palette <- scale_fill_manual(values = c("skyblue", "orange", "yellowgreen", "gray53", "purple", "pink", "yellow", "darkolivegreen2", "lavenderblush1", "royalblue", "wheat1", "springgreen"))
+
+# Plot the SHAP summary for top important features
+a21 <- ggplot(shap_summary_rf_top, aes(x = reorder(variable, mean_shap_value), y = mean_shap_value, fill = variable)) +
+  geom_bar(stat = "identity", width = 0.7) +
+  color_palette +
+  theme_minimal() +
+  labs(title = "RF", 
+       x = "Socio-demographic factors", 
+       y = "mean SHAP value") +
+  coord_flip() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 12),
+    legend.position = "none" # Remove legend
+  )
+
+# Display the plot
+print(a21)
+
+
+
+
+
+# Load required libraries
+library(xgboost)
+library(fastshap)
+library(ggplot2)
+library(dplyr)
+library(readxl)
+library(tidyr)
+library(VIM) # Load VIM for KNN imputation
+
+# Load data
+data_path <- "C:/R/LABSTAT/dengueData00-21.xlsx"
+data <- read_excel(data_path, sheet = "data1")
+
+# Handle duplicate column names from the Excel sheet
+colnames(data) <- make.names(colnames(data), unique = TRUE)
+
+# Impute missing values (zeros) in the 'Cases' column using KNN
+data$Cases[data$Cases == 0] <- NA
+data <- kNN(data, variable = "Cases", k = 6)
+
+# Log-transform cases
+data <- data %>% mutate(log_cases = log(Cases + 1))
+
+# Filter relevant columns (x8 to x18 and log_cases)
+climate_data <- data %>% select(Year, x8:x18, log_cases)
+
+# Split data into training (2000-2018) and testing (2019-2021) sets
+train_data <- climate_data %>% filter(Year >= 2000 & Year <= 2018)
+test_data <- climate_data %>% filter(Year >= 2019 & Year <= 2021)
+
+# Prepare data for XGBoost
+train_x <- as.matrix(train_data %>% select(x8:x18))
+train_y <- train_data$log_cases
+test_x <- as.matrix(test_data %>% select(x8:x18))
+test_y <- test_data$log_cases
+
+# Train an XGBoost model
+dtrain <- xgb.DMatrix(data = train_x, label = train_y)
+dtest <- xgb.DMatrix(data = test_x, label = test_y)
+params <- list(objective = "reg:squarederror", eval_metric = "rmse")
+xgb_model <- xgboost(params = params, data = dtrain, nrounds = 10000, verbose = 0)
+
+# Custom prediction function for fastshap
+predict_function <- function(model, newdata) {
+  predict(model, newdata)
+}
+
+# Compute SHAP values using fastshap::explain
+shap_values_xgb <- fastshap::explain(xgb_model, X = train_x, pred_wrapper = predict_function)
+
+# Convert SHAP values to a dataframe and take absolute values
+shap_xgb <- as.data.frame(shap_values_xgb)
+shap_xgb <- abs(shap_xgb)
+colnames(shap_xgb) <- colnames(train_x)
+
+# Summary of SHAP values
+shap_summary_xgb <- shap_xgb %>%
+  pivot_longer(cols = everything(), names_to = "variable", values_to = "value") %>%
+  group_by(variable) %>%
+  summarize(mean_shap_value = mean(value)) %>%
+  arrange(desc(mean_shap_value)) # Sort by descending SHAP value
+
+# Select the top 5 important features
+top_5 <- 5 # Number of top features to display
+shap_summary_xgb_top <- shap_summary_xgb %>%
+  slice_head(n = top_5)
+
+# Define a color palette
+color_palette <- scale_fill_manual(values = c("skyblue", "orange", "yellowgreen", "gray53", "purple", "pink", "yellow", "darkolivegreen2", "lavenderblush1", "royalblue", "wheat1", "springgreen"))
+
+# Plot the SHAP summary for top important features
+a22 <- ggplot(shap_summary_xgb_top, aes(x = reorder(variable, mean_shap_value), y = mean_shap_value, fill = variable)) +
+  geom_bar(stat = "identity", width = 0.7) +
+  color_palette +
+  theme_minimal() +
+  labs(title = "XGBoost", 
+       x = "Socio-demographic factors", 
+       y = "mean SHAP value") +
+  coord_flip() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 12),
+    legend.position = "none" # Remove legend
+  )
+
+# Display the plot
+print(a22)
+
+
+
+
+# Load required libraries
+library(lightgbm)
+library(fastshap)
+library(ggplot2)
+library(dplyr)
+library(readxl)
+library(tidyr)
+library(VIM) # Load VIM for KNN imputation
+
+# Load data
+data_path <- "C:/R/LABSTAT/dengueData00-21.xlsx"
+data <- read_excel(data_path, sheet = "data1")
+
+# Handle duplicate column names from the Excel sheet
+colnames(data) <- make.names(colnames(data), unique = TRUE)
+
+# Impute missing values (zeros) in the 'Cases' column using KNN
+data$x[data$x == 0] <- NA
+data <- kNN(data, variable = "x", k = 6)
+
+# Log-transform cases
+data <- data %>% mutate(log_cases = log(x + 1))
+
+# Filter relevant columns (x8 to x18 and log_cases)
+climate_data <- data %>% select(Year, x8:x18, log_cases)
+
+# Split data into training (2000-2018) and testing (2019-2021) sets
+train_data <- climate_data %>% filter(Year >= 2000 & Year <= 2018)
+test_data <- climate_data %>% filter(Year >= 2019 & Year <= 2021)
+
+# Prepare data for LightGBM
+train_x <- as.matrix(train_data %>% select(x8:x18))
+train_y <- train_data$log_cases
+test_x <- as.matrix(test_data %>% select(x8:x18))
+test_y <- test_data$log_cases
+
+# Create LightGBM datasets
+dtrain <- lgb.Dataset(data = train_x, label = train_y)
+dtest <- lgb.Dataset(data = test_x, label = test_y, reference = dtrain)
+
+# Set parameters for LightGBM
+params <- list(objective = "regression", metric = "rmse")
+
+# Train a LightGBM model
+lgb_model <- lgb.train(params = params, data = dtrain, nrounds = 500, verbose = -1)
+
+# Custom prediction function for fastshap
+predict_function <- function(model, newdata) {
+  predict(model, newdata)
+}
+
+# Compute SHAP values using fastshap::explain
+shap_values_lgb <- fastshap::explain(lgb_model, X = train_x, pred_wrapper = predict_function)
+
+# Convert SHAP values to a dataframe and take absolute values
+shap_lgb <- as.data.frame(shap_values_lgb)
+shap_lgb <- abs(shap_lgb)
+colnames(shap_lgb) <- colnames(train_x)
+
+# Summary of SHAP values
+shap_summary_lgb <- shap_lgb %>%
+  pivot_longer(cols = everything(), names_to = "variable", values_to = "value") %>%
+  group_by(variable) %>%
+  summarize(mean_shap_value = mean(value)) %>%
+  arrange(desc(mean_shap_value)) # Sort by descending SHAP value
+shap_summary_lgb
+# Select the top f important features
+top_f <- 5 # Number of top features to display
+shap_summary_lgb_top <- shap_summary_lgb %>%
+  slice_head(n = top_f)
+
+# Define a color palette
+color_palette <- scale_fill_manual(values = c("skyblue", "orange", "yellowgreen", "gray53", "purple", "pink", "yellow", "darkolivegreen2", "lavenderblush1", "royalblue", "wheat1", "springgreen"))
+
+# Plot the SHAP summary for top important features
+a23 <- ggplot(shap_summary_lgb_top, aes(x = reorder(variable, mean_shap_value), y = mean_shap_value, fill = variable)) +
+  geom_bar(stat = "identity", width = 0.7) +
+  color_palette +
+  theme_minimal() +
+  labs(title = "LightGBM", 
+       x = "Socio-demographic factors", 
+       y = "mean SHAP value") +
+  coord_flip() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 12),
+    legend.position = "none" # Remove legend
+  )
+
+# Display the plot
+print(a23)
+
+
+
+
+
+library(gridExtra)
+library(grid)
+
+# Create the combined plot
+b <- grid.arrange(a21, a22, a23, nrow = 1, ncol = 3)
+
+# Add a border around the combined plot
+b2= grid.rect(gp = gpar(lwd = 2, col = "black"))
+
+
+
+
+
+# Assuming a21, a22, and a23 are pre-defined ggplot objects
+
+# Save the combined plot with high resolution
+png("2combined_climate_features.png", width = 15, height = 4, units = "in", res = 300)
+
+# Create the combined plot for Climate Features
+grid.newpage()  # Ensure a new page is created
+b <- grid.arrange(a21, a22, a23, nrow = 1, ncol = 3)  # Arrange the plots in a 1x3 grid
+
+# Close the PNG device and save the file
+dev.off()
+
+
+
+########################################
+# Load required libraries
+library(randomForest)
+library(fastshap)
+library(ggplot2)
+library(dplyr)
+library(readxl)
+library(tidyr)
+library(VIM) # Load VIM for KNN imputation
+
+# Load data
+data_path <- "C:/R/LABSTAT/dengueData00-21.xlsx"
+data <- read_excel(data_path, sheet = "data1")
+
+# Handle duplicate column names from the Excel sheet
+colnames(data) <- make.names(colnames(data), unique = TRUE)
+
+# Impute missing values (zeros) in the 'Cases' column using KNN
+data$Cases[data$Cases == 0] <- NA
+data <- kNN(data, variable = "Cases", k = 6)
+
+# Log-transform cases
+data <- data %>% mutate(log_cases = log(Cases + 1))
+
+# Filter relevant columns (x19 to x22 and log_cases)
+landscape_data <- data %>% select(Year, x19:x22, log_cases)
+
+# Split data into training (2000-2018) and testing (2019-2021) sets
+train_data <- landscape_data %>% filter(Year >= 2000 & Year <= 2018)
+test_data <- landscape_data %>% filter(Year >= 2019 & Year <= 2021)
+
+# Prepare data for Random Forest
+train_x <- as.data.frame(train_data %>% select(x19:x22))
+train_y <- train_data$log_cases
+test_x <- as.data.frame(test_data %>% select(x19:x22))
+test_y <- test_data$log_cases
+
+# Train a Random Forest model
+rf_model <- randomForest(x = train_x, y = train_y, ntree = 10000)
+
+# Custom prediction function for fastshap
+predict_function <- function(model, newdata) {
+  predict(model, newdata)
+}
+
+# Compute SHAP values using fastshap::explain
+shap_values_rf <- fastshap::explain(rf_model, X = train_x, pred_wrapper = predict_function)
+
+# Convert SHAP values to a dataframe and take absolute values
+shap_rf <- as.data.frame(shap_values_rf)
+shap_rf <- abs(shap_rf)
+colnames(shap_rf) <- colnames(train_x)
+
+# Summary of SHAP values
+shap_summary_rf <- shap_rf %>%
+  pivot_longer(cols = everything(), names_to = "variable", values_to = "value") %>%
+  group_by(variable) %>%
+  summarize(mean_shap_value = mean(value)) %>%
+  arrange(desc(mean_shap_value)) # Sort by descending SHAP value
+
+# Select the top 4 important features
+top_4 <- 4 # Number of top features to display
+shap_summary_rf_top <- shap_summary_rf %>%
+  slice_head(n = top_4)
+
+# Define a color palette
+color_palette <- scale_fill_manual(values = c("skyblue", "orange", "yellowgreen", "red"))
+
+# Plot the SHAP summary for top important features
+a31 <- ggplot(shap_summary_rf_top, aes(x = reorder(variable, mean_shap_value), y = mean_shap_value, fill = variable)) +
+  geom_bar(stat = "identity", width = 0.7) +
+  color_palette +
+  theme_minimal() +
+  labs(title = "RF", 
+       x = "landscape factors", 
+       y = "mean SHAP value") +
+  coord_flip() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 12),
+    legend.position = "none" # Remove legend
+  )
+
+# Display the plot
+print(a31)
+
+
+
+
+
+# Load required libraries
+library(xgboost)
+library(fastshap)
+library(ggplot2)
+library(dplyr)
+library(readxl)
+library(tidyr)
+library(VIM) # Load VIM for KNN imputation
+
+# Load data
+data_path <- "C:/R/LABSTAT/dengueData00-21.xlsx"
+data <- read_excel(data_path, sheet = "data1")
+
+# Handle duplicate column names from the Excel sheet
+colnames(data) <- make.names(colnames(data), unique = TRUE)
+
+# Impute missing values (zeros) in the 'Cases' column using KNN
+data$Cases[data$Cases == 0] <- NA
+data <- kNN(data, variable = "Cases", k = 6)
+
+# Log-transform cases
+data <- data %>% mutate(log_cases = log(Cases + 1))
+
+# Filter relevant columns (x19 to x22 and log_cases)
+landscape_data <- data %>% select(Year, x19:x22, log_cases)
+
+# Split data into training (2000-2018) and testing (2019-2021) sets
+train_data <- landscape_data %>% filter(Year >= 2000 & Year <= 2018)
+test_data <- landscape_data %>% filter(Year >= 2019 & Year <= 2021)
+
+# Prepare data for XGBoost
+train_x <- as.matrix(train_data %>% select(x19:x22))
+train_y <- train_data$log_cases
+test_x <- as.matrix(test_data %>% select(x19:x22))
+test_y <- test_data$log_cases
+
+# Train an XGBoost model
+dtrain <- xgb.DMatrix(data = train_x, label = train_y)
+dtest <- xgb.DMatrix(data = test_x, label = test_y)
+params <- list(objective = "reg:squarederror", eval_metric = "rmse")
+xgb_model <- xgboost(params = params, data = dtrain, nrounds = 10000, verbose = 0)
+
+# Custom prediction function for fastshap
+predict_function <- function(model, newdata) {
+  predict(model, newdata)
+}
+
+# Compute SHAP values using fastshap::explain
+shap_values_xgb <- fastshap::explain(xgb_model, X = train_x, pred_wrapper = predict_function)
+
+# Convert SHAP values to a dataframe and take absolute values
+shap_xgb <- as.data.frame(shap_values_xgb)
+shap_xgb <- abs(shap_xgb)
+colnames(shap_xgb) <- colnames(train_x)
+
+# Summary of SHAP values
+shap_summary_xgb <- shap_xgb %>%
+  pivot_longer(cols = everything(), names_to = "variable", values_to = "value") %>%
+  group_by(variable) %>%
+  summarize(mean_shap_value = mean(value)) %>%
+  arrange(desc(mean_shap_value)) # Sort by descending SHAP value
+
+# Select the top 3 important features
+top_3 <- 4 # Number of top features to display
+shap_summary_xgb_top <- shap_summary_xgb %>%
+  slice_head(n = top_3)
+
+# Define a color palette
+color_palette <- scale_fill_manual(values = c("skyblue", "orange", "yellowgreen", "red"))
+
+# Plot the SHAP summary for top important features
+a32 <- ggplot(shap_summary_xgb_top, aes(x = reorder(variable, mean_shap_value), y = mean_shap_value, fill = variable)) +
+  geom_bar(stat = "identity", width = 0.7) +
+  color_palette +
+  theme_minimal() +
+  labs(title = "XGBoost", 
+       x = "landscape factors", 
+       y = "mean SHAP value") +
+  coord_flip() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 12),
+    legend.position = "none" # Remove legend
+  )
+
+# Display the plot
+print(a32)
+
+
+
+
+
+
+# Load required libraries
+library(lightgbm)
+library(fastshap)
+library(ggplot2)
+library(dplyr)
+library(readxl)
+library(tidyr)
+library(VIM) # Load VIM for KNN imputation
+
+# Load data
+data_path <- "C:/R/LABSTAT/dengueData00-21.xlsx"
+data <- read_excel(data_path, sheet = "data1")
+
+# Handle duplicate column names from the Excel sheet
+colnames(data) <- make.names(colnames(data), unique = TRUE)
+
+# Impute missing values (zeros) in the 'Cases' column using KNN
+data$x[data$x == 0] <- NA
+data <- kNN(data, variable = "x", k = 6)
+
+# Log-transform cases
+data <- data %>% mutate(log_cases = log(x + 1))
+
+# Filter relevant columns (x19 to x22 and log_cases)
+landscape_data <- data %>% select(Year, x19:x22, log_cases)
+
+# Split data into training (2000-2018) and testing (2019-2021) sets
+train_data <- landscape_data %>% filter(Year >= 2000 & Year <= 2018)
+test_data <- landscape_data %>% filter(Year >= 2019 & Year <= 2021)
+
+# Prepare data for LightGBM
+train_x <- as.matrix(train_data %>% select(x19:x22))
+train_y <- train_data$log_cases
+test_x <- as.matrix(test_data %>% select(x19:x22))
+test_y <- test_data$log_cases
+
+# Create LightGBM datasets
+dtrain <- lgb.Dataset(data = train_x, label = train_y)
+dtest <- lgb.Dataset(data = test_x, label = test_y, reference = dtrain)
+
+# Set parameters for LightGBM
+params <- list(objective = "regression", metric = "rmse")
+
+# Train a LightGBM model
+lgb_model <- lgb.train(params = params, data = dtrain, nrounds = 10000, verbose = -1)
+
+# Custom prediction function for fastshap
+predict_function <- function(model, newdata) {
+  predict(model, newdata)
+}
+
+# Compute SHAP values using fastshap::explain
+shap_values_lgb <- fastshap::explain(lgb_model, X = train_x, pred_wrapper = predict_function)
+
+# Convert SHAP values to a dataframe and take absolute values
+shap_lgb <- as.data.frame(shap_values_lgb)
+shap_lgb <- abs(shap_lgb)
+colnames(shap_lgb) <- colnames(train_x)
+
+# Summary of SHAP values
+shap_summary_lgb <- shap_lgb %>%
+  pivot_longer(cols = everything(), names_to = "variable", values_to = "value") %>%
+  group_by(variable) %>%
+  summarize(mean_shap_value = mean(value)) %>%
+  arrange(desc(mean_shap_value)) # Sort by descending SHAP value
+
+# Print the SHAP summary for all features
+print(shap_summary_lgb)
+
+# Select the top 4 important features
+top_4 <- 3 # Number of top features to display
+shap_summary_lgb_top <- shap_summary_lgb %>%
+  slice_head(n = top_4)
+
+# Print the top 4 SHAP values
+print(shap_summary_lgb_top)
+
+# Define a color palette
+color_palette <- scale_fill_manual(values = c("skyblue", "orange", "yellowgreen", "red"))
+
+# Plot the SHAP summary for top important features
+a33 <- ggplot(shap_summary_lgb_top, aes(x = reorder(variable, mean_shap_value), y = mean_shap_value, fill = variable)) +
+  geom_bar(stat = "identity", width = 0.7) +
+  color_palette +
+  theme_minimal() +
+  labs(title = "LightGBM", 
+       x = "landscape factors", 
+       y = "mean SHAP value") +
+  coord_flip() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 12),
+    legend.position = "none" # Remove legend
+  )
+
+# Display the plot
+print(a33)
+
+# Print the SHAP summary for all features
+print(shap_summary_lgb)
+
+
+
+
+library(gridExtra)
+library(grid)
+
+# Create the combined plot
+c <- grid.arrange(a31, a32, a33, nrow = 1, ncol = 3)
+
+# Add a border around the combined plot
+b3= grid.rect(gp = gpar(lwd = 2, col = "black"))
+
+
+
+# Assuming a31, a32, and a33 are pre-defined ggplot objects
+
+# Save the combined plot with high resolution
+png("3combined_climate_features.png", width = 15, height = 4, units = "in", res = 300)
+
+# Create the combined plot for Climate Features
+grid.newpage()  # Ensure a new page is created
+c <- grid.arrange(a31, a32, a33, nrow = 1, ncol = 3)  # Arrange the plots in a 1x3 grid
+
+# Close the PNG device and save the file
+dev.off()
+
+######################################################
+####################################################
+
+
+# Load required libraries
+library(lightgbm)
+library(fastshap)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(readxl)
+library(caret)  # For kNN imputation
+
+# Load data
+data_path <- "C:/R/LABSTAT/dengueData00-21.xlsx"
+data <- read_excel(data_path, sheet = "data1")
+
+# Handle duplicate column names from the Excel sheet
+colnames(data) <- make.names(colnames(data), unique = TRUE)
+
+# Impute missing values (zeros) in the 'Cases' column using kNN
+data$x[data$x == 0] <- NA
+data <- kNN(data, variable = "x", k = 6)
+data
+# Log-transform cases
+data <- data %>% mutate(log_cases = log(x + 1))
+
+# Filter relevant columns (x1 to x7 and log_cases)
+climate_data <- data %>% select(Year, x1:x7, log_cases)
+
+# Split data into training (2000-2018) and testing (2019-2021) sets
+train_data <- climate_data %>% filter(Year >= 2000 & Year <= 2018)
+test_data <- climate_data %>% filter(Year >= 2019 & Year <= 2021)
+
+# Prepare data for LightGBM
+train_x <- as.matrix(train_data %>% select(x1:x7))
+train_y <- train_data$log_cases
+test_x <- as.matrix(test_data %>% select(x1:x7))
+test_y <- test_data$log_cases
+
+# Create LightGBM datasets
+dtrain <- lgb.Dataset(data = train_x, label = train_y)
+dtest <- lgb.Dataset.create.valid(dtrain, test_x, label = test_y)
+
+# Set parameters for LightGBM
+params <- list(
+  objective = "regression",
+  learning_rate = 0.05,
+  subsample = 0.9,
+  reg_lambda = 3,
+  num_leaves = 15
+)
+
+# Train a LightGBM model
+mlgb <- lgb.train(
+  params,
+  data = dtrain,
+  valids = list(valid = dtest),
+  early_stopping_rounds = 20,
+  eval_freq = 100,
+  eval = "rmse",
+  nrounds = 1000000
+)
+
+# Custom prediction function for fastshap
+predict_function <- function(model, newdata) {
+  predict(model, newdata)
+}
+
+# Compute SHAP values using fastshap::explain
+shap_values <- fastshap::explain(mlgb, X = train_x, pred_wrapper = predict_function)
+shap_values
+# Convert SHAP values to a dataframe
+shap_long <- as.data.frame(shap_values)
+colnames(shap_long) <- colnames(train_x)
+
+# Pivot data to long format for ggplot2
+shap_long <- shap_long %>%
+  pivot_longer(cols = everything(), names_to = "feature", values_to = "shap_value") %>%
+  mutate(feature = reorder(feature, abs(shap_value), FUN = median))
+shap_long
+library(ggplot2)
+library(viridis)
+
+# Create the SHAP summary plot
+plot_shap_summary1 <- ggplot(shap_long, aes(x = shap_value, y = feature, color = abs(shap_value))) +
+  geom_point(alpha = 0.6, size = 4) +  # Points with transparency and size
+  geom_jitter(width = 0.1) +           # Add jitter for better visualization
+  scale_color_viridis_c() +            # Use a perceptually uniform color scale
+  theme_minimal() +                    # Clean minimal theme
+  labs(
+    x = "SHAP value",
+    y = "a. climate feature",
+    color = "absolute SHAP value"      # Capitalization for consistency
+  ) +
+  theme(
+    legend.position = "bottom",        # Move the legend to the bottom
+    axis.title = element_text(face = "bold", size = 18),  # Bold and larger axis titles
+    axis.text = element_text(size = 14),                 # Larger axis tick labels
+    legend.title = element_text(face = "bold", size = 18), # Bold and larger legend title
+    legend.text = element_text(size = 14)                # Larger legend text
+  )
+
+# Display the plot
+x1= print(plot_shap_summary1)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Load required libraries
+library(lightgbm)
+library(fastshap)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(readxl)
+library(caret)  # For kNN imputation
+
+# Load data
+data_path <- "C:/R/LABSTAT/dengueData00-21.xlsx"
+data <- read_excel(data_path, sheet = "data1")
+
+# Handle duplicate column names from the Excel sheet
+colnames(data) <- make.names(colnames(data), unique = TRUE)
+
+# Impute missing values (zeros) in the 'Cases' column using kNN
+data$x[data$x == 0] <- NA
+data <- kNN(data, variable = "x", k = 6)
+
+# Log-transform cases
+data <- data %>% mutate(log_cases = log(x + 1))
+
+# Filter relevant columns (x1 to x7 and log_cases)
+climate_data <- data %>% select(Year, x8:x18, log_cases)
+
+# Split data into training (2000-2018) and testing (2019-2021) sets
+train_data <- climate_data %>% filter(Year >= 2000 & Year <= 2018)
+test_data <- climate_data %>% filter(Year >= 2019 & Year <= 2021)
+
+# Prepare data for LightGBM
+train_x <- as.matrix(train_data %>% select(x8:x18))
+train_y <- train_data$log_cases
+test_x <- as.matrix(test_data %>% select(x8:x18))
+test_y <- test_data$log_cases
+
+# Create LightGBM datasets
+dtrain <- lgb.Dataset(data = train_x, label = train_y)
+dtest <- lgb.Dataset.create.valid(dtrain, test_x, label = test_y)
+
+# Set parameters for LightGBM
+params <- list(
+  objective = "regression",
+  learning_rate = 0.05,
+  subsample = 0.9,
+  reg_lambda = 3,
+  num_leaves = 15
+)
+
+# Train a LightGBM model
+mlgb <- lgb.train(
+  params,
+  data = dtrain,
+  valids = list(valid = dtest),
+  early_stopping_rounds = 20,
+  eval_freq = 100,
+  eval = "rmse",
+  nrounds = 100000
+)
+
+# Custom prediction function for fastshap
+predict_function <- function(model, newdata) {
+  predict(model, newdata)
+}
+
+# Compute SHAP values using fastshap::explain
+shap_values <- fastshap::explain(mlgb, X = train_x, pred_wrapper = predict_function)
+
+# Convert SHAP values to a dataframe
+shap_long <- as.data.frame(shap_values)
+colnames(shap_long) <- colnames(train_x)
+
+# Pivot data to long format for ggplot2
+shap_long <- shap_long %>%
+  pivot_longer(cols = everything(), names_to = "feature", values_to = "shap_value") %>%
+  mutate(feature = reorder(feature, abs(shap_value), FUN = median))
+
+library(ggplot2)
+library(viridis)
+
+# Create the SHAP summary plot
+plot_shap_summary2 <- ggplot(shap_long, aes(x = shap_value, y = feature, color = abs(shap_value))) +
+  geom_point(alpha = 0.6, size = 4) +  # Points with transparency and size
+  geom_jitter(width = 0.1) +           # Add jitter for better visualization
+  scale_color_viridis_c() +            # Use a perceptually uniform color scale
+  theme_minimal() +                    # Clean minimal theme
+  labs(
+    x = "SHAP value",
+    y = "b. socio-demographic feature",
+    color = "absolute SHAP value"      # Capitalization for consistency
+  ) +
+  theme(
+    legend.position = "bottom",        # Move the legend to the bottom
+    axis.title = element_text(face = "bold", size = 18),  # Bold and larger axis titles
+    axis.text = element_text(size = 14),                 # Larger axis tick labels
+    legend.title = element_text(face = "bold", size = 18), # Bold and larger legend title
+    legend.text = element_text(size = 14)                # Larger legend text
+  )
+
+
+
+x2= print(plot_shap_summary2)
+
+
+
+
+
+
+
+
+# Load required libraries
+library(lightgbm)
+library(fastshap)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(readxl)
+library(caret)  # For kNN imputation
+
+# Load data
+data_path <- "C:/R/LABSTAT/dengueData00-21.xlsx"
+data <- read_excel(data_path, sheet = "data1")
+
+# Handle duplicate column names from the Excel sheet
+colnames(data) <- make.names(colnames(data), unique = TRUE)
+
+# Impute missing values (zeros) in the 'Cases' column using kNN
+data$x[data$x == 0] <- NA
+data <- kNN(data, variable = "x", k = 6)
+
+# Log-transform cases
+data <- data %>% mutate(log_cases = log(x + 1))
+
+# Filter relevant columns (x1 to x7 and log_cases)
+climate_data <- data %>% select(Year, x19:x22, log_cases)
+
+# Split data into training (2000-2018) and testing (2019-2021) sets
+train_data <- climate_data %>% filter(Year >= 2000 & Year <= 2018)
+test_data <- climate_data %>% filter(Year >= 2019 & Year <= 2021)
+
+# Prepare data for LightGBM
+train_x <- as.matrix(train_data %>% select(x19:x22))
+train_y <- train_data$log_cases
+test_x <- as.matrix(test_data %>% select(x19:x22))
+test_y <- test_data$log_cases
+
+# Create LightGBM datasets
+dtrain <- lgb.Dataset(data = train_x, label = train_y)
+dtest <- lgb.Dataset.create.valid(dtrain, test_x, label = test_y)
+
+# Set parameters for LightGBM
+params <- list(
+  objective = "regression",
+  learning_rate = 0.05,
+  subsample = 0.9,
+  reg_lambda = 3,
+  num_leaves = 15
+)
+
+# Train a LightGBM model
+mlgb <- lgb.train(
+  params,
+  data = dtrain,
+  valids = list(valid = dtest),
+  early_stopping_rounds = 200,
+  eval_freq = 500,
+  eval = "rmse",
+  nrounds = 100
+)
+
+# Custom prediction function for fastshap
+predict_function <- function(model, newdata) {
+  predict(model, newdata)
+}
+
+# Compute SHAP values using fastshap::explain
+shap_values <- fastshap::explain(mlgb, X = train_x, pred_wrapper = predict_function)
+
+# Convert SHAP values to a dataframe
+shap_long <- as.data.frame(shap_values)
+colnames(shap_long) <- colnames(train_x)
+
+# Pivot data to long format for ggplot2
+shap_long <- shap_long %>%
+  pivot_longer(cols = everything(), names_to = "feature", values_to = "shap_value") %>%
+  mutate(feature = reorder(feature, abs(shap_value), FUN = median))
+
+
+library(ggplot2)
+library(viridis)
+
+# Create the SHAP summary plot
+plot_shap_summary3 <- ggplot(shap_long, aes(x = shap_value, y = feature, color = abs(shap_value))) +
+  geom_point(alpha = 0.6, size = 4) +  # Points with transparency and size
+  geom_jitter(width = 0.1) +           # Add jitter for better visualization
+  scale_color_viridis_c() +            # Use a perceptually uniform color scale
+  theme_minimal() +                    # Clean minimal theme
+  labs(
+    x = "SHAP value",
+    y = "c. landscape feature",
+    color = "absolute SHAP value"      # Capitalization for consistency
+  ) +
+  theme(
+    legend.position = "bottom",        # Move the legend to the bottom
+    axis.title = element_text(face = "bold", size = 18),  # Bold and larger axis titles
+    axis.text = element_text(size = 14),                 # Larger axis tick labels
+    legend.title = element_text(face = "bold", size = 18), # Bold and larger legend title
+    legend.text = element_text(size = 14)                # Larger legend text
+  )
+
+
+
+x3= print(plot_shap_summary3)
+
+
+
+
+
+# Save Climate Features (Fig 6a)
+ggsave("Fig6a_Climate_Features.png", 
+       plot = plot_shap_summary1, 
+       dpi = 300, 
+       width = 8, 
+       height = 6, 
+       units = "in")
+
+# Save Socio-Demographic Features (Fig 6b)
+ggsave("Fig6b_SocioDemographic_Features.png", 
+       plot = plot_shap_summary2, 
+       dpi = 300, 
+       width = 8, 
+       height = 6, 
+       units = "in")
+
+# Save Landscape Features (Fig 6c)
+ggsave("Fig6c_Landscape_Features.png", 
+       plot = plot_shap_summary3, 
+       dpi = 300, 
+       width = 8, 
+       height = 6, 
+       units = "in")
+
+
+
+plot_grid(x1,x2,x3, ncol=3)
+# Load the patchwork library
+library(patchwork)
+
+# Combine the plots with a single shared legend
+combined_plot <- x1 + x2 + x3 +
+  plot_layout(guides = "collect") &  # Collect shared legend
+  theme(legend.position = "bottom")  # Place legend at the bottom
+combined_plot
+# Save the combined plot to a file
+ggsave(
+  filename = "combined_shap_plot.png",  # Output file name
+  plot = combined_plot,                # Plot to save
+  width = 24,                          # Width in cm
+  height = 8,                          # Height in cm
+  units = "in",                        # Unit of dimensions
+  dpi = 300                            # Resolution in DPI
+)
+
+# Display a message to confirm saving
+cat("Plot saved successfully as 'combined_shap_plot.png'")
+
+
+
+###############################
+library(ggplot2)
+library(patchwork)
+library(cowplot)
+
+# Add titles (with only "Fig 6a." bold) for each plot
+plot_shap_summary1 <- x1 +
+  theme(plot.margin = unit(c(1, 1, 1, 1), "lines")) +
+  labs(title = expression(bold("Fig 6a.") ~ " Climate Features")) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold")  # Bold "Fig 6a."
+  )
+
+plot_shap_summary2 <- x2 +
+  theme(plot.margin = unit(c(1, 1, 1, 1), "lines")) +
+  labs(title = "Fig 6b. Socio-Demographic Features") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "plain")  # Plain text for others
+  )
+
+plot_shap_summary3 <- x3 +
+  theme(plot.margin = unit(c(1, 1, 1, 1), "lines")) +
+  labs(title = "Fig 6c. Landscape Features") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "plain")  # Plain text for others
+  )
+
+# Combine the plots with individual borders
+combined_plot <- plot_grid(
+  plot_shap_summary1 + theme(plot.background = element_rect(color = "black", size = 1.5)),
+  plot_shap_summary2 + theme(plot.background = element_rect(color = "black", size = 1.5)),
+  plot_shap_summary3 + theme(plot.background = element_rect(color = "black", size = 1.5)),
+  ncol = 3
+)
+
+# Add a border around the final combined plot
+final_plot <- ggdraw(combined_plot) +
+  theme(plot.background = element_rect(color = "black", size = 2))
+
+# Save the final combined plot
+ggsave("Fig6_Combined_SHAP_Features_with_Borders.png", 
+       plot = final_plot, 
+       dpi = 300, 
+       width = 20,   # Adjust width for side-by-side plots
+       height = 8, 
+       units = "in")
+
+
+###########################################
+
+######################EaRLYwARNING###############
+
+
+
+########################################
+###########################################
+###########################################
+
+# Install and load necessary packages
+# install.packages(c("readxl", "ggplot2", "randomForest", "caret", "dplyr"))
+library(readxl)
+library(ggplot2)
+library(randomForest)
+library(caret)
+library(dplyr)
+
+# Load data
+data_path <- "C:/R/LABSTAT/dengueData00-21.xlsx"
+data <- read_excel(data_path, sheet = "data1")
+
+# Convert Month names to numeric values
+data$Month <- as.numeric(factor(data$Months, levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+                                                        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")))
+
+# Log-transform the dengue cases (Cases)
+data$log_Cases <- log(data$x + 1)  # Adding 1 to avoid log(0)
+
+# Split the data into training and testing sets
+train_data <- data[data$Year >= 2000 & data$Year <= 2018, ]
+test_data <- data[data$Year >= 2019 & data$Year <= 2021, ]
+
+# Select specific predictors
+predictors <- c("Month", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11", 
+                "x12", "x13", "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21", "x22")
+
+# Subset the data for modeling
+train_data <- train_data[, c(predictors, "log_Cases")]
+test_data <- test_data[, c(predictors, "log_Cases")]
+
+# Hyperparameter Tuning with Grid Search
+tune_grid <- expand.grid(mtry = c(2, 3, 4))
+control <- trainControl(method = "cv", number = 5)
+
+# Train Random Forest model with hyperparameter tuning
+set.seed(123)  # For reproducibility
+rf_tuned <- train(log_Cases ~ ., data = train_data,
+                  method = "rf",
+                  tuneGrid = tune_grid,
+                  trControl = control,
+                  importance = TRUE)
+
+# Print model summary
+print(rf_tuned)
+
+# Generate predictions
+predictions <- predict(rf_tuned, newdata = test_data)
+
+# Add predictions and warnings to the test dataset
+test_data$Predicted <- predictions
+threshold <- 3  # Define a custom threshold for warnings
+test_data$Warning <- ifelse(test_data$Predicted > threshold, "Warning", "No Warning")
+
+# Check if the Year column exists in test_data
+if (!"Year" %in% colnames(test_data)) {
+  # If Year is missing, derive it (assuming starting year is 2000)
+  start_year <- 2000  # Replace with the actual starting year
+  test_data$Year <- start_year + (seq_along(test_data$Month) - 1) %/% 12
+}
+
+# Ensure the Year column in the test_data corresponds to 2019–2021
+test_data$Year <- 2019 + (seq_along(test_data$Month) - 1) %/% 12  # Adjust year logic
+
+# Create the results dataframe
+results <- data.frame(
+  Year = test_data$Year,
+  Month = test_data$Month,
+  Actual = exp(test_data$log_Cases) - 1,
+  Predicted = exp(test_data$Predicted) - 1,
+  Warning = test_data$Warning
+)
+
+# Confirm the results data
+print(head(results))
+results
+# View the results to confirm
+print(head(results))
+
+# Plot actual vs predicted with warnings
+plot11 = ggplot(data = results, aes(x = interaction(Year, Month, sep = "-"), group = 1)) +
+  geom_line(aes(y = log(Actual), color = 'Actual')) +
+  geom_line(aes(y = log(Predicted), color = 'Predicted')) +
+  geom_point(data = subset(results, Warning == "Warning"), aes(y = log(Predicted), color = 'Warning'), size = 2) +
+  labs(title = "RF model",
+       x = "",
+       y = " ",
+       color = "Legend") +
+  scale_color_manual(values = c('Actual' = 'black', 'Predicted' = 'red', 'Warning' = 'red')) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 12, face = "bold"),
+        axis.text.y = element_text(size = 12, face = "bold"),
+        axis.title.x = element_text(size = 12, face = "bold"),
+        axis.title.y = element_text(size = 12, face = "bold"),
+        plot.title = element_text(size = 16, hjust=.5, face = "bold"),
+        legend.position = "none")
+
+
+plot11
+
+# Forecasting from 2022 to 2030
+future_months <- expand.grid(
+  Year = 2022:2026,
+  Month = factor(c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"),
+                 levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))
+)
+
+# Convert future month names to numeric
+future_months$Month <- as.numeric(factor(future_months$Month, 
+                                         levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+                                                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")))
+
+# Add placeholder values for the predictors to forecast future data
+future_data <- future_months %>% 
+  mutate(
+    x1 = median(data$x1, na.rm = TRUE),
+    x2 = median(data$x2, na.rm = TRUE),
+    x3 = median(data$x3, na.rm = TRUE),
+    x4 = median(data$x4, na.rm = TRUE),
+    x5 = median(data$x5, na.rm = TRUE),
+    x6 = median(data$x6, na.rm = TRUE),
+    x7 = median(data$x7, na.rm = TRUE),
+    x8 = median(data$x8, na.rm = TRUE),
+    x9 = median(data$x9, na.rm = TRUE),
+    x10 = median(data$x10, na.rm = TRUE),
+    x11 = median(data$x11, na.rm = TRUE),
+    x12 = median(data$x12, na.rm = TRUE),
+    x13 = median(data$x13, na.rm = TRUE),
+    x14 = median(data$x14, na.rm = TRUE),
+    x15 = median(data$x15, na.rm = TRUE),
+    x16 = median(data$x16, na.rm = TRUE),
+    x17 = median(data$x17, na.rm = TRUE),
+    x18 = median(data$x18, na.rm = TRUE),
+    x19 = median(data$x19, na.rm = TRUE),
+    x20 = median(data$x20, na.rm = TRUE),
+    x21 = median(data$x21, na.rm = TRUE),
+    x22 = median(data$x22, na.rm = TRUE)
+  )
+
+# Predict future data
+future_predictions <- predict(rf_tuned, newdata = future_data)
+
+# Continue creating the future results dataframe
+future_results <- data.frame(
+  Year = future_data$Year,
+  Month = future_data$Month,
+  Predicted = exp(future_predictions) - 1  # Convert log scale predictions back to original scale
+)
+future_results
+# Add a warning column based on the same threshold
+future_results$Warning <- ifelse(future_results$Predicted > threshold, "Warning", "No Warning")
+future_results$Warning
+# Combine Year and Month into a single column for plotting
+future_results$YearMonth <- interaction(future_results$Year, future_results$Month, sep = "-")
+future_results$YearMonth
+# Plot future predictions with warnings
+plot12 = ggplot(data = future_results, aes(x = YearMonth, y = log(Predicted), group = 1)) +
+  geom_line(color = "red") +
+  geom_point(data = subset(future_results, Warning == "Warning"),
+             aes(x = YearMonth, y = log(Predicted), color = "Warning"), size = 3) +
+  labs(title = "RF model",
+       x = "",
+       y = "",
+       color = "Legend") +
+  scale_color_manual(values = c("Warning" = "red")) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 12, face = "bold"),
+        axis.text.y = element_text(size = 12, face = "bold"),
+        axis.title.x = element_text(size = 12, face = "bold"),
+        axis.title.y = element_text(size = 12, face = "bold"),
+        plot.title = element_text(size = 16, hjust=.5, face = "bold"),
+        legend.position = "none")
+
+plot12
+
+# Set early warning threshold for future predictions
+future_threshold <- quantile(future_predictions, 0.75)
+
+# Generate warnings for future predictions
+future_results$Warning <- ifelse(future_predictions > future_threshold, "Warning", "No Warning")
+future_results
+# Display future warnings with corresponding values
+future_warnings <- future_results[future_results$Warning == "Warning", ]
+print(future_warnings)
+
+
+
+
+
+
+# Load the necessary library for accuracy metrics
+library(Metrics)
+#RF
+# Calculate accuracy metrics
+actual_values1 <- test_data$log_Cases - 1  # Convert log scale back to original scale
+predicted_values1 <- test_data$Predicted - 1
+
+# Mean Absolute Error (MAE)
+mae_value <- mae(actual_values, predicted_values)
+
+# Root Mean Square Error (RMSE)
+rmse_value <- rmse(actual_values, predicted_values)
+
+# R-squared (R²)
+r_squared <- 1 - sum((actual_values - predicted_values)^2) / sum((actual_values - mean(actual_values))^2)
+
+# Display accuracy metrics
+cat("Model Accuracy Metrics:\n")
+cat("Mean Absolute Error (MAE):", mae_value, "\n")
+cat("Root Mean Square Error (RMSE):", rmse_value, "\n")
+cat("R-squared (R²):", r_squared, "\n")
+
+
+
+# Optionally, you can also print out a scatter plot of the actual vs predicted values to visualize the model performance
+plot13= ggplot(data = data.frame(Actual = actual_values1, Predicted = predicted_values1), aes(x = Actual, y = Predicted)) +
+  geom_point() +
+  geom_abline(slope = 1, intercept = 0, color = "red") +  # Line for perfect predictions
+  labs(title = "RF model", x = "", y = "predicted cases") +
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 12, face = "bold"),
+        axis.text.y = element_text(size = 12, face = "bold"),
+        axis.title.x = element_text(size = 12, face = "bold"),
+        axis.title.y = element_text(size = 12, face = "bold"),
+        plot.title = element_text(size = 16, hjust=.5,face = "bold"),
+        legend.position = "none")
+
+plot13
+
+
+
+
+
+
+
+
+
+
+
+
+###########################################################
+
+
+
+
+
+
+##################################################################################
+
+# Install and load necessary packages
+# install.packages(c("readxl", "ggplot2", "xgboost", "caret", "dplyr"))
+library(readxl)
+library(ggplot2)
+library(xgboost)
+library(caret)
+library(dplyr)
+
+# Load data
+data_path <- "C:/R/LABSTAT/dengueData00-21.xlsx"
+data <- read_excel(data_path, sheet = "data1")
+
+# Convert Month names to factors
+data$Month <- factor(data$Months, levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))
+
+# Log transform the dengue cases (x)
+data$Cases <- log(data$x + 1)  # Adding 1 to avoid log(0)
+
+# Split the data into training and testing sets
+train_data <- data[data$Year >= 2000 & data$Year <= 2018, ]
+test_data <- data[data$Year >= 2019 & data$Year <= 2021, ]
+
+# Select specific climate factors for prediction
+predictors11 <- c("Month", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21", "x22")
+
+# Prepare data for XGBoost (Convert categorical Month to numeric and prepare DMatrix)
+train_data$Month <- as.numeric(train_data$Month)
+test_data$Month <- as.numeric(test_data$Month)
+
+# Prepare matrices for XGBoost
+train_matrix <- as.matrix(train_data[, predictors11])
+test_matrix <- as.matrix(test_data[, predictors11])
+
+# Define target variable (log_Cases)
+train_label <- train_data$Cases
+test_label <- test_data$Cases
+
+# Hyperparameter tuning using cross-validation
+param <- list(
+  objective = "reg:squarederror",
+  eta = 0.1,
+  max_depth = 6,
+  min_child_weight = 1,
+  subsample = 0.8,
+  colsample_bytree = 0.8,
+  eval_metric = "rmse"
+)
+
+# Train XGBoost model
+set.seed(123)  # For reproducibility
+xgb_model11 <- xgboost(data = train_matrix, label = train_label, params = param, nrounds = 1000, 
+                       early_stopping_rounds = 10, verbose = 0)
+
+# Predict on the test data
+predictions12 <- predict(xgb_model11, newdata = test_matrix)
+
+# Evaluate model performance (Root Mean Squared Error)
+rmse <- sqrt(mean((test_label - predictions12)^2))
+cat("Root Mean Squared Error (RMSE):", rmse, "\n")
+
+# Define threshold for early warning
+threshold <- quantile(predictions12, 0.75)  # Example: top 25% of predicted cases
+
+# Generate warnings
+test_data$Warning <- ifelse(predictions12 > threshold, "Warning", "No Warning")
+
+# Create results dataframe
+results <- data.frame(
+  Year = test_data$Year,
+  Month = test_data$Month,
+  Actual = exp(test_data$Cases) - 1,
+  Predicted = exp(predictions12) - 1,
+  Warning = test_data$Warning
+)
+
+
+results
+
+
+
+# Plot actual vs predicted with warnings
+plot21= ggplot(data = results, aes(x = interaction(Year, Month, sep = "-"), group = 1)) +
+  geom_line(aes(y = log(Actual)), color = 'black') +  # Actual line in black
+  geom_line(aes(y = log(Predicted)), color = 'red') +  # Predicted line in red
+  geom_point(data = subset(results, Warning == "Warning"), aes(y = log(Predicted)), color = 'red', size = 2) +  # Warning points in red
+  labs(title = "XGBoost model",
+       x = "",
+       y = "log dengue cases") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 12, face = "bold"),
+        axis.text.y = element_text(size = 12, face = "bold"),
+        axis.title.x = element_text(size = 12, face = "bold"),
+        axis.title.y = element_text(size = 12, face = "bold"),
+        plot.title = element_text(size = 16,hjust=.5, face = "bold"),
+        legend.position = "none")
+plot21
+# Forecasting from 2022 to 2030
+future_months13 <- expand.grid(
+  Year = 2022:2026,
+  Month = factor(c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"),
+                 levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))
+)
+
+# Add placeholder values for the predictors to forecast future data
+future_data14 <- future_months13 %>%
+  mutate(
+    x1 = median(data$x1, na.rm = TRUE),
+    x2 = median(data$x2, na.rm = TRUE),
+    x3 = median(data$x3, na.rm = TRUE),
+    x4 = median(data$x4, na.rm = TRUE),
+    x5 = median(data$x5, na.rm = TRUE),
+    x6 = median(data$x6, na.rm = TRUE),
+    x7 = median(data$x7, na.rm = TRUE),
+    x8 = median(data$x8, na.rm = TRUE),
+    x9 = median(data$x9, na.rm = TRUE),
+    x10 = median(data$x10, na.rm = TRUE),
+    x11 = median(data$x11, na.rm = TRUE),
+    x12 = median(data$x12, na.rm = TRUE),
+    x13 = median(data$x13, na.rm = TRUE),
+    x14 = median(data$x14, na.rm = TRUE),
+    x15 = median(data$x15, na.rm = TRUE),
+    x16 = median(data$x16, na.rm = TRUE),
+    x17 = median(data$x17, na.rm = TRUE),
+    x18 = median(data$x18, na.rm = TRUE),
+    x19 = median(data$x19, na.rm = TRUE),
+    x20 = median(data$x20, na.rm = TRUE),
+    x21 = median(data$x21, na.rm = TRUE),
+    x22 = median(data$x22, na.rm = TRUE)
+  )
+
+# Convert 'Month' to numeric for model compatibility
+future_data14$Month <- as.numeric(future_data14$Month)
+
+# Prepare the matrix for prediction using the same predictors
+future_matriX <- as.matrix(future_data14[, predictors11])
+
+# Ensure column names match the model's expected feature names
+colnames(future_matriX) <- colnames(train_matrix)
+
+# Make predictions for future data
+future_predictions155 <- predict(xgb_model11, newdata = future_matriX)
+
+# Display forecast results
+future_results188 <- data.frame(
+  Year = future_data14$Year,
+  Month = future_data14$Month,
+  Predicted = exp(future_predictions155) - 1
+)
+future_results188$Warning <- ifelse(future_results188$Predicted > threshold, "Warning", "No Warning")
+
+# View forecasted results for future years
+print(future_results188)
+# Step 9: Plot the future predictions
+plot22= ggplot(data = future_results188, aes(x = interaction(Year, Month, sep = "-"), group = 1)) +
+  geom_line(aes(y = log(Predicted), color = 'Predicted')) +  # Log-transformed predicted values
+  geom_point(data = subset(future_results188, Warning == "Warning"), 
+             aes(x = interaction(Year, Month, sep = "-"), y = log(Predicted), color = 'Warning'), 
+             size = 3, shape = 16) +  # Warning points (circles) in the plot
+  labs(title = "XGBoost model", 
+       x = "", 
+       y = "log of predicted dengue cases") +  # Label y-axis as log of predicted cases
+  scale_color_manual(values = c('Predicted' = 'red', 'Warning' = 'red')) +  # Both Predicted and Warning in red
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 12, face = "bold"),
+        axis.text.y = element_text(size = 12, face = "bold"),
+        axis.title.x = element_text(size = 12, face = "bold"),
+        axis.title.y = element_text(size = 12, face = "bold"),
+        plot.title = element_text(size = 16,hjust=.5, face = "bold"),
+        legend.position = "none")
+
+plot22
+# Step 10: Set early warning threshold for future predictions
+future_threshold <- quantile(future_predictions155, 0.75)
+
+# Step 11: Generate warnings for future predictions
+future_results188$Warning <- ifelse(future_predictions155 > future_threshold, "Warning", "No Warning")
+
+# Step 12: Display future warnings with corresponding values
+future_warnings <- future_results188[future_results188$Warning == "Warning", ]
+print(future_warnings)
+
+
+
+############Acuracy
+#xgboost
+# Predictions from the model
+predictions1111 <- predict(xgb_model11, newdata = test_matrix)
+
+# Convert predictions and actual values back from log transformation
+actual_values <- test_label - 1
+predicted_values <- predictions12 - 1
+
+# Step 3: Calculate Mean Absolute Error (MAE) for test data
+mae <- mean(abs(test_label - predictions12))
+cat("Mean Absolute Error (MAE):", mae, "\n")
+
+
+# Step 1: Evaluate RMSE (Root Mean Squared Error) for test data
+rmse <- sqrt(mean((test_label - predictions12)^2))
+cat("Root Mean Squared Error (RMSE):", rmse, "\n")
+
+# Step 2: Calculate R-squared (R²) for test data
+rsq <- 1 - sum((test_label - predictions12)^2) / sum((test_label - mean(test_label))^2)
+cat("R-squared (R²) on Test Data:", rsq, "\n")
+
+
+# Optionally, you can also print out a scatter plot of the actual vs predicted values to visualize the model performance
+plot23=ggplot(data = data.frame(Actual = actual_values, Predicted = predicted_values), aes(x = Actual, y = Predicted)) +
+  geom_point() +
+  geom_abline(slope = 1, intercept = 0, color = "red") +  # Line for perfect predictions
+  labs(title = "XGBoost model", x = "actual cases", y = "") +
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 12, face = "bold"),
+        axis.text.y = element_text(size = 12, face = "bold"),
+        axis.title.x = element_text(size = 12, face = "bold"),
+        axis.title.y = element_text(size = 12, face = "bold"),
+        plot.title = element_text(size = 16,hjust=.5, face = "bold"),
+        legend.position = "none")
+plot23
+#############################################################
+
+
+
+#####################################
+############################################################
+
+#########################################
+
+
+
+########################################
+
+#install.packages("RhpcBLASctl")
+library(RhpcBLASctl)
+blas_set_num_threads(4)  # Replace 4 with the desired number of threads
+
+# Load necessary libraries
+library(readxl)
+library(ggplot2)
+library(lightgbm)
+library(caret)
+library(dplyr)
+
+# Load the data
+data_path <- "C:/R/LABSTAT/dengueData00-21.xlsx"
+data <- read_excel(data_path, sheet = "data1")
+
+# Convert Month names to factors
+data$Month <- factor(data$Months, levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))
+
+# Log transform the dengue cases (Cases)
+data$Cases <- log(data$x + 1)  # Adding 1 to avoid log(0)
+
+# Split the data into training and testing sets
+# Ensure the Year column is included in both train and test data
+train_data <- data[data$Year >= 2000 & data$Year <= 2018, ]
+test_data <- data[data$Year >= 2019 & data$Year <= 2021, ]
+
+# Select specific climate factors for prediction
+predictors <- c("Month", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21", "x22")
+
+# Create log-transformed column for Cases in training and testing sets
+train_data$log_Cases <- log(train_data$x + 1)
+test_data$log_Cases <- log(test_data$x + 1)
+
+# Subset the data with the new log_Cases column
+train_data <- train_data[, c(predictors, "log_Cases", "Year")]
+test_data <- test_data[, c(predictors, "log_Cases", "Year")]
+
+# Convert Month to numeric
+train_data$Month <- as.numeric(train_data$Month)
+test_data$Month <- as.numeric(test_data$Month)
+
+# Prepare matrices for LightGBM
+train_matrix <- as.matrix(train_data[, predictors])
+test_matrix <- as.matrix(test_data[, predictors])
+
+# Define target variable (log_Cases)
+train_label <- train_data$log_Cases
+test_label <- test_data$log_Cases
+
+# Hyperparameter tuning using cross-validation
+param <- list(
+  objective = "regression",
+  metric = "rmse",
+  learning_rate = 0.1,
+  num_leaves = 31,
+  max_depth = -1,
+  min_data_in_leaf = 20,
+  feature_fraction = 0.8,
+  bagging_fraction = 0.8,
+  bagging_freq = 5
+)
+
+# Split into training and validation sets
+set.seed(123)  # For reproducibility
+train_indices <- sample(seq_len(nrow(train_matrix)), size = 0.8 * nrow(train_matrix))
+train_data_lgb <- train_matrix[train_indices, ]
+train_label_subset <- train_label[train_indices]
+
+val_data_lgb <- train_matrix[-train_indices, ]
+val_label <- train_label[-train_indices]
+
+# Create LightGBM datasets
+train_data_lgb <- lgb.Dataset(data = train_data_lgb, label = train_label_subset)
+val_data_lgb <- lgb.Dataset(data = val_data_lgb, label = val_label)
+
+# Define validation list
+valids <- list(train = train_data_lgb, valid = val_data_lgb)
+
+# Train the LightGBM model
+lgb_model <- lightgbm(
+  data = train_data_lgb,
+  params = param,
+  nrounds = 1000,
+  early_stopping_rounds = 10,
+  valids = valids,
+  verbose = 1
+)
+
+print("Model training completed.")
+
+# Predict on the test data
+predictions <- predict(lgb_model, newdata = test_matrix)
+
+# Evaluate model performance (Root Mean Squared Error)
+rmse <- sqrt(mean((test_label - predictions)^2))
+cat("Root Mean Squared Error (RMSE):", rmse, "\n")
+
+# Define threshold for early warning
+threshold <- quantile(predictions, 0.75)  # Example: top 25% of predicted cases
+
+# Generate warnings
+test_data$Warning <- ifelse(predictions > threshold, "Warning", "No Warning")
+# Ensure Year column is correctly handled before plotting
+results <- data.frame(
+  Year = test_data$Year,  # Ensure Year is correctly referenced here
+  Month = test_data$Month,
+  Actual = exp(test_data$log_Cases) - 1,
+  Predicted = exp(predictions) - 1,
+  Warning = test_data$Warning
+)
+results
+# Now plot with the correct Year and Month columns
+plot31= ggplot(data = results, aes(x = interaction(Year, Month, sep = "-"), group = 1)) +
+  geom_line(aes(y = log(Actual), color = 'Actual')) +  # Actual line in black
+  geom_line(aes(y = log(Predicted), color = 'Predicted')) +  # Predicted line in red
+  geom_point(data = subset(results, Warning == "Warning"), 
+             aes(y = log(Predicted), color = 'Warning'), 
+             size = 2) +  # Warning points in red
+  labs(title = "LightGBM model", 
+       x = "year-month", 
+       y = "", 
+       color = "Legend") +  # Legend title added
+  scale_color_manual(values = c('Actual' = 'black', 'Predicted' = 'red', 'Warning' = 'red')) +  # Custom colors
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 12, face = "bold"),
+        axis.text.y = element_text(size = 12, face = "bold"),
+        axis.title.x = element_text(size = 12, face = "bold"),
+        axis.title.y = element_text(size = 12, face = "bold"),
+        plot.title = element_text(size = 16,hjust=.5, face = "bold"),
+        legend.position = "none")
+
+plot31
+# Check if the columns exist in test_data
+colnames(test_data)
+
+# Ensure the columns exist and the data has the same number of rows
+if (all(c("Year", "Month", "log_Cases", "Warning") %in% colnames(test_data))) {
+  if (length(predictions) == nrow(test_data)) {
+    results <- data.frame(
+      Year = test_data$Year,
+      Month = test_data$Month,
+      Actual = exp(test_data$log_Cases) - 1,
+      Predicted = exp(predictions) - 1,
+      Warning = test_data$Warning
+    )
+    print(results)
+  } else {
+    stop("The number of predictions does not match the number of rows in test_data.")
+  }
+} else {
+  stop("One or more required columns are missing from test_data.")
+}
+
+# Forecasting from 2022 to 2030
+future_months <- expand.grid(
+  Year = 2022:2026,
+  Month = factor(c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"),
+                 levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))
+)
+
+# Add placeholder values for the predictors to forecast future data
+future_data <- future_months %>% 
+  mutate(
+    x1 = median(data$x1, na.rm = TRUE),
+    x2 = median(data$x2, na.rm = TRUE),
+    x3 = median(data$x3, na.rm = TRUE),
+    x4 = median(data$x4, na.rm = TRUE),
+    x5 = median(data$x5, na.rm = TRUE),
+    x6 = median(data$x6, na.rm = TRUE),
+    x7 = median(data$x7, na.rm = TRUE),
+    x8 = median(data$x8, na.rm = TRUE),
+    x9 = median(data$x9, na.rm = TRUE),
+    x10 = median(data$x10, na.rm = TRUE),
+    x11 = median(data$x11, na.rm = TRUE),
+    x12 = median(data$x12, na.rm = TRUE),
+    x13 = median(data$x13, na.rm = TRUE),
+    x14 = median(data$x14, na.rm = TRUE),
+    x15 = median(data$x15, na.rm = TRUE),
+    x16 = median(data$x16, na.rm = TRUE),
+    x17 = median(data$x17, na.rm = TRUE),
+    x18 = median(data$x18, na.rm = TRUE),
+    x19 = median(data$x19, na.rm = TRUE),
+    x20 = median(data$x20, na.rm = TRUE),
+    x21 = median(data$x21, na.rm = TRUE),
+    x22 = median(data$x22, na.rm = TRUE)
+  )
+
+# Convert future_months' Month to numeric and prepare matrix
+future_data$Month <- as.numeric(future_data$Month)
+future_matrix <- as.matrix(future_data[, predictors])
+
+# Predict future data
+future_predictions <- predict(lgb_model, newdata = future_matrix)
+
+# Create a future results dataframe for plotting
+future_results <- data.frame(Year = future_data$Year,
+                             Month = future_data$Month,
+                             Predicted = exp(future_predictions) - 1)
+future_results
+future_results$Warning <- ifelse(future_results$Predicted > threshold, "Warning", "No Warning")
+future_results$Warning
+future_results
+# Plot future predictions
+# Plot future predictions with warning points
+plot32= ggplot(data = future_results, aes(x = interaction(Year, Month, sep = "-"), group = 1)) +
+  geom_line(aes(y = log(Predicted), color = 'Predicted')) +  # Line for predicted values
+  geom_point(data = subset(future_results, Warning == "Warning"), 
+             aes(y = log(Predicted), color = 'Warning'), 
+             size = 3, shape = 16) +  # Warning points with red color
+  labs(title = "LightGBM model", 
+       x = "year-month", 
+       y = "", 
+       color = "Legend") +  # Legend title added
+  scale_color_manual(values = c('Predicted' = 'red', 'Warning' = 'red')) +  # Color for lines and warning points
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 12, face = "bold"),
+        axis.text.y = element_text(size = 12, face = "bold"),
+        axis.title.x = element_text(size = 12, face = "bold"),
+        axis.title.y = element_text(size = 12, face = "bold"),
+        plot.title = element_text(size = 16,hjust=.5, face = "bold"),
+        legend.position = "none")
+plot32
+
+# Set early warning threshold for future predictions
+future_threshold <- quantile(future_predictions, 0.75)
+future_threshold
+# Generate warnings for future predictions
+future_results$Warning <- ifelse(future_predictions > future_threshold, "Warning", "No Warning")
+
+# Display future warnings with corresponding values
+future_warnings <- future_results[future_results$Warning == "Warning", ]
+print(future_warnings)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#lightgbm
+# Test the accuracy of the model
+# Calculate RMSE, MAE, and R-squared on the test set
+
+# Predictions from the model
+predictions <- predict(lgb_model, newdata = test_matrix)
+
+# Convert predictions and actual values back from log transformation
+actual_values <- test_label - 1
+predicted_values <- predictions - 1
+
+# RMSE (Root Mean Squared Error)
+rmse <- sqrt(mean((actual_values - predicted_values)^2))
+cat("Root Mean Squared Error (RMSE):", rmse, "\n")
+
+# MAE (Mean Absolute Error)
+mae <- mean(abs(actual_values - predicted_values))
+cat("Mean Absolute Error (MAE):", mae, "\n")
+
+# R-squared (Coefficient of Determination)
+sst <- sum((actual_values - mean(actual_values))^2)  # Total sum of squares
+sse <- sum((actual_values - predicted_values)^2)  # Residual sum of squares
+r_squared <- 1 - (sse / sst)
+cat("R-squared:", r_squared, "\n")
+
+# Optionally, you can also print out a scatter plot of the actual vs predicted values to visualize the model performance
+plot33= ggplot(data = data.frame(Actual = actual_values, Predicted = predicted_values), aes(x = Actual, y = Predicted)) +
+  geom_point() +
+  geom_abline(slope = 1, intercept = 0, color = "red") +  # Line for perfect predictions
+  labs(title = "LightGBM", x = "", y = "") +
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 12, face = "bold"),
+        axis.text.y = element_text(size = 12, face = "bold"),
+        axis.title.x = element_text(size = 12, face = "bold"),
+        axis.title.y = element_text(size = 12, face = "bold"),
+        plot.title = element_text(size = 16,hjust=.5, face = "bold"),
+        legend.position = "none")
+plot33
+
+
+
+
+
+
+
+
+
+#combind
+
+# Load the required package
+library(gridExtra)
+
+# Combine all three plots into a single row with 3 columns
+a= grid.arrange(plot11, plot21, plot31, ncol = 1)
+
+b= grid.arrange(plot12, plot22, plot32, ncol = 1)
+
+c= grid.arrange(plot13, plot23, plot33, ncol = 3)
+
+
+# Creating a plot with just the legend (no actual data)
+legend_plot = ggplot() +
+  geom_line(aes(x = 1, y = 1, color = 'Actual')) +  # Just a dummy line for the 'Actual' color
+  geom_line(aes(x = 1, y = 1, color = 'Predicted')) +  # Just a dummy line for the 'Predicted' color
+  geom_point(aes(x =1 , y = 1, color = 'Warning'), size = 2) +  # Just a dummy point for 'Warning'
+  scale_color_manual(values = c('Actual' = 'black', 'Predicted' = 'red', 'Warning' = 'red')) + 
+  theme_void() +  # Remove axes and gridlines
+  theme(legend.position = "bottom")  # Place legend at the bottom
+
+# Display the legend plot
+legend_plot
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Load the required package
+library(gridExtra)
+
+# Arrange the plots into a single column (1-column grid)
+a <- grid.arrange(plot11, plot21, plot31, ncol = 1)
+
+# Save the arranged grid to a PNG file
+png(filename = "1Model.png", width = 4000, height = 2000, res = 300)  # Adjust size and resolution
+grid.draw(a)  # Draw the grid in the saved file
+dev.off()  # Close the device
+
+
+
+
+# Load the required package
+library(gridExtra)
+
+# Arrange the plots into a single column (1-column grid)
+b= grid.arrange(plot12, plot22, plot32, ncol = 1)
+
+# Save the arranged grid to a PNG file
+png(filename = "2forcust.png", width = 4000, height = 2500, res = 300)  # Adjust size and resolution
+grid.draw(b)  # Draw the grid in the saved file
+dev.off()  # Close the device
+
+
+
+
+
+
+
+
+
+# Load the required package
+library(gridExtra)
+
+# Arrange the plots into a single column (1-column grid)
+c= grid.arrange(plot13, plot23, plot33, ncol = 3)
+
+# Save the arranged grid to a PNG file
+png(filename = "3acuricy.png", width = 4500, height = 2000, res = 300)  # Adjust size and resolution
+grid.draw(c)  # Draw the grid in the saved file
+dev.off()  # Close the device
+
+
+
+
+
+
+

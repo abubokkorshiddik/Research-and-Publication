@@ -1,0 +1,46 @@
+import pandas as pd
+import dowhy
+from dowhy import CausalModel
+
+# Load data
+data = pd.read_excel("C:/R/LABSTAT/Thesis/data/DenguR/AIDengue20002024.xlsx")
+data = data[(data['Year'] >= 2010) & (data['Year'] <= 2024)]
+
+# Define features and outcome
+features = ["Y1", "Y10", "Y7", "Y11", "Y3"]
+outcome = "Cases"
+
+# Select relevant columns and drop NA
+data = data[features + [outcome]].dropna()
+
+results = []
+
+for treatment in features:
+    confounders = [col for col in features if col != treatment]
+
+    model = CausalModel(
+        data=data,
+        treatment=treatment,
+        outcome=outcome,
+        common_causes=confounders
+    )
+
+    identified_estimand = model.identify_effect()
+
+    estimate = model.estimate_effect(
+        identified_estimand,
+        method_name="backdoor.linear_regression"
+    )
+
+    results.append({
+        "Variable": treatment,
+        "Effect_on_Cases": round(estimate.value, 4)
+    })
+
+df_results = pd.DataFrame(results).sort_values(by="Effect_on_Cases", ascending=False)
+
+# Save results
+output_path = "C:/R/LABSTAT/Thesis/data/DenguR/1causal_effects_selected_features.xlsx"
+df_results.to_excel(output_path, index=False)
+
+print(df_results)
