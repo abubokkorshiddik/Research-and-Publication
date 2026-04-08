@@ -1,0 +1,4295 @@
+
+# Load necessary libraries
+library(readxl)
+library(writexl)
+library(tibble)
+
+# Read the existing dataset
+data <- read_excel("C:/R/LABSTAT/Thesis/data/MD.xlsx", sheet = "data")
+
+library(tidyverse)
+
+library(tibble)
+
+# Define the coordinates dataset
+coordinates <- tribble(
+  ~Location, ~Latitude, ~Longitude,
+  "Afghanistan", 33.93911, 67.709953,
+  "Algeria", 28.033886, 1.659626,
+  "Angola", -11.202692, 17.873887,
+  "Argentina", -38.416097, -63.616672,
+  "Armenia", 40.069099, 45.038189,
+  "Azerbaijan", 40.143105, 47.576927,
+  "Bangladesh", 23.684994, 90.356331,
+  "Belize", 17.189877, -88.49765,
+  "Benin", 9.30769, 2.315834,
+  "Bhutan", 27.514162, 90.433601,
+  "Bolivia (Plurinational State of)", -16.290154, -63.588653,
+  "Botswana", -22.328474, 24.684866,
+  "Brazil", -14.235004, -51.92528,
+  "Burkina Faso", 12.238333, -1.561593,
+  "Burundi", -3.373056, 29.918886,
+  "Cabo Verde", 16.002082, -24.013197,
+  "Cambodia", 12.565679, 104.990963,
+  "Cameroon", 7.369722, 12.354722,
+  "Central African Republic", 6.611111, 20.939444,
+  "Chad", 15.454166, 18.732207,
+  "China", 35.86166, 104.195397,
+  "Colombia", 4.570868, -74.297333,
+  "Comoros", -11.875001, 43.872219,
+  "Congo", -0.228021, 15.827659,
+  "Costa Rica", 9.748917, -83.753428,
+  "Cote d'Ivoire", 7.539989, -5.54708,
+  "Democratic People's Republic of Korea", 40.339852, 127.510093,
+  "Democratic Republic of the Congo", -4.038333, 21.758664,
+  "Djibouti", 11.825138, 42.590275,
+  "Dominican Republic", 18.735693, -70.162651,
+  "Ecuador", -1.831239, -78.183406,
+  "Egypt", 26.820553, 30.802498,
+  "El Salvador", 13.794185, -88.89653,
+  "Equatorial Guinea", 1.650801, 10.267895,
+  "Eritrea", 15.179384, 39.782334,
+  "Eswatini", -26.522503, 31.465866,
+  "Ethiopia", 9.145, 40.489673,
+  "French Guiana", 3.933889, -53.125782,
+  "Gabon", -0.803689, 11.609444,
+  "Gambia", 13.443182, -15.310139,
+  "Georgia", 42.315407, 43.356892,
+  "Ghana", 7.946527, -1.023194,
+  "Guatemala", 15.783471, -90.230759,
+  "Guinea", 9.945587, -9.696645,
+  "Guinea-Bissau", 11.803749, -15.180413,
+  "Guyana", 4.860416, -58.93018,
+  "Haiti", 18.971187, -72.285215,
+  "Honduras", 15.199999, -86.241905,
+  "India", 20.593684, 78.96288,
+  "Indonesia", -0.789275, 113.921327,
+  "Iran (Islamic Republic of)", 32.427908, 53.688046,
+  "Iraq", 33.223191, 43.679291,
+  "Kazakhstan", 48.019573, 66.923684,
+  "Kenya", -1.286389, 36.817223,
+  "Kyrgyzstan", 41.20438, 74.766098,
+  "Lao People's Democratic Republic", 19.85627, 102.495496,
+  "Liberia", 6.428055, -9.429499,
+  "Madagascar", -18.766947, 46.869107,
+  "Malawi", -13.254308, 34.301525,
+  "Malaysia", 4.210484, 101.975766,
+  "Mali", 17.570692, -3.996166,
+  "Mauritania", 21.00789, -10.940835,
+  "Mexico", 23.634501, -102.552784,
+  "Morocco", 31.791702, -7.09262,
+  "Mozambique", -18.665695, 35.529562,
+  "Myanmar", 21.916221, 95.955974,
+  "Namibia", -22.95764, 18.49041,
+  "Nepal", 28.394857, 84.124008,
+  "Nicaragua", 12.865416, -85.207229,
+  "Niger", 17.607789, 8.081666,
+  "Nigeria", 9.082, 8.675277,
+  "Oman", 21.473532, 55.975414,
+  "Pakistan", 30.375321, 69.345116,
+  "Panama", 8.537981, -80.782127,
+  "Papua New Guinea", -6.314993, 143.95555,
+  "Paraguay", -23.442503, -58.443832,
+  "Peru", -9.189967, -75.015152,
+  "Philippines", 12.879721, 121.774017,
+  "Republic of Korea", 35.907757, 127.766922,
+  "Rwanda", -1.940278, 29.873888,
+  "Sao Tome and Principe", 0.18636, 6.613081,
+  "Saudi Arabia", 23.885942, 45.079162,
+  "Senegal", 14.497401, -14.452362,
+  "Sierra Leone", 8.460555, -11.779889,
+  "Solomon Islands", -9.64571, 160.156194,
+  "Somalia", 5.152149, 46.199616,
+  "South Africa", -30.559482, 22.937506,
+  "South Sudan", 7.3078, 30.2919,
+  "Sri Lanka", 7.873054, 80.771797,
+  "Sudan", 12.862807, 30.217636,
+  "Suriname", 3.919305, -56.027783,
+  "Syrian Arab Republic", 34.802075, 38.996815,
+  "Tajikistan", 38.861034, 71.276093,
+  "Thailand", 15.870032, 100.992541,
+  "Timor-Leste", -8.874217, 125.727539,
+  "Togo", 8.619543, 0.824782,
+  "Türkiye", 38.963745, 35.243322,
+  "Turkmenistan", 38.969719, 59.556278,
+  "Uganda", 1.373333, 32.290275,
+  "United Republic of Tanzania", -6.369028, 34.888822,
+  "Vanuatu", -15.376706, 166.959158,
+  "Venezuela (Bolivarian Republic of)", 6.42375, -66.58973,
+  "Viet Nam", 14.058324, 108.277199,
+  "Yemen", 15.552727, 48.516388,
+  "Zambia", -13.133897, 27.849332,
+  "Zimbabwe", -19.015438, 29.154857
+)
+
+# Print the dataset
+print(coordinates)
+
+
+
+# Merge the coordinates with the existing data
+updated_data <- left_join(data, coordinates, by = "Location")
+
+# Save the updated dataset as an Excel file
+write_xlsx(updated_data, "C:/R/LABSTAT/Thesis/data/111MD_with_coordinates.xlsx")
+
+# Print the updated data to verify
+print(updated_data)
+
+
+
+library(readxl)
+
+data <- read_excel("C:/R/LABSTAT/Thesis/data/TS22.xlsx" , sheet = "d")
+data
+library(readxl)
+library(writexl)
+
+# Load data
+data <- read_excel("C:/R/LABSTAT/Thesis/data/TS22.xlsx", sheet = "d")
+
+# Find unique locations
+unique_locations <- unique(data$Location)
+
+# Count the number of unique locations
+num_unique_locations <- length(unique_locations)
+print(num_unique_locations)
+
+# Save unique locations as an Excel file
+write_xlsx(data.frame(Location = unique_locations), "C:/R/LABSTAT/Thesis/data/unique_locations.xlsx")
+
+
+
+
+library(readxl)
+library(dplyr)
+library(writexl)
+
+# Load data
+data <- read_excel("C:/R/LABSTAT/Thesis/data/TS22.xlsx", sheet = "d")
+
+# Convert Period column to numeric (if it's not already)
+data <- data %>% mutate(Period = as.numeric(Period))
+
+# Filter data for years 2000 to 2022
+filtered_data <- data %>% filter(Period >= 2000 & Period <= 2022)
+
+# Save filtered data as an Excel file
+write_xlsx(filtered_data, "C:/R/LABSTAT/Thesis/data/filtered_TS22.xlsx")
+
+# View first few rows
+head(filtered_data)
+
+
+
+
+
+
+library(readxl)
+library(dplyr)
+library(tidyr)
+library(writexl)
+
+# Load data
+data <- read_excel("C:/R/LABSTAT/Thesis/data/TS22.xlsx", sheet = "d")
+
+# Convert Period to numeric
+data <- data %>% mutate(Period = as.numeric(Period))
+
+# Define the list of valid locations
+valid_locations <- c(
+  "Afghanistan", "Algeria", "Angola", "Argentina", "Armenia", "Azerbaijan", 
+  "Bangladesh", "Belize", "Benin", "Bhutan", "Bolivia (Plurinational State of)", 
+  "Botswana", "Brazil", "Burkina Faso", "Burundi", "Cabo Verde", "Cambodia", 
+  "Cameroon", "Central African Republic", "Chad", "China", "Colombia", "Comoros", 
+  "Congo", "Costa Rica", "Cote d'Ivoire", "Democratic People's Republic of Korea", 
+  "Democratic Republic of the Congo", "Djibouti", "Dominican Republic", "Ecuador", 
+  "Egypt", "El Salvador", "Equatorial Guinea", "Eritrea", "Eswatini", "Ethiopia", 
+  "French Guiana", "Gabon", "Gambia", "Georgia", "Ghana", "Guatemala", "Guinea", 
+  "Guinea-Bissau", "Guyana", "Haiti", "Honduras", "India", "Indonesia", 
+  "Iran (Islamic Republic of)", "Iraq", "Kazakhstan", "Kenya", "Kyrgyzstan", 
+  "Lao People's Democratic Republic", "Liberia", "Madagascar", "Malawi", 
+  "Malaysia", "Mali", "Mauritania", "Mexico", "Morocco", "Mozambique", "Myanmar", 
+  "Namibia", "Nepal", "Nicaragua", "Niger", "Nigeria", "Oman", "Pakistan", 
+  "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", 
+  "Republic of Korea", "Rwanda", "Sao Tome and Principe", "Saudi Arabia", 
+  "Senegal", "Sierra Leone", "Solomon Islands", "Somalia", "South Africa", 
+  "South Sudan", "Sri Lanka", "Sudan", "Suriname", "Syrian Arab Republic", 
+  "Tajikistan", "Thailand", "Timor-Leste", "Togo", "Türkiye", "Turkmenistan", 
+  "Uganda", "United Arab Emirates", "United Republic of Tanzania", "Uzbekistan", 
+  "Vanuatu", "Venezuela (Bolivarian Republic of)", "Viet Nam", "Yemen", "Zambia", "Zimbabwe"
+)
+length(valid_locations)
+
+# Filter data for years 2000 to 2022 and valid locations
+filtered_data <- data %>% 
+  filter(Period >= 2000 & Period <= 2022, Location %in% valid_locations)
+
+# Separate 'First Tooltip' into three columns
+filtered_data <- filtered_data %>%
+  separate(`First Tooltip`, into = c("Value", "CI_Low", "CI_High"), sep = " \\[|\\-|\\]", extra = "drop", fill = "right") %>%
+  mutate(Value = as.numeric(Value), CI_Low = as.numeric(CI_Low), CI_High = as.numeric(CI_High))
+
+# Save filtered data
+write_xlsx(filtered_data, "C:/R/LABSTAT/Thesis/data/4555fi4ltered_TS22.xlsx")
+
+# View first few rows
+head(filtered_data)
+
+
+library(readxl)
+library(dplyr)
+library(tidyr)
+library(writexl)
+
+# Load data
+data <- read_excel("C:/R/LABSTAT/Thesis/data/TS22.xlsx", sheet = "d")
+
+# Convert Period to numeric and filter for years 2000 to 2022
+data <- data %>%
+  mutate(Period = as.numeric(Period)) %>%
+  filter(Period >= 2000 & Period <= 2022)
+
+# Define the list of valid locations
+valid_locations <- c(
+  "Afghanistan", "Algeria", "Angola", "Argentina", "Armenia", "Azerbaijan", 
+  "Bangladesh", "Belize", "Benin", "Bhutan", "Bolivia (Plurinational State of)", 
+  "Botswana", "Brazil", "Burkina Faso", "Burundi", "Cabo Verde", "Cambodia", 
+  "Cameroon", "Central African Republic", "Chad", "China", "Colombia", "Comoros", 
+  "Congo", "Costa Rica", "Cote d'Ivoire", "Democratic People's Republic of Korea", 
+  "Democratic Republic of the Congo", "Djibouti", "Dominican Republic", "Ecuador", 
+  "Egypt", "El Salvador", "Equatorial Guinea", "Eritrea", "Eswatini", "Ethiopia", 
+  "French Guiana", "Gabon", "Gambia", "Georgia", "Ghana", "Guatemala", "Guinea", 
+  "Guinea-Bissau", "Guyana", "Haiti", "Honduras", "India", "Indonesia", 
+  "Iran (Islamic Republic of)", "Iraq", "Kazakhstan", "Kenya", "Kyrgyzstan", 
+  "Lao People's Democratic Republic", "Liberia", "Madagascar", "Malawi", 
+  "Malaysia", "Mali", "Mauritania", "Mexico", "Morocco", "Mozambique", "Myanmar", 
+  "Namibia", "Nepal", "Nicaragua", "Niger", "Nigeria", "Oman", "Pakistan", 
+  "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", 
+  "Republic of Korea", "Rwanda", "Sao Tome and Principe", "Saudi Arabia", 
+  "Senegal", "Sierra Leone", "Solomon Islands", "Somalia", "South Africa", 
+  "South Sudan", "Sri Lanka", "Sudan", "Suriname", "Syrian Arab Republic", 
+  "Tajikistan", "Thailand", "Timor-Leste", "Togo", "Türkiye", "Turkmenistan", 
+  "Uganda", "United Arab Emirates", "United Republic of Tanzania", "Uzbekistan", 
+  "Vanuatu", "Venezuela (Bolivarian Republic of)", "Viet Nam", "Yemen", "Zambia", "Zimbabwe"
+)
+
+# Create all possible combinations of Location and Period (2000-2022)
+all_combinations <- expand.grid(Location = valid_locations, Period = 2000:2022)
+
+# Merge with existing data to ensure all locations and years are present
+final_data <- full_join(all_combinations, data, by = c("Location", "Period"))
+
+# Replace missing values with 0 for numeric columns only
+final_data <- final_data %>%
+  mutate(across(where(is.numeric), ~replace_na(., 0))) %>%
+  mutate(across(where(is.character), ~replace_na(., "0")))  # Replace NA in character columns with "0"
+
+
+# Separate 'First Tooltip' if it exists, and ensure missing values are filled with "0"
+if ("First Tooltip" %in% colnames(final_data)) {
+  final_data <- final_data %>%
+    separate(`First Tooltip`, into = c("Value", "CI_Low", "CI_High"), sep = " \\[|\\-|\\]", extra = "drop", fill = "right") %>%
+    mutate(across(c(Value, CI_Low, CI_High), ~replace_na(., "0")))  # Ensure all missing values are "0"
+}
+
+# Save the final dataset
+write_xlsx(final_data, "C:/R/LABSTAT/Thesis/data/88865443321122final_TS22.xlsx")
+
+# View first few rows
+head(final_data)
+
+
+
+
+
+
+
+
+
+
+
+library(readxl)
+library(dplyr)
+library(tidyr)
+library(writexl)
+
+# Load data
+data <- read_excel("C:/R/LABSTAT/Thesis/data/TS22.xlsx", sheet = "d")
+
+# Convert Period to numeric and filter for years 2000 to 2022
+data <- data %>%
+  mutate(Period = as.numeric(Period)) %>%
+  filter(Period >= 2000 & Period <= 2022)
+
+# Define the list of valid locations
+valid_locations <- c(
+  "Afghanistan", "Algeria", "Angola", "Argentina", "Armenia", "Azerbaijan", 
+  "Bangladesh", "Belize", "Benin", "Bhutan", "Bolivia (Plurinational State of)", 
+  "Botswana", "Brazil", "Burkina Faso", "Burundi", "Cabo Verde", "Cambodia", 
+  "Cameroon", "Central African Republic", "Chad", "China", "Colombia", "Comoros", 
+  "Congo", "Costa Rica", "Cote d'Ivoire", "Democratic People's Republic of Korea", 
+  "Democratic Republic of the Congo", "Djibouti", "Dominican Republic", "Ecuador", 
+  "Egypt", "El Salvador", "Equatorial Guinea", "Eritrea", "Eswatini", "Ethiopia", 
+  "French Guiana", "Gabon", "Gambia", "Georgia", "Ghana", "Guatemala", "Guinea", 
+  "Guinea-Bissau", "Guyana", "Haiti", "Honduras", "India", "Indonesia", 
+  "Iran (Islamic Republic of)", "Iraq", "Kazakhstan", "Kenya", "Kyrgyzstan", 
+  "Lao People's Democratic Republic", "Liberia", "Madagascar", "Malawi", 
+  "Malaysia", "Mali", "Mauritania", "Mexico", "Morocco", "Mozambique", "Myanmar", 
+  "Namibia", "Nepal", "Nicaragua", "Niger", "Nigeria", "Oman", "Pakistan", 
+  "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", 
+  "Republic of Korea", "Rwanda", "Sao Tome and Principe", "Saudi Arabia", 
+  "Senegal", "Sierra Leone", "Solomon Islands", "Somalia", "South Africa", 
+  "South Sudan", "Sri Lanka", "Sudan", "Suriname", "Syrian Arab Republic", 
+  "Tajikistan", "Thailand", "Timor-Leste", "Togo", "Türkiye", "Turkmenistan", 
+  "Uganda",  "United Republic of Tanzania",  
+  "Vanuatu", "Venezuela (Bolivarian Republic of)", "Viet Nam", "Yemen", "Zambia", "Zimbabwe"
+)
+
+
+# Ensure only valid locations remain
+data <- data %>% filter(Location %in% valid_locations)
+
+# Create all possible combinations of valid locations and years 2000-2022
+all_combinations <- expand.grid(Location = valid_locations, Period = 2000:2022)
+
+# Merge with existing data to ensure all locations and years are present
+final_data <- full_join(all_combinations, data, by = c("Location", "Period"))
+
+# Replace missing values with 0 (for both numeric and character columns)
+final_data <- final_data %>%
+  mutate(across(where(is.numeric), ~replace_na(., 0))) %>%
+  mutate(across(where(is.character), ~replace_na(., "0")))  # Replace NA in character columns with "0"
+
+# Separate 'First Tooltip' if it exists, and ensure missing values are filled with "0"
+if ("First Tooltip" %in% colnames(final_data)) {
+  final_data <- final_data %>%
+    separate(`First Tooltip`, into = c("Value", "CI_Low", "CI_High"), sep = " \\[|\\-|\\]", extra = "drop", fill = "right") %>%
+    mutate(across(c(Value, CI_Low, CI_High), ~replace_na(., "0")))  # Ensure all missing values are "0"
+}
+
+# Save the final dataset
+write_xlsx(final_data, "C:/R/LABSTAT/Thesis/data/011549final_TS22.xlsx")
+
+# View first few rows
+head(final_data)
+
+##################################################################################################################
+
+# Load required libraries
+library(dplyr)
+library(ggplot2)
+library(maps)
+library(tidyr)
+library(readxl)
+# Load the data
+data <- read_excel("C:/R/LABSTAT/Thesis/data/MD.xlsx", sheet = "data")
+
+# Extract unique locations (countries)
+unique_locations <- unique(data$Location)
+
+# Count the number of unique countries
+num_unique_countries <- length(unique_locations)
+print(paste("Total unique countries:", num_unique_countries))
+
+# Create a map
+world_map <- map_data("world")
+
+# Merge the map data with the unique locations data
+location_map <- world_map %>%
+  filter(region %in% unique_locations)
+
+# Plot the map with the locations
+ggplot(data = world_map, aes(x = long, y = lat, group = group)) +
+  geom_polygon(fill = "gray90", color = "black") +
+  geom_polygon(data = location_map, fill = "blue", color = "black") +
+  theme_minimal() +
+  labs(title = "Map of Locations with Data", subtitle = paste("Total unique countries:", num_unique_countries)) +
+  theme(axis.text = element_blank(), axis.ticks = element_blank())
+
+
+
+
+# Load necessary libraries
+library(ggplot2)
+library(sf)
+library(dplyr)
+library(maps)
+
+# Filter data for the years 2000 to 2022
+data_filtered <- data %>%
+  filter(Period >= 2000 & Period <= 2022)
+
+# Aggregate x1 (Estimated number of malaria cases) by Location (if needed)
+data_aggregated <- data_filtered %>%
+  group_by(Location) %>%
+  summarise(x1_total = sum(x1, na.rm = TRUE))
+
+# Convert x1_total to millions for better readability
+data_aggregated <- data_aggregated %>%
+  mutate(x1_total_million = x1_total / 1e6)
+
+# Load world map data
+world_map <- map_data("world")
+
+# Merge world map data with your data
+merged_data <- left_join(world_map, data_aggregated, by = c("region" = "Location"))
+
+# Create the map
+ggplot(data = merged_data) +
+  geom_polygon(aes(x = long, y = lat, group = group, fill = x1_total_million), color = "black") +
+  scale_fill_viridis_c(option = "viridis", name = "Estimated Malaria Cases (Millions)") +
+  theme_minimal() +
+  labs(title = "Estimated Number of Malaria Cases (x1) by Country (2000-2022)",
+       subtitle = "Total sum of malaria cases (in millions) across all years per country") +
+  theme(legend.position = "right") +
+  scale_fill_continuous(labels = scales::label_number(scale = 1, suffix = "M"))
+########################################model selection
+# Load necessary libraries
+library(randomForest)
+library(dplyr)
+library(ggplot2)
+
+# Prepare the data: Remove rows with missing values in any of the selected columns
+data_model <- data %>%
+  select(x1, x2, x3, x4, y1, y6) %>%
+  drop_na()  # Drop rows with any NA values
+
+# Train a random forest model to predict x1 (malaria cases)
+set.seed(42)  # For reproducibility
+model <- randomForest(x1 ~ x2 + x3 + x4 + y1 + y6, data = data_model, importance = TRUE)
+
+# View the model summary
+print(model)
+
+# Plot the variable importance to understand what influences x1 the most
+importance(model)
+varImpPlot(model)
+
+# Predict malaria cases (x1) using the trained model
+data_model$predicted_x1 <- predict(model, newdata = data_model)
+
+# View the predicted values
+head(data_model$predicted_x1)
+
+# Visualize the actual vs predicted values
+ggplot(data_model, aes(x = x1, y = predicted_x1)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, color = "blue") +
+  labs(title = "Actual vs Predicted Malaria Cases (x1)",
+       x = "Actual x1 (Malaria Cases)", y = "Predicted x1 (Malaria Cases)")
+
+
+
+# Install and load the necessary libraries for DALEX
+install.packages("DALEX")
+library(DALEX)
+
+# Assuming you already have your random forest model (from previous steps) as 'model'
+
+# 1. Prepare the explainer object using DALEX
+# We create an explainer to use the DALEX functions
+explainer <- explain(model, 
+                     data = data_model[, c("x2", "x3", "x4", "y1", "y6")], 
+                     y = data_model$x1)
+
+# 2. Global Interpretation: Feature Importance
+# Calculate the global feature importance
+global_importance <- model_parts(explainer)
+plot(global_importance)
+
+# 3. Local Interpretation: Single Prediction Explanation
+# We want to explain the prediction for a specific instance, for example, the first row of data
+single_instance <- data_model[1, c("x2", "x3", "x4", "y1", "y6")]
+local_explanation <- predict_parts(explainer, new_observation = single_instance)
+plot(local_explanation)
+
+# 4. Partial Dependence Plot: Visualizing the effect of each feature
+# For example, visualize the effect of 'x2' (malaria deaths) on the predicted malaria cases (x1)
+pdp_x2 <- partial_dependence(explainer, variable = "x2")
+plot(pdp_x2)
+
+# You can similarly explore partial dependence plots for other features
+pdp_y1 <- partial_dependence(explainer, variable = "y1")
+plot(pdp_y1)
+
+# To summarize, we have:
+# - Feature Importance: Global importance of each feature.
+# - Local Prediction Explanation: Explanation for a specific instance (observation).
+# - Partial Dependence Plot: How each feature affects the prediction.
+############################################----------------------------------------------------
+
+# Load necessary libraries
+library(ggplot2)
+library(dplyr)
+library(sf)
+library(readxl)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(purrr)
+
+# Read the dataset
+data <- read_excel("C:/R/LABSTAT/Thesis/data/MD.xlsx", sheet = "data")
+
+# Load world map data
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+# Filter out Antarctica
+world_filtered <- world %>% filter(name != "Antarctica")
+
+# Summarize data to get total x1 (in millions) and x2 per location
+data_summary <- data %>%
+  group_by(Location) %>%
+  summarize(total_x1_million = sum(x1, na.rm = TRUE) / 1e6,
+            total_x2 = sum(as.numeric(x2), na.rm = TRUE))
+
+# Compute centroids of each country
+world_filtered <- world_filtered %>% 
+  mutate(centroid = st_centroid(geometry))
+
+# Extract coordinates (X and Y) from the centroids
+world_filtered <- world_filtered %>%
+  mutate(centroid_coords = st_coordinates(centroid)) %>%
+  mutate(lon = centroid_coords[, 1], lat = centroid_coords[, 2])
+
+# Join the summarized data with the world data
+world_data <- world_filtered %>%
+  left_join(data_summary, by = c("name" = "Location"))
+
+# Load necessary libraries
+library(ggplot2)
+library(ggspatial) # For the north arrow
+
+# Plot with a north arrow
+a1= ggplot() +
+  geom_sf(data = world_data, aes(fill = total_x1_million), color = "black") +
+  scale_fill_gradient(low = "skyblue", high = "yellow", na.value = "gray", 
+                      name = "Malaria cases (million)") +
+  geom_point(data = world_data, aes(x = lon, y = lat, size = total_x2),
+             color = "red", alpha = 0.7) +
+  labs(title = "A",
+       fill = "Malaria Cases (Million)",
+       size = "Malaria deaths") +
+  theme_minimal() +
+  annotation_north_arrow(location = "tr", which_north = "true", 
+                         style = north_arrow_fancy_orienteering)
+
+a1
+
+
+
+
+
+# Load necessary libraries
+library(ggplot2)
+library(dplyr)
+library(sf)
+library(readxl)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(purrr)
+
+# Read the dataset
+data <- read_excel("C:/R/LABSTAT/Thesis/data/MD.xlsx", sheet = "data")
+
+# Ensure columns are correctly recognized as numeric
+data <- data %>%
+  mutate(across(c(x5, x6, x7), as.numeric))
+
+# Load world map data
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+# Filter out Antarctica
+world_filtered <- world %>% filter(name != "Antarctica")
+
+# Summarize data to get total x5, x6, and x7 per location
+data_summary <- data %>%
+  group_by(Location) %>%
+  summarize(total_x5 = sum(x5, na.rm = TRUE),
+            total_x6 = sum(x6, na.rm = TRUE),
+            total_x7 = sum(x7, na.rm = TRUE))
+
+# Compute centroids of each country
+world_filtered <- world_filtered %>% 
+  mutate(centroid = st_centroid(geometry))
+
+# Extract coordinates (X and Y) from the centroids
+world_filtered <- world_filtered %>%
+  mutate(centroid_coords = st_coordinates(centroid)) %>%
+  mutate(lon = centroid_coords[, 1], lat = centroid_coords[, 2])
+
+# Join the summarized data with the world data
+world_data <- world_filtered %>%
+  left_join(data_summary, by = c("name" = "Location"))
+
+
+# Plot the world map with total_x5 as fill and total_x6 and total_x7 as points
+a2 = ggplot() +
+  geom_sf(data = world_data, aes(fill = total_x5), color = "black") +
+  scale_fill_gradient(low = "skyblue", high = "yellow", na.value = "gray", 
+                      name = "Indigenous malaria cases", position = "right") +
+  geom_point(data = world_data, aes(x = lon, y = lat, size = total_x6, color = "P. falciparum malaria cases"), alpha = 0.7) +
+  geom_point(data = world_data, aes(x = lon, y = lat, size = total_x7, color = "P. vivax malaria cases"), alpha = 0.7) +
+  scale_color_manual(name = "Indicator",
+                     values = c("P. falciparum malaria cases" = "red", "P. vivax malaria cases" = "orange"), position = "bottom") +
+  guides(color = guide_legend(override.aes = list(size = 5), title.position = "left", position = "bottom"),
+         size = guide_legend(title = "Number of P. cases", position = "right")) +
+  labs(title = "B") +
+  theme_minimal() +
+  scale_size_continuous(range = c(1, 10)) +
+  annotation_scale(location = "bl", width_hint = .5)
+
+# Display the plot
+a2
+
+
+# Display the plot
+a2
+
+
+
+
+# Load required libraries
+library(dplyr)
+library(readxl)
+library(writexl)
+
+# Read the dataset
+data <- read_excel("C:/R/LABSTAT/Thesis/data/MD.xlsx", sheet = "data")
+
+# Filter relevant years (2000-2022) and ensure x3 and x4 are numeric
+data_filtered <- data %>%
+  filter(Period >= 2000 & Period <= 2022) %>%
+  mutate(
+    x3 = suppressWarnings(as.numeric(x3)),  # Convert incidence rate to numeric
+    x4 = suppressWarnings(as.numeric(x4))   # Convert mortality rate to numeric
+  )
+
+# Replace NA values in x3 and x4 with 0 (since you prefer missing values as 0)
+data_filtered$x3[is.na(data_filtered$x3)] <- 0
+data_filtered$x4[is.na(data_filtered$x4)] <- 0
+
+# Compute average malaria incidence rate and mortality rate per country
+avg_rates <- data_filtered %>%
+  group_by(Location) %>%
+  summarize(
+    avg_incidence = mean(x3, na.rm = TRUE),
+    avg_mortality = mean(x4, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    avg_incidence = round(avg_incidence, 2),  # Round to 2 decimal places
+    avg_mortality = round(avg_mortality, 2)   # Round to 2 decimal places
+  )
+
+# Get the top 10 countries with the highest average malaria incidence rate
+top_10_incidence <- avg_rates %>% arrange(desc(avg_incidence)) %>% head(10)
+
+# Get the top 10 countries with the highest average malaria mortality rate
+top_10_mortality <- avg_rates %>% arrange(desc(avg_mortality)) %>% head(10)
+
+# Save results to an Excel file
+write_xlsx(list("Top_Avg_Incidence" = top_10_incidence,
+                "Top_Avg_Mortality" = top_10_mortality),
+           "C:/R/LABSTAT/Thesis/data/malaria/212144Malaria_Avg_Rates.xlsx")
+
+print("Excel file saved successfully at C:/R/LABSTAT/Thesis/data/Malaria_Avg_Rates.xlsx")
+
+
+
+# Load required libraries
+library(dplyr)
+library(readxl)
+library(writexl)
+
+# Read the dataset
+data <- read_excel("C:/R/LABSTAT/Thesis/data/MD.xlsx", sheet = "data")
+
+# Filter data for the years 2015 to 2022 and ensure x5, x6, x7 are numeric
+data_filtered <- data %>%
+  filter(Period >= 2015 & Period <= 2022) %>%
+  mutate(
+    x5 = suppressWarnings(as.numeric(x5)),  # Convert to numeric
+    x6 = suppressWarnings(as.numeric(x6)),
+    x7 = suppressWarnings(as.numeric(x7))
+  )
+
+# Replace NA values with 0
+data_filtered$x5[is.na(data_filtered$x5)] <- 0
+data_filtered$x6[is.na(data_filtered$x6)] <- 0
+data_filtered$x7[is.na(data_filtered$x7)] <- 0
+
+# Compute total cases separately for x5, x6, and x7 per country
+total_x5 <- data_filtered %>%
+  group_by(Location) %>%
+  summarize(total_x5 = sum(x5, na.rm = TRUE), .groups = "drop") %>%
+  arrange(desc(total_x5)) %>%
+  head(10)
+
+total_x6 <- data_filtered %>%
+  group_by(Location) %>%
+  summarize(total_x6 = sum(x6, na.rm = TRUE), .groups = "drop") %>%
+  arrange(desc(total_x6)) %>%
+  head(10)
+
+total_x7 <- data_filtered %>%
+  group_by(Location) %>%
+  summarize(total_x7 = sum(x7, na.rm = TRUE), .groups = "drop") %>%
+  arrange(desc(total_x7)) %>%
+  head(10)
+
+# Save results to an Excel file with separate sheets
+write_xlsx(list("Top_X5" = total_x5, 
+                "Top_X6" = total_x6, 
+                "Top_X7" = total_x7),
+           "C:/R/LABSTAT/Thesis/data/malaria/44pMalaria_Top_Countries_X5_X6_X7_2015_2022.xlsx")
+
+print("Excel file saved successfully at C:/R/LABSTAT/Thesis/data/Malaria_Top_Countries_X5_X6_X7_2015_2022.xlsx")
+
+
+
+
+
+
+library(dplyr)
+library(readxl)
+library(writexl)
+
+# Read the dataset
+data <- read_excel("C:/R/LABSTAT/Thesis/data/MD.xlsx", sheet = "data")
+
+# Filter relevant years (2000-2022) and ensure x3 & x4 are numeric
+data_filtered <- data %>%
+  filter(Period >= 2000 & Period <= 2022) %>%
+  mutate(x3 = suppressWarnings(as.numeric(x3)),  # Convert incidence
+         x4 = suppressWarnings(as.numeric(x4)))  # Convert mortality
+
+# Replace NA values in x3 and x4 with 0 (since you prefer missing values as 0)
+data_filtered$x3[is.na(data_filtered$x3)] <- 0
+data_filtered$x4[is.na(data_filtered$x4)] <- 0
+
+# Find the top 10 countries with the highest malaria incidence (x3)
+top_countries_incidence <- data_filtered %>%
+  group_by(Location) %>%
+  summarize(total_incidence = sum(x3, na.rm = TRUE), .groups = "drop") %>%
+  arrange(desc(total_incidence)) %>%
+  head(10) %>%  # Get top 10
+  mutate(total_incidence = round(total_incidence, 2))  # Round to 2 decimal places
+
+# Find the top 10 countries with the highest malaria mortality rate (x4)
+top_countries_mortality <- data_filtered %>%
+  group_by(Location) %>%
+  summarize(total_mortality = sum(x4, na.rm = TRUE), .groups = "drop") %>%
+  arrange(desc(total_mortality)) %>%
+  head(10) %>%  # Get top 10
+  mutate(total_mortality = round(total_mortality, 2))  # Round to 2 decimal places
+
+# Save results to an Excel file
+write_xlsx(list("Top_Incidence" = top_countries_incidence, 
+                "Top_Mortality" = top_countries_mortality),
+           "C:/R/LABSTAT/Thesis/data/Malaria_Incidence_Mortality.xlsx")
+
+print("Excel file saved successfully at C:/R/LABSTAT/Thesis/data/malaria/Malaria_Incidence_Mortality.xlsx")
+
+
+
+
+# Load required libraries
+library(ggplot2)
+library(gridExtra)
+library(grid)
+
+# Create a combined plot
+F35= grid.arrange(a1, a2, ncol = 1)
+
+# Save the combined plot
+ggsave("C:/R/LABSTAT/Thesis/data/malaria/1combined_plot.png", plot = a2, width = 11, height =5 , dpi = 300)
+
+
+
+
+# Load required libraries
+library(ggplot2)
+library(dplyr)
+library(readxl)
+library(writexl)  # For saving Excel files
+
+# Read the dataset
+data <- read_excel("C:/R/LABSTAT/Thesis/data/MD.xlsx", sheet = "data")
+
+# Filter out rows where x1 is zero before summarizing data
+data_filtered <- data %>%
+  filter(x1 > 0)
+
+# Summarize data by year
+data_summary <- data_filtered %>%
+  group_by(Period) %>%
+  summarize(
+    total_x1 = sum(x1, na.rm = TRUE) / 1e6,  # Convert to millions
+    total_regions = n_distinct(Location)  # Count unique affected regions
+  )
+
+# Ensure Period (Year) is numeric
+data_summary <- data_summary %>%
+  mutate(Period = as.numeric(Period))
+
+# Save the summarized data to an Excel file
+write_xlsx(data_summary, "C:/R/LABSTAT/Thesis/data/malaria/malaria_cases_summary.xlsx")
+
+# Compute scaling factor for right Y-axis (affected regions)
+scale_factor <- max(data_summary$total_x1, na.rm = TRUE) / max(data_summary$total_regions, na.rm = TRUE)
+
+# Dual-axis plot with individual year labels
+b1 <- ggplot(data_summary, aes(x = Period)) +
+  geom_bar(aes(y = total_x1), stat = "identity", fill = "skyblue", alpha = 0.7) +  # Left Y-axis (bars)
+  geom_line(aes(y = total_regions * scale_factor), color = "black", size = .8) +  # Right Y-axis
+  geom_point(aes(y = total_regions * scale_factor), color = "black", size = 1) +  # Points for affected regions
+  scale_y_continuous(
+    name = "Malaria cases (millions)", 
+    sec.axis = sec_axis(~ . / scale_factor, 
+                        name = "Total affected regions")
+  ) +
+  scale_x_continuous(
+    breaks = seq(2000, 2022, by = 1),  # Set breaks for each year
+    labels = seq(2000, 2022, by = 1)   # Label each year
+  ) +
+  labs(title = "A",
+       x = "Year") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate year labels by 45 degrees
+
+# Print confirmation message
+print("Summarized malaria cases saved as 'malaria_cases_summary.xlsx' successfully!")
+
+# Display the plot
+b1
+
+
+# Load required libraries
+library(ggplot2)
+library(dplyr)
+library(xgboost)
+library(readxl)
+
+# Read the dataset
+data <- read_excel("C:/R/LABSTAT/Thesis/data/MD.xlsx", sheet = "data")
+
+# Ensure x2 is numeric and handle missing values if needed
+data <- data %>%
+  mutate(x2 = as.numeric(x2))  # Convert x2 (death) to numeric
+
+# Filter out rows where x2 (death) is zero before summarizing data
+data_filtered <- data %>%
+  filter(x2 > 0)
+
+# Summarize data by year for death (x2)
+data_summary_death <- data_filtered %>%
+  group_by(Period) %>%
+  summarize(
+    total_x2 = sum(x2, na.rm = TRUE),  # Total death cases
+    total_regions = n_distinct(Location)  # Count unique affected regions
+  )
+
+# Ensure Period (Year) is numeric
+data_summary_death <- data_summary_death %>%
+  mutate(Period = as.numeric(Period))
+# Save the summarized data to an Excel file
+write_xlsx(data_summary_death, "C:/R/LABSTAT/Thesis/data/malaria/malaria_death_summary.xlsx")
+
+# Compute scaling factor for right Y-axis (affected regions)
+scale_factor_death <- max(data_summary_death$total_x2, na.rm = TRUE) / max(data_summary_death$total_regions, na.rm = TRUE)
+
+# Dual-axis plot for death cases and affected regions
+b2 <- ggplot(data_summary_death, aes(x = Period)) +
+  geom_bar(aes(y = total_x2), stat = "identity", fill = "red", alpha = 0.7) +  # Left Y-axis (bars)
+  geom_line(aes(y = total_regions * scale_factor_death), color = "black", size = 0.8) +  # Right Y-axis trend
+  geom_point(aes(y = total_regions * scale_factor_death), color = "black", size = 1) +  # Points for affected regions
+  scale_y_continuous(
+    name = "Malaria death", 
+    sec.axis = sec_axis(~ . / scale_factor_death, 
+                        name = "Total affected countries")
+  ) +
+  scale_x_continuous(
+    breaks = seq(2000, 2022, by = 1),  # Set breaks for each year
+    labels = seq(2000, 2022, by = 1)   # Label each year
+  ) +
+  labs(title = "B",
+       x = "Year") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate year labels by 45 degrees
+
+b2
+
+
+
+# Load required libraries
+library(ggplot2)
+library(gridExtra)
+library(grid)
+
+# Create a combined plot
+F35= grid.arrange(b1, b2, ncol = 2)
+
+ggsave("C:/R/LABSTAT/Thesis/data/malaria/2combined_plot.png", plot = F35, width = 12, height =3 , dpi = 300)
+
+
+
+
+# Load required libraries
+library(ggplot2)
+library(dplyr)
+library(readxl)
+library(sf)
+library(viridis)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(ggspatial)
+
+# Read the dataset
+data <- read_excel("C:/R/LABSTAT/Thesis/data/MD.xlsx", sheet = "data")
+
+# Filter data for the years 2000 to 2022
+data_filtered <- data %>%
+  filter(Period >= 2000 & Period <= 2022)
+
+# Load world map data as simple features (sf)
+world_map <- ne_countries(scale = "medium", returnclass = "sf")
+
+# Filter out Antarctica
+world_filtered <- world_map %>% filter(name != "Antarctica")
+
+# Identify study regions (locations available in the dataset)
+study_regions <- unique(data_filtered$Location)
+
+# Highlight study regions and keep other regions gray
+world_filtered <- world_filtered %>%
+  mutate(region_fill = if_else(name %in% study_regions, "Study Region", "Other"))
+
+# Compute centroids of each country in the world map
+world_filtered <- world_filtered %>% 
+  mutate(centroid = st_centroid(geometry))
+
+# Extract coordinates (lon and lat) from the centroids
+world_filtered <- world_filtered %>%
+  mutate(centroid_coords = st_coordinates(centroid)) %>%
+  mutate(lon = centroid_coords[, 1], lat = centroid_coords[, 2])
+
+# Join the filtered malaria death data with the world map data
+world_data <- world_filtered %>%
+  left_join(data_filtered, by = c("name" = "Location"))
+
+# Manually define a danger-related color palette with 23 colors (excluding blue)
+color_palette <- c("#d73027", "#f46d43", "#fdae61", "#fee08b", "#ffffbf",
+                   "#d9ef8b", "#a6d96a", "#66bd63", "#1a9850", "#313695",
+                   "#4575b4", "#91bfdb", "#e0f3f8", "#fee090", "#fdae61",
+                   "#f46d43", "#d73027", "#a50026", "#800000", "#b2182b",
+                   "#e31a1c", "#fc4e2a", "#fd8d3c")
+
+# Scale malaria deaths to millions
+world_data <- world_data %>%
+  mutate(x1_million = x1 / 1e6)
+
+
+# Create the map plot with points indicating malaria deaths by country and year
+c1= ggplot(world_data) +
+  geom_sf(aes(fill = region_fill), color = "gray", size = 0.1) +  # Map with light blue fill for study region and gray for others
+  scale_fill_manual(values = c("Study Region" = "lightblue", "Other" = "gray"), guide = "none") +  # Hide legend for region fill
+  geom_point(aes(x = lon, y = lat, size = x1_million, color = as.factor(Period)), 
+             position = position_jitter(width = 0, height = 0), alpha = 1) +  # Points for malaria deaths by year
+  scale_color_manual(values = color_palette, name = "Year") +  # Manually defined color scale for years
+  labs(title = "C", x = "Longitude", y = "Latitude", size = "Malaria cases (millions)") +
+  theme_void() +
+  theme(legend.position = "bottom", legend.box = "horizontal")  +
+  guides(size = guide_legend( order = 1, position = "right"),
+         color = guide_legend(nrow = 2, byrow = TRUE))
+c1
+
+# Load required libraries
+library(dplyr)
+library(readxl)
+library(writexl)
+
+# Read the dataset
+data <- read_excel("C:/R/LABSTAT/Thesis/data/MD.xlsx", sheet = "data")
+
+# Filter relevant years (2000-2022)
+data_filtered <- data %>%
+  filter(Period >= 2000 & Period <= 2022)
+
+# Find the top 5 years with the highest malaria cases (in millions, rounded to 2 decimal places)
+top_5_malaria_years <- data_filtered %>%
+  group_by(Period) %>%
+  summarize(total_cases = round(sum(x1, na.rm = TRUE) / 1e6, 2)) %>%  # Convert to millions & round
+  arrange(desc(total_cases)) %>%
+  slice_head(n = 5)  # Get top 5 years
+
+# Find the top 10 countries with the highest malaria cases (in millions, rounded to 2 decimal places)
+top_10_malaria_countries <- data_filtered %>%
+  group_by(Location) %>%
+  summarize(total_cases = round(sum(x1, na.rm = TRUE) / 1e6, 2)) %>%  # Convert to millions & round
+  arrange(desc(total_cases)) %>%
+  slice_head(n = 10)  # Get top 10 countries
+
+# Format results for saving
+malaria_summary <- bind_rows(
+  top_5_malaria_years %>%
+    rename(Category = Period, Value = total_cases) %>%
+    mutate(Category = paste0("Top Year: ", Category)),
+  top_10_malaria_countries %>%
+    rename(Category = Location, Value = total_cases) %>%
+    mutate(Category = paste0("Top Country: ", Category))
+)
+
+# Save results to an Excel file
+write_xlsx(malaria_summary, "C:/R/LABSTAT/Thesis/data/malaria/1111malaria_summary.xlsx")
+
+# Print confirmation message
+print("Malaria summary (in millions, rounded to 2 decimals) with top 5 years and top 10 countries saved successfully!")
+
+
+
+
+# Load required libraries
+library(ggplot2)
+library(dplyr)
+library(readxl)
+library(sf)
+library(viridis)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(ggspatial)
+
+# Read the dataset
+data <- read_excel("C:/R/LABSTAT/Thesis/data/MD.xlsx", sheet = "data")
+
+# Filter data for the years 2000 to 2022
+data_filtered <- data %>%
+  filter(Period >= 2000 & Period <= 2022)
+
+# Ensure `x2` is treated as numeric
+data_filtered <- data_filtered %>%
+  mutate(x2 = as.numeric(x2))
+
+# Load world map data as simple features (sf)
+world_map <- ne_countries(scale = "medium", returnclass = "sf")
+
+# Filter out Antarctica
+world_filtered <- world_map %>% filter(name != "Antarctica")
+
+# Identify study regions (locations available in the dataset)
+study_regions <- unique(data_filtered$Location)
+
+# Highlight study regions and keep other regions gray
+world_filtered <- world_filtered %>%
+  mutate(region_fill = if_else(name %in% study_regions, "Study Region", "Other"))
+
+# Compute centroids of each country in the world map
+world_filtered <- world_filtered %>% 
+  mutate(centroid = st_centroid(geometry))
+
+# Extract coordinates (lon and lat) from the centroids
+world_filtered <- world_filtered %>%
+  mutate(centroid_coords = st_coordinates(centroid)) %>%
+  mutate(lon = centroid_coords[, 1], lat = centroid_coords[, 2])
+
+# Join the filtered malaria death data with the world map data
+world_data <- world_filtered %>%
+  left_join(data_filtered, by = c("name" = "Location"))
+
+# Manually define a danger-related color palette with 23 colors (excluding blue)
+color_palette <- c("#d73027", "#f46d43", "#fdae61", "#fee08b", "#ffffbf",
+                   "#d9ef8b", "#a6d96a", "#66bd63", "#1a9850", "#313695",
+                   "#4575b4", "#91bfdb", "#e0f3f8", "#fee090", "#fdae61",
+                   "#f46d43", "#d73027", "#a50026", "#800000", "#b2182b",
+                   "#e31a1c", "#fc4e2a", "#fd8d3c")
+
+# Create the map plot with points indicating malaria deaths by country and year
+c2= ggplot(world_data) +
+  geom_sf(aes(fill = region_fill), color = "gray", size = 0.1) +  # Map with light blue fill for study region and gray for others
+  scale_fill_manual(values = c("Study Region" = "lightblue", "Other" = "gray"), guide = "none") +  # Hide legend for region fill
+  geom_point(aes(x = lon, y = lat, size = x2, color = as.factor(Period)), 
+             position = position_jitter(width = 0.5, height = 0.5), alpha = 0.7) +  # Points for malaria deaths by year
+  scale_color_manual(values = color_palette, name = "Year") +  # Manually defined color scale for years
+  labs(title = "D", x = "Longitude", y = "Latitude", size = "Malaria deaths") +
+  theme_void() +
+  theme(legend.position = "bottom", legend.box = "horizontal") +
+  guides(size = guide_legend(order = 1, position = "right"),
+         color = guide_legend(nrow = 3, byrow = TRUE))
+c2
+
+# Load required libraries
+library(dplyr)
+library(readxl)
+library(writexl)
+
+# Read the dataset
+data <- read_excel("C:/R/LABSTAT/Thesis/data/MD.xlsx", sheet = "data")
+
+# Filter relevant years (2000-2022) and ensure x2 is numeric
+data_filtered <- data %>%
+  filter(Period >= 2000 & Period <= 2022) %>%
+  mutate(x2 = suppressWarnings(as.numeric(x2)))  # Convert with warnings suppressed
+
+# Replace NA values in x2 with 0 (since you prefer missing values as 0)
+data_filtered$x2[is.na(data_filtered$x2)] <- 0
+
+# Find the top 5 years with the highest malaria deaths (in millions)
+top_years <- data_filtered %>%
+  group_by(Period) %>%
+  summarize(total_deaths = sum(x2, na.rm = TRUE), .groups = "drop") %>%  # Convert to millions
+  arrange(desc(total_deaths)) %>%
+  head(5) %>%  # Use head() instead of slice()
+  mutate(total_deaths = round(total_deaths, 2))  # Round to 2 decimal places
+
+# Find the top 10 countries with the highest malaria deaths (in millions)
+top_countries <- data_filtered %>%
+  group_by(Location) %>%
+  summarize(total_deaths = sum(x2, na.rm = TRUE) , .groups = "drop") %>%  # Convert to millions
+  arrange(desc(total_deaths)) %>%
+  head(10) %>%  # Use head() instead of slice()
+  mutate(total_deaths = round(total_deaths, 2))  # Round to 2 decimal places
+
+# Save results to an Excel file
+write_xlsx(list("Top_Years" = top_years, "Top_Countries" = top_countries),
+           "C:/R/LABSTAT/Thesis/data/malaria/031212Malaria_Deaths_Summary.xlsx")
+
+print("Excel file saved successfully at C:/R/LABSTAT/Thesis/data/Malaria_Deaths_Summary.xlsx")
+
+
+# Load required libraries
+library(ggplot2)
+library(gridExtra)
+library(grid)
+
+# Create a combined plot
+F35= grid.arrange(c1, c2, ncol = 1)
+
+ggsave("C:/R/LABSTAT/Thesis/data/malaria/31combined_plot.png", plot = c1, width = 12, height =3.5 , dpi = 300)
+
+
+
+
+
+
+
+
+
+
+#+++++++++++++++++++++++++++++++++++++
+
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(maps)
+library(viridis)
+
+# Load the dataset
+data <- read_excel("C:/R/LABSTAT/Thesis/data/MD.xlsx", sheet = "data")
+
+# Load world map data
+world_map <- map_data("world")
+
+# Ensure the column names match between the map and your data
+data <- data %>% rename(region = Location)
+
+# Merge your data with the world map data
+merged_data <- world_map %>%
+  left_join(data, by = "region")
+
+# Plot the choropleth map using ggplot2
+map <- ggplot(merged_data, aes(long, lat, group = group)) +
+  geom_polygon(aes(fill = x3), color = "black") +  # Use the appropriate variable (e.g., x3 for malaria incidence)
+  scale_fill_viridis_c(option = "plasma", name = "Malaria Incidence") +
+  theme_minimal() +
+  labs(title = "Spatial Distribution of Malaria")
+
+# Save the map
+ggsave("C:/R/LABSTAT/Thesis/data/malaria/malaria_choropleth_map.png", plot = map, width = 10, height = 6, units = "in")
+
+#++++++++++++++++++++++++
+
+
+
+
+
+
+
+
+
+library(ggspatial)
+
+# Load necessary packages
+library(spdep)
+library(sf)
+library(dplyr)
+library(ggplot2)
+library(viridis)
+library(readxl)
+library(maps)
+
+# Load the dataset
+data <- read_excel("C:/R/LABSTAT/Thesis/data/MD.xlsx", sheet = "data")
+
+# Load world map data
+world_map <- map_data("world")
+world_sf <- st_as_sf(map("world", plot = FALSE, fill = TRUE))
+
+
+# Filter out Antarctica from world map data
+world_sf <- world_sf %>% filter(!grepl("Antarctica", ID))
+
+# Ensure the column names match between the map and your data
+data <- data %>% rename(region = Location)
+
+# Merge your data with the world map data
+merged_data <- world_sf %>%
+  left_join(data, by = c("ID" = "region"))
+
+# Ensure valid geometries
+merged_data <- st_make_valid(merged_data)
+
+# Replace missing values in x3 and x4 with zero
+merged_data <- merged_data %>% mutate(
+  x3 = ifelse(is.na(x3), 0, x3),
+  x4 = ifelse(is.na(x4), 0, x4)
+)
+
+# Subset the study area based on the 106 countries in your dataset
+study_area <- merged_data %>% filter(ID %in% data$region)
+
+# Ensure valid geometries and convert to matrix form for neighbors calculation
+coords <- st_coordinates(st_centroid(study_area))
+
+# Remove any rows with NA coordinates or duplicate coordinates
+valid_idx <- !is.na(coords[,1]) & !duplicated(coords)
+coords <- coords[valid_idx, ]
+study_area <- study_area[valid_idx, ]
+
+# Create neighbors and spatial weights for the study area
+nb <- knn2nb(knearneigh(coords, k = 4))
+lw <- nb2listw(nb, style = "W")
+
+library(spdep)
+library(writexl)
+
+# Compute Local Moran's I for x3 and x4
+local_moran_x3 <- localmoran(study_area$x3, lw)
+local_moran_x4 <- localmoran(study_area$x4, lw)
+
+# Convert results to data frames
+df_x3 <- as.data.frame(local_moran_x3)
+df_x4 <- as.data.frame(local_moran_x4)
+
+# Define file path
+file_path <- "C:/R/LABSTAT/Thesis/data/malaria/local_moran_results.xlsx"
+
+# Save to an Excel file
+write_xlsx(list("Local_Moran_x3" = df_x3, "Local_Moran_x4" = df_x4), file_path)
+
+cat("Results saved at:", file_path)
+
+# Add the local Moran's I values and p-values to the study_area dataframe
+study_area$local_moran_x3 <- local_moran_x3[,1]
+study_area$p_value_x3 <- local_moran_x3[,5]
+study_area$local_moran_x4 <- local_moran_x4[,1]
+study_area$p_value_x4 <- local_moran_x4[,5]
+
+# Determine the quadrant for each observation
+study_area$quadrant_x3 <- ifelse(study_area$local_moran_x3 > 1.96, "High-High",
+                                 ifelse(study_area$local_moran_x3 < -1.96, "Low-Low",
+                                        ifelse(study_area$local_moran_x3 >0 , "High-Low",
+                                               ifelse(study_area$local_moran_x3 < 0, "Low-High", "Not Significant"))))
+
+# Custom color scale
+colors <- c("High-High" = "red", "Low-Low" = "blue", "High-Low" = "orange", "Low-High" = "lightblue", "Not Significant" = "lightgray")
+
+# Plot the Moran's I test results for x3 on the map
+map_x3 <- ggplot() +
+  geom_sf(data = world_sf, fill = "gray", color = "white") +
+  geom_sf(data = study_area, aes(fill = quadrant_x3), color = "black") +
+  scale_fill_manual(name = "Moran's I", values = colors) +
+  theme_minimal() +
+  labs(title = "A") +
+  guides(fill = guide_legend(reverse = TRUE))+
+  theme(legend.position = "bottom", 
+        legend.title = element_text(face = "bold"),
+        plot.title = element_text(hjust = 0, face = "bold", size = 14))+
+  annotation_north_arrow(location = "tr", which_north = "true", 
+                         style = north_arrow_fancy_orienteering)
+
+
+# Save the x3 map
+ggsave("C:/R/LABSTAT/Thesis/data/malaria/morans_i_test_map_x3.png", plot = map_x3, width = 6, height = 4, units = "in")
+
+# Determine the quadrant for each observation
+study_area$quadrant_x4 <- ifelse(study_area$local_moran_x4 > 1.96, "High-High",
+                                 ifelse(study_area$local_moran_x4 < -1.96, "Low-Low",
+                                        ifelse(study_area$local_moran_x4 > 0, "High-Low",
+                                               ifelse(study_area$local_moran_x4 < 0, "Low-High", "Not Significant"))))
+
+# Plot the Moran's I test results for x4 on the map
+map_x4 <- ggplot() +
+  geom_sf(data = world_sf, fill = "gray", color = "white") +
+  geom_sf(data = study_area, aes(fill = quadrant_x4), color = "black") +
+  scale_fill_manual(name = "Moran's I", values = colors) +
+  theme_minimal() +
+  labs(title = "B") +
+  guides(fill = guide_legend(reverse = TRUE))+
+  theme(legend.position = "bottom", 
+        legend.title = element_text(face = "bold"),
+        plot.title = element_text(hjust = 0, face = "bold", size = 14))+
+  annotation_north_arrow(location = "tr", which_north = "true", 
+                         style = north_arrow_fancy_orienteering)
+
+# Save the x4 map
+ggsave("C:/R/LABSTAT/Thesis/data/malaria/morans_i_test_map_x4.png", plot = map_x4, width = 6, height = 4, units = "in")
+
+library(spdep)
+library(writexl)
+library(dplyr)
+
+# Compute Local Moran's I for x3 and x4
+local_moran_x3 <- localmoran(study_area$x3, lw)
+local_moran_x4 <- localmoran(study_area$x4, lw)
+
+# Add Moran's I and p-values to the study_area dataframe with rounding
+study_area$local_moran_x3 <- round(local_moran_x3[,1], 3)
+study_area$p_value_x3 <- round(local_moran_x3[,5], 3)
+study_area$local_moran_x4 <- round(local_moran_x4[,1], 3)
+study_area$p_value_x4 <- round(local_moran_x4[,5], 3)
+
+# Determine the significance and quadrant classification
+study_area$significance_x3 <- ifelse(study_area$p_value_x3 < 0.05, "Significant", "Not Significant")
+study_area$quadrant_x3 <- ifelse(study_area$local_moran_x3 > 1.96, "High-High",
+                                 ifelse(study_area$local_moran_x3 < -1.96, "Low-Low",
+                                        ifelse(study_area$local_moran_x3 > 0, "High-Low",
+                                               ifelse(study_area$local_moran_x3 < 0, "Low-High", "Not Significant"))))
+
+study_area$significance_x4 <- ifelse(study_area$p_value_x4 < 0.05, "Significant", "Not Significant")
+study_area$quadrant_x4 <- ifelse(study_area$local_moran_x4 > 1.96, "High-High",
+                                 ifelse(study_area$local_moran_x4 < -1.96, "Low-Low",
+                                        ifelse(study_area$local_moran_x4 > 0, "High-Low",
+                                               ifelse(study_area$local_moran_x4 < 0, "Low-High", "Not Significant"))))
+
+# Select relevant columns
+output_data <- study_area %>% 
+  select(ID, local_moran_x3, p_value_x3, significance_x3, quadrant_x3,
+         local_moran_x4, p_value_x4, significance_x4, quadrant_x4)
+
+# Define file path
+file_path <- "C:/R/LABSTAT/Thesis/data/malaria/1555moran_study_area.xlsx"
+
+# Save to an Excel file
+write_xlsx(output_data, file_path)
+
+cat("Results saved at:", file_path)
+
+
+
+
+
+
+
+
+
+# Load necessary packages
+library(spdep)
+library(sf)
+library(dplyr)
+library(ggplot2)
+library(viridis)
+library(readxl)
+library(maps)
+
+# Load the dataset
+data <- read_excel("C:/R/LABSTAT/Thesis/data/MD.xlsx", sheet = "data")
+
+# Load world map data
+world_map <- map_data("world")
+world_sf <- st_as_sf(map("world", plot = FALSE, fill = TRUE))
+
+# Filter out Antarctica from world map data
+world_sf <- world_sf %>% filter(!grepl("Antarctica", ID))
+
+# Ensure the column names match between the map and your data
+data <- data %>% rename(region = Location)
+
+# Merge your data with the world map data
+merged_data <- world_sf %>%
+  left_join(data, by = c("ID" = "region"))
+
+# Ensure valid geometries
+merged_data <- st_make_valid(merged_data)
+
+# Replace missing values in x3 and x4 with zero
+merged_data <- merged_data %>% mutate(
+  x3 = ifelse(is.na(x3), 0, x3),
+  x4 = ifelse(is.na(x4), 0, x4)
+)
+
+# Subset the study area based on the 106 countries in your dataset
+study_area <- merged_data %>% filter(ID %in% data$region)
+
+# Ensure valid geometries and convert to matrix form for neighbors calculation
+coords <- st_coordinates(st_centroid(study_area))
+
+# Remove any rows with NA coordinates or duplicate coordinates
+valid_idx <- !is.na(coords[,1]) & !duplicated(coords)
+coords <- coords[valid_idx, ]
+study_area <- study_area[valid_idx, ]
+
+# Create neighbors and spatial weights for the study area
+nb <- knn2nb(knearneigh(coords, k = 4))
+lw <- nb2listw(nb, style = "W")
+
+# Calculate Getis-Ord Gi* for x3
+gi_star_x3 <- localG(study_area$x3, lw)
+study_area$gi_star_x3 <- as.numeric(gi_star_x3)
+
+# Calculate p-values for Gi* for x3
+study_area$p_value_gi_star_x3 <- 2 * (1 - pnorm(abs(study_area$gi_star_x3)))
+
+# Calculate Getis-Ord Gi* for x4
+gi_star_x4 <- localG(study_area$x4, lw)
+study_area$gi_star_x4 <- as.numeric(gi_star_x4)
+
+# Calculate p-values for Gi* for x4
+study_area$p_value_gi_star_x4 <- 2 * (1 - pnorm(abs(study_area$gi_star_x4)))
+
+# Set custom breaks and labels
+breaks <- c(-Inf, -1.96, 1.96, Inf)
+labels <- c("Cold spot (Gi* < -1.96)", "Not significant", "Hot spot (Gi* > 1.96)")
+library(dplyr)
+
+# Classify Gi* values into meaningful spatial clusters
+study_area <- study_area %>%
+  mutate(gi_quadrant_x3 = case_when(
+    gi_star_x3 > 1.96 ~ "High-High (hot spot)",
+    gi_star_x3 < -1.96 ~ "Low-Low (cold spot)",
+    gi_star_x3 > 0 & gi_star_x3 <= 1.96 ~ "High-Low (spatial outlier)",
+    gi_star_x3 < 0 & gi_star_x3 >= -1.96 ~ "Low-High (spatial outlier)",
+    gi_star_x3 == 0 ~ "Not significant",
+    TRUE ~ "Undefined"
+  ))
+# Define custom colors
+colors <- c(
+  "High-High (hot spot)" = "red", 
+  "Low-Low (cold spot)" = "blue", 
+  "High-Low (spatial outlier)" = "orange", 
+  "Low-High (spatial outlier)" = "lightblue", 
+  "Not significant" = "lightgray"
+)
+
+# Plot the hotspots for x3 with the rest of the world in gray
+map_x3 <- ggplot() +
+  geom_sf(data = world_sf, fill = "gray", color = "white") +
+  geom_sf(data = study_area, aes(fill = gi_quadrant_x3), color = "black") +
+  scale_fill_manual(name = "Gi*", values = colors) +  # Removed extra closing parenthesis
+  theme_minimal() +
+  labs(title = "C") +
+  guides(fill = guide_legend(reverse = TRUE)) +
+  theme(
+    legend.position = "bottom", 
+    legend.title = element_text(face = "bold"),
+    plot.title = element_text(hjust = 0, face = "bold", size = 14)
+  ) +
+  annotation_north_arrow(location = "tr", which_north = "true", 
+                         style = north_arrow_fancy_orienteering)
+
+# Display the map
+print(map_x3)
+
+# Save the x3 map
+ggsave("C:/R/LABSTAT/Thesis/data/malaria/hotspot_detection_x3.png", plot = map_x3, width = 6, height = 4, units = "in")
+
+
+library(ggplot2)
+library(sf)
+library(dplyr)
+
+# Set custom breaks and labels correctly
+breaks <- c(-Inf, -1.96, 1.96, Inf)
+labels <- c("Cold spot (Gi* < -1.96)", "Not significant", "Hot spot (Gi* > 1.96)")
+
+# Classify Gi* values into meaningful spatial clusters for x4
+study_area <- study_area %>%
+  mutate(gi_quadrant_x4 = case_when(
+    gi_star_x4 > 1.96 ~ "High-High (Hot spot)",
+    gi_star_x4 < -1.96 ~ "Low-Low (Cold spot)",
+    gi_star_x4 > 0 & gi_star_x4 <= 1.96 ~ "High-Low (Spatial outlier)",
+    gi_star_x4 < 0 & gi_star_x4 >= -1.96 ~ "Low-High (Spatial outlier)",
+    gi_star_x4 == 0 ~ "Not significant",
+    TRUE ~ "Undefined"
+  ))
+
+# Define custom colors
+colors <- c(
+  "High-High (Hot spot)" = "red", 
+  "Low-Low (Cold spot)" = "blue", 
+  "High-Low (Spatial outlier)" = "orange", 
+  "Low-High (Spatial outlier)" = "lightblue", 
+  "Not significant" = "lightgray"
+)
+
+# Plot the hotspots for x4 with the rest of the world in gray
+map_x4 <- ggplot() +
+  geom_sf(data = world_sf, fill = "gray", color = "white") +
+  geom_sf(data = study_area, aes(fill = gi_quadrant_x4), color = "black") +
+  scale_fill_manual(name = "Gi*", values = colors) +
+  theme_minimal() +
+  labs(title = "D") +
+  guides(fill = guide_legend(reverse = TRUE)) +
+  theme(
+    legend.position = "bottom", 
+    legend.title = element_text(face = "bold"),
+    plot.title = element_text(hjust = 0, face = "bold", size = 14)
+  ) +
+  annotation_north_arrow(location = "tr", which_north = "true", 
+                         style = north_arrow_fancy_orienteering)
+
+# Display the map
+print(map_x4)
+
+# Save the x4 map
+ggsave("C:/R/LABSTAT/Thesis/data/malaria/hotspot_detection_x4.png", plot = map_x4, width = 6, height = 4, units = "in")
+
+# Load necessary libraries
+library(dplyr)
+library(openxlsx)
+library(sf)
+
+# Convert sf object to a regular data frame if necessary
+study_area_df <- as.data.frame(st_geometry(NULL))
+
+# Select relevant columns
+gi_results_filtered <- study_area_df %>%
+  select(ID, gi_star_x3, p_value_gi_star_x3, gi_quadrant_x3, 
+         gi_star_x4, p_value_gi_star_x4, gi_quadrant_x4) %>%
+  rename(
+    Country = ID,
+    `Gi*_x3` = gi_star_x3,
+    `p-value_x3` = p_value_gi_star_x3,
+    `Category_x3` = gi_quadrant_x3,
+    `Gi*_x4` = gi_star_x4,
+    `p-value_x4` = p_value_gi_star_x4,
+    `Category_x4` = gi_quadrant_x4
+  ) %>%
+  mutate(across(c(`Gi*_x3`, `p-value_x3`, `Gi*_x4`, `p-value_x4`), round, 3))  # Round values to 3 decimals
+
+# Filter data for different categories
+hot_spots <- gi_results_filtered %>%
+  filter(Category_x3 == "High-High (hot spot)" | Category_x4 == "High-High (hot spot)")
+
+cold_spots <- gi_results_filtered %>%
+  filter(Category_x3 == "Low-Low (cold spot)" | Category_x4 == "Low-Low (cold spot)")
+
+high_low <- gi_results_filtered %>%
+  filter(Category_x3 == "High-Low (Spatial outlier)" | Category_x4 == "High-Low (Spatial outlier)")
+
+low_high <- gi_results_filtered %>%
+  filter(Category_x3 == "Low-High (Spatial outlier)" | Category_x4 == "Low-High (Spatial outlier)")
+
+# Save results to an Excel file with separate sheets
+list_data <- list(
+  "Hot Spots (High-High)" = hot_spots,
+  "Cold Spots (Low-Low)" = cold_spots,
+  "High-Low Outliers" = high_low,
+  "Low-High Outliers" = low_high
+)
+
+write.xlsx(list_data, "C:/R/LABSTAT/Thesis/data/malaria/6547Malaria_HotCold_Spots.xlsx", rowNames = FALSE)
+
+
+
+# Load necessary libraries
+library(dplyr)
+library(openxlsx)
+
+# Select relevant columns and rename them
+gi_results_filtered <- study_area %>%
+  select(ID, gi_star_x3, p_value_gi_star_x3, gi_quadrant_x3, 
+         gi_star_x4, p_value_gi_star_x4, gi_quadrant_x4) %>%
+  rename(
+    Country = ID,
+    `Gi*_x3` = gi_star_x3,
+    `p-value_x3` = p_value_gi_star_x3,
+    `Category_x3` = gi_quadrant_x3,
+    `Gi*_x4` = gi_star_x4,
+    `p-value_x4` = p_value_gi_star_x4,
+    `Category_x4` = gi_quadrant_x4
+  ) %>%
+  mutate(across(c(`Gi*_x3`, `p-value_x3`, `Gi*_x4`, `p-value_x4`), round, 3))  # Round values to 3 decimals
+
+# Separate hot spots for x3 and x4
+hot_spots_x3 <- gi_results_filtered %>%
+  filter(Category_x3 == "High-High (hot spot)")
+
+hot_spots_x4 <- gi_results_filtered %>%
+  filter(Category_x4 == "High-High (hot spot)")
+
+cold_spots <- gi_results_filtered %>%
+  filter(Category_x3 == "Low-Low (cold spot)" | Category_x4 == "Low-Low (cold spot)")
+
+high_low <- gi_results_filtered %>%
+  filter(Category_x3 == "High-Low (Spatial outlier)" | Category_x4 == "High-Low (Spatial outlier)")
+
+low_high <- gi_results_filtered %>%
+  filter(Category_x3 == "Low-High (Spatial outlier)" | Category_x4 == "Low-High (Spatial outlier)")
+
+# Save results to an Excel file with separate sheets
+list_data <- list(
+  "Hot Spots x3" = hot_spots_x3,
+  "Hot Spots x4" = hot_spots_x4,
+  "Cold Spots (Low-Low)" = cold_spots,
+  "High-Low Outliers" = high_low,
+  "Low-High Outliers" = low_high
+)
+
+write.xlsx(list_data, "C:/R/LABSTAT/Thesis/data/malaria/4445Malaria_HotCold_Spots.xlsx", rowNames = FALSE)
+
+
+# Load necessary packages
+library(spdep)
+library(sf)
+library(dplyr)
+library(ggplot2)
+library(viridis)
+library(readxl)
+library(maps)
+
+# Load the dataset
+data <- read_excel("C:/R/LABSTAT/Thesis/data/MD.xlsx", sheet = "data1")
+
+
+# Load necessary packages
+library(readxl)
+library(dplyr)
+library(corrplot)
+library(writexl)  # For saving Excel files
+
+# Load the dataset
+data <- read_excel("C:/R/LABSTAT/Thesis/data/MD.xlsx", sheet = "data1")
+
+# Select only numeric columns
+numeric_data <- data %>%
+  select(where(is.numeric)) %>%
+  na.omit()  # Remove rows with missing values
+
+# Compute correlation matrix
+cor_matrix <- cor(numeric_data, use = "pairwise.complete.obs")
+
+# Round the correlation values to 2 decimal places
+cor_matrix_rounded <- round(cor_matrix, 2)
+
+# Save the correlation matrix to an Excel file
+write_xlsx(as.data.frame(cor_matrix_rounded), "C:/R/LABSTAT/Thesis/data/malaria/114444correlation_matrix.xlsx")
+
+# Save the correlation plot as an image
+png("C:/R/LABSTAT/Thesis/data/malaria/111122correlation_plot.png", width = 800, height = 600)
+
+# Generate upper triangular correlation plot
+corrplot(cor_matrix, method = "color", type = "upper",
+         col = colorRampPalette(c("blue", "white", "red"))(200),
+         tl.col = "black", tl.srt = 45)
+
+dev.off()  # Close the graphics device
+
+
+
+#--------Model Selection----------------
+
+# Load required libraries
+library(readxl)
+library(dplyr)
+library(tidymodels)
+library(xgboost)
+library(lightgbm)
+library(DALEX)
+library(ggplot2)
+library(e1071)  # For SVM
+library(rpart)  # For Decision Tree
+library(pROC)   # For AUC-ROC
+library(missRanger) # For missing value imputation
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Load the data
+mydata <- read_excel("C:/R/LABSTAT/Thesis/data/MD.xlsx", sheet = "data1")
+
+# Select relevant columns
+discharge <- mydata %>%
+  select(Year, `Malaria incidence`, `Malaria mortality`, y1:y19)
+
+# Convert non-numeric values to NA and then log transform each variable (excluding Period)
+discharge <- discharge %>%
+  mutate(across(y1:y19, ~ as.numeric(as.character(.)))) %>%
+  mutate(across(-Year, ~ log1p(.)))
+
+# Impute missing values using missRanger
+discharge_imputed <- missRanger(discharge, pmm.k = 5, seed = 123)
+
+# Add Year to the imputed dataset (you may have it in 'Period')
+discharge_imputed$Year <- discharge$Year
+
+# Split the dataset into training (2000 to 2019) and testing (2020 to 2022) datasets
+distrain <- discharge_imputed %>% filter(Year >= 2000 & Year <= 2020)
+distest <- discharge_imputed %>% filter(Year >= 2021 & Year <= 2022)
+
+# Define Root Mean Squared Error (RMSE) function
+rmse <- function(y_true, y_pred) {
+  sqrt(mean((y_true - y_pred)^2))
+}
+
+# Define Mean Absolute Error (MAE) function
+mae <- function(y_true, y_pred) {
+  mean(abs(y_true - y_pred))
+}
+
+# Define Adjusted R2 function
+adj_r2 <- function(model, X, y) {
+  preds <- predict(model, X)
+  r2 <- 1 - sum((y - preds)^2) / sum((y - mean(y))^2)
+  n <- length(y)
+  p <- ncol(X)
+  adj_r2 <- 1 - ((1 - r2) * (n - 1)) / (n - p - 1)
+  return(adj_r2)
+}
+
+### Multiple Regression Model ###
+multi_formula <- as.formula(`Malaria incidence` ~ y1 + y2 + y3 + y4 + y5 + y6 + y7 + y8 + y9 + y10 + y11 + y12 + y13 + y14 + y15 + y16 + y17 + y18 + y19)
+fit_multi <- lm(multi_formula, data = distrain)
+preds_multi <- predict(fit_multi, newdata = distest)
+rmse_multi <- rmse(distest$`Malaria incidence`, preds_multi)
+r2_multi <- summary(fit_multi)$r.squared
+mae_multi <- mae(distest$`Malaria incidence`, preds_multi)
+adj_r2_multi <- 1 - ((1 - r2_multi) * (nrow(distest) - 1)) / (nrow(distest) - length(fit_multi$coefficients) - 1)
+
+### Naive Model ###
+preds_naive <- rep(mean(distrain$`Malaria incidence`), nrow(distest))
+rmse_naive <- rmse(distest$`Malaria incidence`, preds_naive)
+r2_naive <- 1 - sum((distest$`Malaria incidence` - preds_naive)^2) / sum((distest$`Malaria incidence` - mean(distest$`Malaria incidence`))^2)
+mae_naive <- mae(distest$`Malaria incidence`, preds_naive)
+adj_r2_naive <- 1 - ((1 - r2_naive) * (nrow(distest) - 1)) / (nrow(distest) - 1 - 1)
+
+### Decision Tree Model ###
+fit_dt <- rpart(multi_formula, data = distrain, method = "anova")
+preds_dt <- predict(fit_dt, newdata = distest)
+rmse_dt <- rmse(distest$`Malaria incidence`, preds_dt)
+r2_dt <- 1 - sum((distest$`Malaria incidence` - preds_dt)^2) / sum((distest$`Malaria incidence` - mean(distest$`Malaria incidence`))^2)
+mae_dt <- mae(distest$`Malaria incidence`, preds_dt)
+adj_r2_dt <- adj_r2(fit_dt, distest %>% select(y1:y19), distest$`Malaria incidence`)
+
+### XGBoost Model ###
+dtrain <- xgb.DMatrix(as.matrix(distrain %>% select(y1:y19)), label = distrain$`Malaria incidence`)
+dtest <- xgb.DMatrix(as.matrix(distest %>% select(y1:y19)), label = distest$`Malaria incidence`)
+params <- list(objective = "reg:squarederror", eval_metric = "rmse", max_depth = 6, eta = 0.05, subsample = 0.8, colsample_bytree = 0.8)
+fit_xgb <- xgb.train(params = params, data = dtrain, nrounds = 300, watchlist = list(train = dtrain, eval = dtest), early_stopping_rounds = 10)
+preds_xgb <- predict(fit_xgb, dtest)
+rmse_xgb <- rmse(distest$`Malaria incidence`, preds_xgb)
+r2_xgb <- 1 - sum((distest$`Malaria incidence` - preds_xgb)^2) / sum((distest$`Malaria incidence` - mean(distest$`Malaria incidence`))^2)
+mae_xgb <- mae(distest$`Malaria incidence`, preds_xgb)
+adj_r2_xgb <- adj_r2(fit_xgb, as.matrix(distest %>% select(y1:y19)), distest$`Malaria incidence`)
+
+### LightGBM Model ###
+dtrain_lgb <- lgb.Dataset(as.matrix(distrain %>% select(y1:y19)), label = distrain$`Malaria incidence`)
+dtest_lgb <- lgb.Dataset(as.matrix(distest %>% select(y1:y19)), label = distest$`Malaria incidence`)
+params_lgb <- list(objective = "regression", metric = "rmse", num_leaves = 31, learning_rate = 0.05, feature_fraction = 0.9)
+fit_lgb <- lgb.train(params_lgb, dtrain_lgb, 100, valids = list(train = dtrain_lgb, eval = dtest_lgb), early_stopping_rounds = 10)
+preds_lgb <- predict(fit_lgb, as.matrix(distest %>% select(y1:y19)))
+rmse_lgb <- rmse(distest$`Malaria incidence`, preds_lgb)
+r2_lgb <- 1 - sum((distest$`Malaria incidence` - preds_lgb)^2) / sum((distest$`Malaria incidence` - mean(distest$`Malaria incidence`))^2)
+mae_lgb <- mae(distest$`Malaria incidence`, preds_lgb)
+adj_r2_lgb <- adj_r2(fit_lgb, as.matrix(distest %>% select(y1:y19)), distest$`Malaria incidence`)
+
+### Support Vector Machine (SVM) Model ###
+fit_svm <- svm(multi_formula, data = distrain)
+preds_svm <- predict(fit_svm, newdata = distest)
+rmse_svm <- rmse(distest$`Malaria incidence`, preds_svm)
+r2_svm <- 1 - sum((distest$`Malaria incidence` - preds_svm)^2) / sum((distest$`Malaria incidence` - mean(distest$`Malaria incidence`))^2)
+mae_svm <- mae(distest$`Malaria incidence`, preds_svm)
+adj_r2_svm <- adj_r2(fit_svm, distest %>% select(y1:y19), distest$`Malaria incidence`)
+
+# Create a matrix to summarize the performance
+performance_matrix <- data.frame(
+  Model = c("GLM", "Naive", "Decision Tree", "XGBoost", "LightGBM", "SVM"),
+  RMSE = c(rmse_multi, rmse_naive, rmse_dt, rmse_xgb, rmse_lgb, rmse_svm),
+  R2 = c(r2_multi, r2_naive, r2_dt, r2_xgb, r2_lgb, r2_svm),
+  Adjusted_R2 = c(adj_r2_multi, adj_r2_naive, adj_r2_dt, adj_r2_xgb, adj_r2_lgb, adj_r2_svm),
+  MAE = c(mae_multi, mae_naive, mae_dt, mae_xgb, mae_lgb, mae_svm)
+)
+
+
+# Round the performance metrics to two decimal places
+performance_matrix$RMSE <- round(performance_matrix$RMSE, 2)
+performance_matrix$R2 <- round(performance_matrix$R2, 2)
+performance_matrix$Adjusted_R2 <- round(performance_matrix$Adjusted_R2, 2)
+performance_matrix$MAE <- round(performance_matrix$MAE, 2)
+
+# Print the updated performance matrix
+print(performance_matrix)
+
+# Create a long format data frame for visualization
+performance_long <- performance_matrix %>% 
+  gather(key = "Metric", value = "Value", RMSE, R2, Adjusted_R2, MAE)
+
+# Plot the performance metrics (horizontal plot with negative values visible)
+ggplot(performance_long, aes(x = Value, y = Model, fill = Metric)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(
+    x = "Metric value",
+    y = "Model",
+    fill = "Metric") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 16),
+    axis.title = element_text(face = "bold", size = 14),
+    axis.text = element_text(size = 12),
+    legend.position = "bottom"
+  ) +
+  scale_fill_brewer(palette = "Set1")+
+  #making vartical
+  coord_flip()
+
+# Save the plot as a PNG file
+ggsave("C:/R/LABSTAT/Thesis/data/malaria/44Model_Performance_Comparison_Horizontal.png", width = 10, height = 6)
+
+
+
+#----------XAI------------
+
+# Load required libraries
+library(readxl)
+library(xgboost)
+library(DALEX)
+library(dplyr)
+library(ggplot2)
+library(SHAPforxgboost)
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Load dataset
+mydata <- read_excel("C:/R/LABSTAT/Thesis/data/MD.xlsx", sheet = "data1")
+
+
+# Select relevant columns
+discharge <- mydata %>%
+  select(Year, `Malaria incidence`, `Malaria mortality`, y1:y22)
+
+# Convert to numeric and handle missing values
+discharge <- discharge %>%
+  mutate(across(y1:y22, ~ as.numeric(.))) %>%
+  mutate(across(-Year, ~ log1p(.))) %>%
+  mutate(`Malaria incidence` = ifelse(is.na(`Malaria incidence`), 0, `Malaria incidence`))
+
+# Split data into training (2000-2020) and testing (2021-2022)
+distrain <- discharge %>% filter(Year >= 2000 & Year <= 2020)
+distest <- discharge %>% filter(Year >= 2021 & Year <= 2022)
+
+# Prepare the dataset for XGBoost
+dtrain <- xgb.DMatrix(as.matrix(distrain %>% select(y1:y22)), label = distrain$`Malaria incidence`)
+dtest <- xgb.DMatrix(as.matrix(distest %>% select(y1:y22)), label = distest$`Malaria incidence`)
+
+# Define XGBoost parameters
+params <- list(
+  objective = "reg:squarederror",
+  eval_metric = "rmse",
+  max_depth = 6,
+  eta = 0.05,
+  subsample = 0.8,
+  colsample_bytree = 0.8
+)
+
+# Train the XGBoost model
+fit_xgb <- xgb.train(
+  params = params,
+  data = dtrain,
+  nrounds = 300,
+  watchlist = list(train = dtrain, eval = dtest),
+  early_stopping_rounds = 10
+)
+
+# Define prediction function for DALEX
+predict_xgb <- function(model, newdata) {
+  newdata_matrix <- xgb.DMatrix(as.matrix(newdata))
+  predict(model, newdata_matrix)
+}
+
+# Explain the model using DALEX
+explainer <- explain(
+  model = fit_xgb, 
+  data = as.data.frame(as.matrix(distrain %>% select(y1:y22))), 
+  y = distrain$`Malaria incidence`, 
+  predict_function = predict_xgb, 
+  label = "XGBoost Model"
+)
+
+# Get feature importance
+importance <- model_parts(explainer, type = "raw")
+
+# Select top 10 important features
+top_features <- importance %>%
+  filter(!variable %in% c("_baseline_", "_full_model_")) %>%
+  top_n(10, wt = dropout_loss) %>%
+  arrange(desc(dropout_loss)) %>%
+  pull(variable)
+
+# Prepare dataset with top 10 features
+dtrain_top <- xgb.DMatrix(as.matrix(distrain %>% select(all_of(top_features))), label = distrain$`Malaria incidence`)
+dtest_top <- xgb.DMatrix(as.matrix(distest %>% select(all_of(top_features))), label = distest$`Malaria incidence`)
+
+# Train model with top 10 features
+fit_xgb_top <- xgb.train(
+  params = params,
+  data = dtrain_top,
+  nrounds = 300,
+  watchlist = list(train = dtrain_top, eval = dtest_top),
+  early_stopping_rounds = 10
+)
+
+# Predictions
+preds_xgb_top <- predict(fit_xgb_top, dtest_top)
+
+# Calculate performance metrics
+rmse_xgb_top <- sqrt(mean((distest$`Malaria incidence` - preds_xgb_top)^2))
+r2_xgb_top <- 1 - sum((distest$`Malaria incidence` - preds_xgb_top)^2) / sum((distest$`Malaria incidence` - mean(distest$`Malaria incidence`))^2)
+mae_xgb_top <- mean(abs(distest$`Malaria incidence` - preds_xgb_top))
+
+# Performance metrics
+performance_top <- data.frame(
+  RMSE = rmse_xgb_top,
+  R2 = r2_xgb_top,
+  MAE = mae_xgb_top
+)
+print(performance_top)
+
+# SHAP Analysis
+shap_values <- shap.values(xgb_model = fit_xgb, X_train = as.matrix(distrain %>% select(y1:y22)))
+shap_long <- shap.prep(xgb_model = fit_xgb, X_train = as.matrix(distrain %>% select(y1:y22)))
+
+# Get mean SHAP values
+mean_shap_values <- data.frame(
+  Feature = names(shap_values$mean_shap_score),
+  MeanSHAP = shap_values$mean_shap_score
+) %>% arrange(desc(MeanSHAP))
+
+# Select top 10 SHAP features
+top_10_features <- mean_shap_values %>% head(10) %>% pull(Feature)
+shap_long_top <- shap_long %>% filter(variable %in% top_10_features)
+
+# Reorder feature levels
+shap_long_top$variable <- factor(shap_long_top$variable, levels = rev(top_10_features))
+
+# SHAP Summary Plot
+ggplot(shap_long_top, aes(x = value, y = variable, color = value)) +
+  geom_violin(fill = NA, scale = "width") +
+  geom_jitter(width = 0.2, height = 0, alpha = 0.5) +
+  stat_summary(fun.data = mean_sdl, geom = "pointrange", color = "black") +
+  labs(
+    title = "A",
+    x = "SHAP Value (Impact on Model Output)",
+    y = "Feature"
+  ) +
+  theme_minimal() +
+  scale_color_gradient2(low = "blue", mid = "orange", high = "red", midpoint = 0) +
+  theme(legend.position = "bottom")
+
+
+# Save the SHAP plot as a PNG file
+ggsave("C:/R/LABSTAT/Thesis/data/malaria/SHAP_Summary_Plot_Top_10_Features.png", width = 8, height = 5)
+
+
+
+
+
+
+# Load required libraries
+library(xgboost)
+library(dplyr)
+library(openxlsx)
+library(DALEX)
+library(SHAPforxgboost)
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Prepare the dataset
+dtrain <- xgb.DMatrix(as.matrix(distrain %>% select(y1:y22)), label = distrain$`Malaria incidence`)
+dtest <- xgb.DMatrix(as.matrix(distest %>% select(y1:y22)), label = distest$`Malaria incidence`)
+
+# Define XGBoost parameters
+params <- list(objective = "reg:squarederror", eval_metric = "rmse", max_depth = 6, eta = 0.05, subsample = 0.8, colsample_bytree = 0.8)
+
+# Train the XGBoost model
+fit_xgb <- xgb.train(params = params, data = dtrain, nrounds = 300, watchlist = list(train = dtrain, eval = dtest), early_stopping_rounds = 10)
+
+# Define a custom prediction function for the explainer
+predict_xgb <- function(model, newdata) {
+  newdata_matrix <- xgb.DMatrix(as.matrix(newdata))
+  predict(model, newdata_matrix)
+}
+
+# Use DALEX to explain the XGBoost model
+explainer <- explain(
+  model = fit_xgb, 
+  data = as.data.frame(as.matrix(distrain %>% select(y1:y22))), 
+  y = distrain$`Malaria incidence`, 
+  predict_function = predict_xgb, 
+  label = "XGBoost Model"
+)
+
+# Calculate SHAP values
+shap_values <- shap.values(xgb_model = fit_xgb, X_train = as.matrix(distrain %>% select(y1:y22)))
+shap_long <- shap.prep(xgb_model = fit_xgb, X_train = as.matrix(distrain %>% select(y1:y22)))
+
+# Correctly name the columns for mean SHAP values
+mean_shap_values <- data.frame(
+  Feature = names(shap_values$mean_shap_score),
+  MeanSHAP = shap_values$mean_shap_score
+) %>% arrange(desc(MeanSHAP))
+
+# Get the top 10 features based on mean SHAP value
+top_10_features <- mean_shap_values %>% head(10) %>% pull(Feature)
+
+# Print the top 10 features
+print(top_10_features)
+
+# Filter the SHAP values for the top 10 features
+shap_long_top <- shap_long %>% filter(variable %in% top_10_features)
+
+# Reorder the features to ensure top features are at the top of the y-axis
+shap_long_top$variable <- factor(shap_long_top$variable, levels = rev(top_10_features))
+
+# Export the SHAP values to an Excel sheet
+shap_values_excel <- shap_long_top %>%
+  group_by(variable) %>%
+  summarize(MeanSHAP = mean(value))
+
+write.xlsx(shap_values_excel, "C:/R/LABSTAT/Thesis/data/malaria/SHAP_Summary_Top_10_Features.xlsx", rowNames = FALSE)
+
+print("SHAP values have been exported to Excel successfully.")
+
+
+
+
+
+
+
+# Load required libraries
+library(xgboost)
+library(dplyr)
+library(openxlsx)
+library(DALEX)
+library(SHAPforxgboost)
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Prepare the dataset
+dtrain <- xgb.DMatrix(as.matrix(distrain %>% select(y1:y22)), label = distrain$`Malaria incidence`)
+dtest <- xgb.DMatrix(as.matrix(distest %>% select(y1:y22)), label = distest$`Malaria incidence`)
+
+# Define XGBoost parameters
+params <- list(objective = "reg:squarederror", eval_metric = "rmse", max_depth = 6, eta = 0.05, subsample = 0.8, colsample_bytree = 0.8)
+
+# Train the XGBoost model
+fit_xgb <- xgb.train(params = params, data = dtrain, nrounds = 300, watchlist = list(train = dtrain, eval = dtest), early_stopping_rounds = 10)
+
+# Define a custom prediction function for the explainer
+predict_xgb <- function(model, newdata) {
+  newdata_matrix <- xgb.DMatrix(as.matrix(newdata))
+  predict(model, newdata_matrix)
+}
+
+library(DALEXtra)  # Load DALEXtra for better XGBoost support
+#install.packages("DALEXtra")
+# Define the prediction function correctly
+predict_xgb <- function(model, newdata) {
+  newdata_matrix <- xgb.DMatrix(as.matrix(newdata))
+  predict(model, newdata_matrix)
+}
+
+# Ensure data is formatted correctly
+data_explainer <- as.data.frame(as.matrix(distrain[, paste0("y", 1:22)]))
+
+
+explainer <- explain_tidymodels(
+  model = fit_xgb, 
+  data = data_explainer, 
+  y = distrain$`Malaria incidence`, 
+  label = "XGBoost Model"
+)
+
+
+# Calculate SHAP values
+shap_values <- shap.values(xgb_model = fit_xgb, X_train = as.matrix(distrain %>% select(y1:y22)))
+shap_long <- shap.prep(xgb_model = fit_xgb, X_train = as.matrix(distrain %>% select(y1:y22)))
+
+# Calculate the mean SHAP values for all features from y1 to y19
+mean_shap_values <- shap_long %>%
+  group_by(variable) %>%
+  summarize(MeanSHAP = mean(value))
+
+# Export the SHAP values to an Excel sheet
+write.xlsx(mean_shap_values, "C:/R/LABSTAT/Thesis/data/malaria/SHAP_Summary_All_Features.xlsx", rowNames = FALSE)
+
+print("Mean SHAP values have been exported to Excel successfully.")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Load required libraries
+library(xgboost)
+library(dplyr)
+library(openxlsx)
+library(DALEX)
+library(SHAPforxgboost)
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Prepare the dataset
+dtrain <- xgb.DMatrix(as.matrix(distrain %>% select(starts_with("y"))), label = distrain$`Malaria incidence`)
+dtest <- xgb.DMatrix(as.matrix(distest %>% select(starts_with("y"))), label = distest$`Malaria incidence`)
+
+# Define XGBoost parameters
+params <- list(
+  objective = "reg:squarederror", 
+  eval_metric = "rmse", 
+  max_depth = 6, 
+  eta = 0.05, 
+  subsample = 0.8, 
+  colsample_bytree = 0.8
+)
+
+# Train the XGBoost model
+fit_xgb <- xgb.train(
+  params = params, 
+  data = dtrain, 
+  nrounds = 300, 
+  watchlist = list(train = dtrain, eval = dtest), 
+  early_stopping_rounds = 10
+)
+
+# Define a custom prediction function for the explainer
+predict_xgb <- function(model, newdata) {
+  newdata_matrix <- xgb.DMatrix(as.matrix(newdata))
+  predict(model, newdata_matrix)
+}
+
+# Use DALEX to explain the XGBoost model
+explainer <- explain_tidymodels(
+  model = fit_xgb, 
+  data = data_explainer, 
+  y = distrain$`Malaria incidence`, 
+  label = "XGBoost Model"
+)
+
+
+# Calculate SHAP values
+shap_values <- shap.values(xgb_model = fit_xgb, X_train = as.matrix(distrain %>% select(starts_with("y"))))
+shap_long <- shap.prep(xgb_model = fit_xgb, X_train = as.matrix(distrain %>% select(starts_with("y"))))
+
+# Define feature categories
+feature_categories <- list(
+  "Health System and Infrastructure" = c("y1", "y2", "y3", "y4", "y5", "y6"),
+  "Demographic and Socioeconomic Factors" = c("y7", "y8", "y9", "y10", "y11", "y12", "y13"),
+  "Health Outcomes and Environmental Factors" = c("y14", "y15", "y16", "y17", "y18", "y19"),
+  "Insecticide treated net ownership by household" = c("y20", "y21", "y22")
+)
+
+# Calculate SHAP contribution percentages
+shap_contribution <- bind_rows(
+  lapply(names(feature_categories), function(category) {
+    features <- feature_categories[[category]]
+    mean_shap_value <- shap_long %>%
+      filter(variable %in% features) %>%
+      summarize(mean_shap = mean(abs(value))) %>%
+      pull(mean_shap)
+    contribution_percentage <- (sum(mean_shap_value) / sum(abs(shap_long$value))) * 100
+    data.frame(Category = category, Contribution = contribution_percentage)
+  })
+)
+
+# Print the SHAP contribution percentages
+print(shap_contribution)
+
+# Export the SHAP contribution percentages to an Excel sheet
+write.xlsx(shap_contribution, "C:/R/LABSTAT/Thesis/data/malaria/11SHAP_Contribution_Percentages.xlsx", rowNames = FALSE)
+
+print("SHAP contribution percentages have been exported to Excel successfully.")
+
+
+
+
+
+
+# Load required libraries
+library(xgboost)
+library(dplyr)
+library(openxlsx)
+library(DALEX)
+library(SHAPforxgboost)
+data <- read_excel("C:/R/LABSTAT/Thesis/data/MD.xlsx", sheet = "data1")
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Prepare the dataset
+dtrain <- xgb.DMatrix(as.matrix(distrain %>% select(y1:y22)), label = distrain$`Malaria incidence`)
+dtest <- xgb.DMatrix(as.matrix(distest %>% select(y1:y22)), label = distest$`Malaria incidence`)
+
+# Define XGBoost parameters
+params <- list(objective = "reg:squarederror", eval_metric = "rmse", max_depth = 6, eta = 0.05, subsample = 0.8, colsample_bytree = 0.8)
+
+# Train the XGBoost model
+fit_xgb <- xgb.train(params = params, data = dtrain, nrounds = 300, watchlist = list(train = dtrain, eval = dtest), early_stopping_rounds = 10)
+
+# Define a custom prediction function for the explainer
+predict_xgb <- function(model, newdata) {
+  newdata_matrix <- xgb.DMatrix(as.matrix(newdata))
+  predict(model, newdata_matrix)
+}
+
+# Use DALEX to explain the XGBoost model
+explainer <- explain(
+  model = fit_xgb, 
+  data = as.data.frame(as.matrix(distrain %>% select(y1:y22))), 
+  y = distrain$`Malaria incidence`, 
+  predict_function = predict_xgb, 
+  label = "XGBoost Model"
+)
+explainer <- explain_tidymodels(
+  model = fit_xgb, 
+  data = data_explainer, 
+  y = distrain$`Malaria incidence`, 
+  label = "XGBoost Model"
+)
+
+# Calculate SHAP values
+shap_values <- shap.values(xgb_model = fit_xgb, X_train = as.matrix(distrain %>% select(y1:y22)))
+shap_long <- shap.prep(xgb_model = fit_xgb, X_train = as.matrix(distrain %>% select(y1:y22)))
+
+# Calculate the mean absolute SHAP values for each variable
+mean_shap_values <- shap_long %>%
+  group_by(variable) %>%
+  summarize(MeanAbsSHAP = mean(abs(value)))
+
+# Group variables into categories
+categories <- tibble(
+  variable = c('y1', 'y2', 'y3', 'y4', 'y5', 'y6', 'y7', 'y8', 'y9', 'y10', 'y11', 'y12', 'y13', 'y14', 'y15', 'y16', 'y17', 'y18', 'y19', "y20", "y21", "y22"),
+  category = c(
+    'Health System and Infrastructure',
+    'Health System and Infrastructure',
+    'Health System and Infrastructure',
+    'Health System and Infrastructure',
+    'Health System and Infrastructure',
+    'Health System and Infrastructure',
+    'Demographic and Socioeconomic Factors',
+    'Demographic and Socioeconomic Factors',
+    'Demographic and Socioeconomic Factors',
+    'Demographic and Socioeconomic Factors',
+    'Demographic and Socioeconomic Factors',
+    'Demographic and Socioeconomic Factors',
+    'Demographic and Socioeconomic Factors',
+    'Health Outcomes and Environmental Factors',
+    'Health Outcomes and Environmental Factors',
+    'Health Outcomes and Environmental Factors',
+    'Health Outcomes and Environmental Factors',
+    'Health Outcomes and Environmental Factors',
+    'Health Outcomes and Environmental Factors',
+    "Insecticide treated net ownership by household",
+    "Insecticide treated net ownership by household",
+    "Insecticide treated net ownership by household"
+  )
+)
+
+# Merge categories with SHAP values
+shap_values_with_categories <- mean_shap_values %>%
+  inner_join(categories, by = "variable")
+
+# Calculate total SHAP contribution for each category
+category_contributions <- shap_values_with_categories %>%
+  group_by(category) %>%
+  summarize(TotalSHAP = sum(MeanAbsSHAP))
+
+# Calculate the percentage contribution for each category
+total_shap <- sum(category_contributions$TotalSHAP)
+category_contributions <- category_contributions %>%
+  mutate(PercentageContribution = (TotalSHAP / total_shap) * 100)
+
+# Rank the feature classes based on their total SHAP contribution
+category_contributions <- category_contributions %>%
+  arrange(desc(TotalSHAP))
+
+# Export the SHAP contribution percentages and rankings to an Excel sheet
+write.xlsx(category_contributions, "C:/R/LABSTAT/Thesis/data/malaria/54555SHAP_Contribution_Percentage_Ranking.xlsx", rowNames = FALSE)
+
+print("SHAP contribution percentages and rankings have been exported to Excel successfully.")
+
+
+
+
+
+# Load required libraries
+library(xgboost)
+library(dplyr)
+library(ggplot2)
+library(DALEX)
+library(SHAPforxgboost)
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Prepare the dataset
+dtrain <- xgb.DMatrix(as.matrix(distrain %>% select(y1:y22)), label = distrain$`Malaria incidence`)
+dtest <- xgb.DMatrix(as.matrix(distest %>% select(y1:y22)), label = distest$`Malaria incidence`)
+
+# Define XGBoost parameters
+params <- list(objective = "reg:squarederror", eval_metric = "rmse", max_depth = 6, eta = 0.05, subsample = 0.8, colsample_bytree = 0.8)
+
+# Train the XGBoost model
+fit_xgb <- xgb.train(params = params, data = dtrain, nrounds = 300, watchlist = list(train = dtrain, eval = dtest), early_stopping_rounds = 10)
+
+# Define a custom prediction function for the explainer
+predict_xgb <- function(model, newdata) {
+  newdata_matrix <- xgb.DMatrix(as.matrix(newdata))
+  predict(model, newdata_matrix)
+}
+
+# Use DALEX to explain the XGBoost model
+explainer <- explain(
+  model = fit_xgb, 
+  data = as.data.frame(as.matrix(distrain %>% select(y1:y22))), 
+  y = distrain$`Malaria incidence`, 
+  predict_function = predict_xgb, 
+  label = "XGBoost Model"
+)
+explainer <- explain_tidymodels(
+  model = fit_xgb, 
+  data = data_explainer, 
+  y = distrain$`Malaria incidence`, 
+  label = "XGBoost Model"
+)
+
+# Calculate SHAP values
+shap_values <- shap.values(xgb_model = fit_xgb, X_train = as.matrix(distrain %>% select(y1:y22)))
+shap_long <- shap.prep(xgb_model = fit_xgb, X_train = as.matrix(distrain %>% select(y1:y22)))
+
+# Calculate the mean absolute SHAP values for each variable
+mean_shap_values <- shap_long %>%
+  group_by(variable) %>%
+  summarize(MeanAbsSHAP = mean(abs(value)))
+
+# Group variables into categories
+categories <- tibble(
+  variable = c('y1', 'y2', 'y3', 'y4', 'y5', 'y6', 'y7', 'y8', 'y9', 'y10', 'y11', 'y12', 'y13', 'y14', 'y15', 'y16', 'y17', 'y18', 'y19', "y20", "y21", "y22"),
+  category = c(
+    'Health System and Infrastructure',
+    'Health System and Infrastructure',
+    'Health System and Infrastructure',
+    'Health System and Infrastructure',
+    'Health System and Infrastructure',
+    'Health System and Infrastructure',
+    'Demographic and Socioeconomic Factors',
+    'Demographic and Socioeconomic Factors',
+    'Demographic and Socioeconomic Factors',
+    'Demographic and Socioeconomic Factors',
+    'Demographic and Socioeconomic Factors',
+    'Demographic and Socioeconomic Factors',
+    'Demographic and Socioeconomic Factors',
+    'Health Outcomes and Environmental Factors',
+    'Health Outcomes and Environmental Factors',
+    'Health Outcomes and Environmental Factors',
+    'Health Outcomes and Environmental Factors',
+    'Health Outcomes and Environmental Factors',
+    'Health Outcomes and Environmental Factors',
+    "Insecticide treated net ownership by household",
+    "Insecticide treated net ownership by household",
+    "Insecticide treated net ownership by household"
+  )
+)
+
+# Merge categories with SHAP values
+shap_values_with_categories <- mean_shap_values %>%
+  inner_join(categories, by = "variable")
+
+# Calculate total SHAP contribution for each category
+category_contributions <- shap_values_with_categories %>%
+  group_by(category) %>%
+  summarize(TotalSHAP = sum(MeanAbsSHAP))
+
+# Calculate the percentage contribution for each category
+total_shap <- sum(category_contributions$TotalSHAP)
+category_contributions <- category_contributions %>%
+  mutate(PercentageContribution = (TotalSHAP / total_shap) * 100)
+
+# Rank the feature classes based on their total SHAP contribution
+category_contributions <- category_contributions %>%
+  arrange(desc(TotalSHAP))
+
+ggplot(category_contributions, aes(x = reorder(category, -PercentageContribution), y = PercentageContribution, fill = category)) +
+  geom_bar(stat = "identity") +
+  labs(
+    title = "B",
+    x = "Feature category",
+    y = "SHAP contribution percentage"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(hjust = -.5, vjust = 1, face = "bold")  # Aligns title to the top-left
+  ) +
+  coord_flip()
+
+
+# Save the SHAP plot as a PNG file
+ggsave("C:/R/LABSTAT/Thesis/data/malaria/1258SHAP_Contribution_Percentage_Plot.png", width = 8, height = 2)
+
+# Export the SHAP contribution percentages and rankings to an Excel sheet
+write.xlsx(category_contributions, "C:/R/LABSTAT/Thesis/data/malaria/o1SHAP_Contribution_Percentage_Ranking.xlsx", rowNames = FALSE)
+
+print("SHAP contribution percentages and rankings have been exported to Excel successfully.")
+
+
+
+
+###CI-------------
+
+
+
+
+
+
+
+
+
+# Install the xgboost and WeightIt packages if necessary
+
+
+# Load the necessary packages
+library(xgboost)
+library(dplyr)
+library(readxl)
+library(WeightIt)
+
+# Load your data
+mydata <- read_excel("C:/R/LABSTAT/Thesis/data/MD.xlsx", sheet = "data1")
+
+# Convert necessary columns to numeric and handle missing values
+mydata <- mydata %>%
+  mutate(across(starts_with("y"), as.numeric),
+         `Malaria incidence` = as.numeric(`Malaria incidence`)) %>%
+  drop_na()
+# Define the feature matrix (X) and target variable (y)
+X <- mydata %>%
+  select(y1:y22) %>%
+  as.matrix()
+
+y <- mydata$`Malaria incidence`
+# Convert data to DMatrix format
+dtrain <- xgb.DMatrix(data = X, label = y)
+
+# Train the XGBoost model
+params <- list(objective = "reg:squarederror", booster = "gbtree")
+xgboost_model <- xgb.train(params = params, data = dtrain, nrounds = 100)
+
+# Get feature importance
+importance_matrix <- xgb.importance(model = xgboost_model)
+
+# Plot feature importance
+xgb.plot.importance(importance_matrix)
+# Define the treatment variable (example: using y1 as the treatment)
+treatment <- mydata$y1
+
+# Estimate propensity scores and create weights
+weights <- weightit(treatment ~ y2 + y3 + y4 + y5 + y6 + y7 + y8 + y9 + y10 + y11 + y12 + y13 + y14 + y1 + y16 + y17 + y18 + y19+y20+y21+y22,
+                    data = mydata,
+                    method = "ps", 
+                    estimand = "ATE")
+
+# Fit a weighted linear model to estimate the causal effect
+weighted_model <- lm(`Malaria incidence` ~ treatment, data = mydata, weights = weights$weights)
+
+# Summarize the weighted model
+summary(weighted_model)
+
+
+
+
+
+
+
+
+
+
+
+
+# Install the necessary packages if not already installed
+
+
+# Load the necessary packages
+library(xgboost)
+library(dplyr)
+library(readxl)
+library(WeightIt)
+library(writexl)
+
+# Load your data
+mydata <- read_excel("C:/R/LABSTAT/Thesis/data/MD.xlsx", sheet = "data1")
+
+# Convert necessary columns to numeric and handle missing values
+mydata <- mydata %>%
+  mutate(across(starts_with("y"), as.numeric),
+         `Malaria incidence` = as.numeric(`Malaria incidence`)) %>%
+  drop_na()
+
+# Define the feature matrix (X) and target variable (y)
+X <- mydata %>%
+  select(y1:y22) %>%
+  as.matrix()
+
+y <- mydata$`Malaria incidence`
+
+# Convert data to DMatrix format
+dtrain <- xgb.DMatrix(data = X, label = y)
+
+# Train the XGBoost model
+params <- list(objective = "reg:squarederror", booster = "gbtree")
+xgboost_model <- xgb.train(params = params, data = dtrain, nrounds = 100)
+
+# Get feature importance
+importance_matrix <- xgb.importance(model = xgboost_model)
+
+# Plot feature importance
+xgb.plot.importance(importance_matrix)
+
+# Define the treatment variable (example: using y1 as the treatment)
+treatment <- mydata$y1
+
+# Estimate propensity scores and create weights
+weights <- weightit(treatment ~ y2 + y3 + y4 + y5 + y6 + y7 + y8 + y9+y10+y11+y12+y13+y14+y15+y16+y17+y18+y19+y20+y21+y22,
+                    data = mydata,
+                    method = "ps", 
+                    estimand = "ATE")
+
+# Fit a weighted linear model to estimate the causal effect
+weighted_model <- lm(`Malaria incidence` ~ treatment, data = mydata, weights = weights$weights)
+
+# Summarize the weighted model
+summary(weighted_model)
+
+# Extract model summary
+model_summary <- summary(weighted_model)
+
+# Create a data frame from the model summary
+summary_df <- as.data.frame(t(model_summary$coefficients))
+
+# Save the summary to an Excel file
+write_xlsx(summary_df, "C:/R/LABSTAT/Thesis/data/malaria/weighted_model_summary.xlsx")
+
+
+
+
+
+###########CAI----------------------
+
+# Load the necessary packages
+library(xgboost)
+library(dplyr)
+library(readxl)
+library(WeightIt)
+library(writexl)
+library(ggplot2)
+
+# Load your data
+mydata <- read_excel("C:/R/LABSTAT/Thesis/data/MD.xlsx", sheet = "data1")
+
+# Convert necessary columns to numeric and handle missing values
+mydata <- mydata %>%
+  mutate(across(starts_with("y"), as.numeric),
+         `Malaria incidence` = as.numeric(`Malaria incidence`)) %>%
+  drop_na()
+
+# Define the feature matrix (X) and target variable (y)
+X <- mydata %>%
+  select(y1:y22) %>%
+  as.matrix()
+
+y <- mydata$`Malaria incidence`
+
+# Convert data to DMatrix format
+dtrain <- xgb.DMatrix(data = X, label = y)
+
+# Train the XGBoost model
+params <- list(objective = "reg:squarederror", booster = "gbtree")
+xgboost_model <- xgb.train(params = params, data = dtrain, nrounds = 100)
+
+# Get feature importance
+importance_matrix <- xgb.importance(model = xgboost_model)
+
+# Plot feature importance
+xgb.plot.importance(importance_matrix)
+
+# List of treatment variables
+treatment_vars <- c("y15", "y14", "y9", "y6", "y12", "y1", "y7", "y2", "y16", "y19")
+
+# Create an empty list to store results
+results_list <- list()
+
+# Loop through each treatment variable
+for (treatment_var in treatment_vars) {
+  treatment <- mydata[[treatment_var]]
+  
+  # Estimate propensity scores and create weights
+  weights <- weightit(as.formula(paste(treatment_var, "~", paste(setdiff(names(mydata)[grepl("^y[0-9]+$", names(mydata))], treatment_var), collapse = " + "))),
+                      data = mydata,
+                      method = "ps", 
+                      estimand = "ATE")
+  
+  # Fit a weighted linear model to estimate the causal effect
+  weighted_model <- lm(`Malaria incidence` ~ treatment, data = mydata, weights = weights$weights)
+  
+  # Extract model summary
+  model_summary <- summary(weighted_model)
+  
+  # Convert summary to data frame
+  summary_df <- as.data.frame(t(model_summary$coefficients))
+  summary_df$treatment <- treatment_var  # Add treatment variable name
+  
+  # Store in list
+  results_list[[treatment_var]] <- summary_df
+}
+
+# Combine all results into one data frame
+final_results <- bind_rows(results_list)
+
+# Save the results to an Excel file
+write_xlsx(final_results, "C:/R/LABSTAT/Thesis/data/malaria/weighted_model_summary_multiple.xlsx")
+
+# --- PLOTTING RESULTS ---
+
+# Convert final results to proper format
+plot_data <- final_results %>%
+  rename(Estimate = `(Intercept)`) %>%
+  select(treatment, Estimate)
+
+# Create a bar plot
+ggplot(plot_data, aes(x = reorder(treatment, Estimate), y = Estimate, fill = treatment)) +
+  geom_bar(stat = "identity", show.legend = FALSE) +
+  coord_flip() +  # Flip for better visualization
+  labs(title = "Estimated Causal Effects on Malaria Incidence",
+       x = "Treatment Variable",
+       y = "Causal Effect (Estimate)") +
+  theme_minimal()
+# Save the plot as a PNG file
+ggsave("C:/R/LABSTAT/Thesis/data/malaria/causal_effects_plot.png", width = 8, height = 6, dpi = 300)
+
+
+library(ggplot2)
+
+# Create a bar plot with both positive and negative effects
+p <- ggplot(plot_data, aes(x = reorder(treatment, Estimate), y = Estimate, fill = Estimate > 0)) +
+  geom_bar(stat = "identity", show.legend = FALSE) +
+  coord_flip() +  # Flip for better visualization
+  geom_hline(yintercept = 0, linetype = "dashed", color = "black") +  # Add reference line at zero
+  scale_fill_manual(values = c("red", "blue")) +  # Red for negative, blue for positive
+  labs(title = "Estimated Causal Effects on Malaria Incidence",
+       x = "Treatment Variable",
+       y = "Causal Effect (Estimate)") +
+  theme_minimal()
+
+# Save the plot as PNG
+ggsave("C:/R/LABSTAT/Thesis/data/malaria/1causal_effects_plot.png", plot = p, width = 8, height = 6, dpi = 300)
+
+treat <- "y1"  # Change this for different treatment variables
+'Malaria incidence' ~ y1 + y2 + y3 + ... + y22
+weights <- weightit(formula, data = mydata, method = "ps", estimand = "ATE")
+model <- rlm(reformulate(treat, response = "Malaria incidence"), 
+             data = mydata, 
+             weights = weights$weights)
+plot(summary(weights))
+treatment_vars <- c("y15", "y14", "y9", "y6", "y12", "y1", "y7", "y2", "y16", "y19")
+
+results <- data.frame()
+
+for (treat in treatment_vars) {
+  formula <- as.formula(paste("`Malaria incidence` ~", treat, "+", paste(paste0("y", 2:22), collapse = " + ")))
+  
+  weights <- weightit(formula, data = mydata, method = "ps", estimand = "ATE")
+  
+  model <- rlm(reformulate(treat, response = "Malaria incidence"), data = mydata, weights = weights$weights)
+  
+  coef_summary <- summary(model)$coefficients
+  results <- rbind(results, data.frame(Treatment = treat, Estimate = coef_summary[2, 1], Std_Error = coef_summary[2, 2]))
+}
+library(ggplot2)
+
+ggplot(results, aes(x = reorder(Treatment, Estimate), y = Estimate, fill = Estimate > 0)) +
+  geom_bar(stat = "identity", show.legend = FALSE) +
+  geom_errorbar(aes(ymin = Estimate - 1.96 * Std_Error, ymax = Estimate + 1.96 * Std_Error), width = 0.3) +
+  coord_flip() +
+  labs(title = "Causal Effects on Malaria Incidence (With 95% CI)",
+       x = "Treatment Variable",
+       y = "Causal Effect (Estimate)") +
+  scale_fill_manual(values = c("red", "blue")) +
+  theme_minimal()
+
+
+
+# Load necessary libraries
+library(ggplot2)
+
+# Define the file path where the plot will be saved
+plot_path <- "C:/R/LABSTAT/Thesis/data/malaria/11causal_effects_plot.png"
+
+# Create the plot
+p <- ggplot(results, aes(x = reorder(Treatment, Estimate), y = Estimate, fill = Estimate > 0)) +
+  geom_bar(stat = "identity", show.legend = FALSE) +
+  geom_errorbar(aes(ymin = Estimate - 1.96 * Std_Error, ymax = Estimate + 1.96 * Std_Error), width = 0.3) +
+  coord_flip() +
+  labs(title = "Causal Effects on Malaria Incidence (With 95% CI)",
+       x = "Treatment Variable",
+       y = "Causal Effect (Estimate)") +
+  scale_fill_manual(values = c("red", "blue")) +
+  theme_minimal()
+
+# Save the plot
+ggsave(plot_path, plot = p, width = 8, height = 6, dpi = 300)
+
+# Print message
+cat("Plot saved successfully at:", plot_path, "\n")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+library(xgboost)
+library(WeightIt)
+library(dplyr)
+library(ggplot2)
+
+# Ensure feature names do not have spaces
+names(mydata) <- gsub(" ", "_", names(mydata))
+
+# Convert character columns properly
+mydata_numeric <- mydata %>%
+  mutate(across(where(is.character), ~as.numeric(as.factor(.))))
+
+# Ensure Malaria incidence exists
+if (!"Malaria_incidence" %in% names(mydata_numeric)) {
+  stop("Error: 'Malaria_incidence' column not found in the dataset.")
+}
+
+# Prepare data for XGBoost
+X <- as.matrix(mydata_numeric[, setdiff(names(mydata_numeric), "Malaria_incidence")])
+y <- mydata_numeric$Malaria_incidence
+
+# Train XGBoost Model
+xgb_model <- xgboost(data = X, label = y, nrounds = 100, objective = "reg:squarederror")
+
+# Extract Top 10 Features
+importance_matrix <- xgb.importance(model = xgb_model)
+top_features <- head(importance_matrix$Feature, 10)
+
+# Causal AI: Estimate causal effects
+results_list <- list()
+
+for (treatment_var in top_features) {
+  treatment <- mydata_numeric[[treatment_var]]
+  
+  # Skip non-numeric or nearly constant variables
+  if (!is.numeric(treatment) || length(unique(treatment)) < 3) next
+  
+  # Propensity Score Weighting
+  weights <- weightit(as.formula(paste(treatment_var, "~", 
+                                       paste(setdiff(top_features, treatment_var), collapse = " + "))),
+                      data = mydata_numeric, method = "ps", estimand = "ATE")
+  
+  # Trim extreme weights
+  weights$weights <- pmin(weights$weights, quantile(weights$weights, 0.99))
+  
+  # Fit weighted regression model
+  weighted_model <- lm(Malaria_incidence ~ treatment, data = mydata_numeric, weights = weights$weights)
+  
+  # Store results if valid
+  if (nrow(summary(weighted_model)$coefficients) > 1) {
+    results_list[[treatment_var]] <- summary(weighted_model)$coefficients[2, , drop = FALSE]
+  }
+}
+
+# Convert results to DataFrame
+if (length(results_list) > 0) {
+  final_results <- bind_rows(results_list, .id = "Feature")
+  colnames(final_results)[2] <- "Estimate"
+  
+  # Visualization
+  ggplot(final_results, aes(x = reorder(Feature, Estimate), y = Estimate, fill = Estimate > 0)) +
+    geom_bar(stat = "identity", show.legend = FALSE) +
+    coord_flip() +
+    labs(title = "XAI + CAI: Causal Effects of Top Features on Malaria Incidence",
+         x = "Feature", y = "Causal Effect (Estimate)") +
+    theme_minimal()
+} else {
+  print("No valid results for causal analysis.")
+}
+
+
+
+
+
+
+
+
+
+
+results_list <- list()
+for (treatment_var in top_features) {
+  treatment <- mydata_numeric[[treatment_var]]
+  
+  # Skip non-numeric or nearly constant variables
+  if (!is.numeric(treatment) || length(unique(treatment)) < 3) next
+  
+  # Propensity Score Weighting
+  weights <- weightit(as.formula(paste(treatment_var, "~", 
+                                       paste(setdiff(top_features, treatment_var), collapse = " + "))),
+                      data = mydata_numeric, method = "ps", estimand = "ATE")
+  
+  # Trim extreme weights
+  weights$weights <- pmin(weights$weights, quantile(weights$weights, 0.99))
+  
+  # Fit weighted regression model
+  weighted_model <- lm(Malaria_incidence ~ treatment, data = mydata_numeric, weights = weights$weights)
+  
+  # Store results if valid
+  coef_summary <- summary(weighted_model)$coefficients
+  if (nrow(coef_summary) > 1) {
+    results_list[[treatment_var]] <- data.frame(Feature = treatment_var,
+                                                Estimate = coef_summary[2, 1], # Coefficient estimate
+                                                p_value = coef_summary[2, 4]) # p-value
+  }
+}
+
+# Convert results to DataFrame
+if (length(results_list) > 0) {
+  final_results <- bind_rows(results_list)
+  
+  # Visualization
+  ggplot(final_results, aes(x = reorder(Feature, Estimate), y = Estimate, fill = Estimate > 0)) +
+    geom_bar(stat = "identity", show.legend = FALSE) +
+    coord_flip() +
+    labs(title = "XAI + CAI: Causal Effects of Top Features on Malaria Incidence",
+         x = "Feature", y = "Causal Effect (Estimate)") +
+    theme_minimal()
+} else {
+  print("No valid results for causal analysis.")
+}
+
+
+
+
+
+
+
+
+
+
+####XAI & CAI ################
+
+# Install required packages (if not installed)
+packages <- c("xgboost", "dplyr", "DALEX", "SHAPforxgboost", "deal", "openxlsx", "igraph")
+new_packages <- packages[!(packages %in% installed.packages()[,"Package"])]
+if(length(new_packages)) install.packages(new_packages)
+
+# Load required libraries
+library(xgboost)
+library(dplyr)
+library(DALEX)
+library(SHAPforxgboost)
+library(deal)   # For Bayesian Network Learning
+library(openxlsx)  # For exporting SHAP values
+library(igraph)  # Alternative for graph visualization
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Load your dataset (Ensure distrain and distest exist in your workspace)
+# distrain <- read.csv("your_train_data.csv")
+# distest <- read.csv("your_test_data.csv")
+
+# Convert data to matrix for XGBoost
+dtrain <- xgb.DMatrix(as.matrix(distrain %>% select(y1:y22)), label = distrain$`Malaria incidence`)
+dtest <- xgb.DMatrix(as.matrix(distest %>% select(y1:y22)), label = distest$`Malaria incidence`)
+
+# Define XGBoost parameters
+params <- list(
+  objective = "reg:squarederror", 
+  eval_metric = "rmse", 
+  max_depth = 6, 
+  eta = 0.05, 
+  subsample = 0.8, 
+  colsample_bytree = 0.8
+)
+
+# Train XGBoost model
+fit_xgb <- xgb.train(
+  params = params, 
+  data = dtrain, 
+  nrounds = 300, 
+  watchlist = list(train = dtrain, eval = dtest), 
+  early_stopping_rounds = 10
+)
+
+# Load DALEX package
+library(DALEX)
+
+# Define a custom predict function for DALEX
+predict_xgb <- function(model, newdata) {
+  predict(model, xgb.DMatrix(as.matrix(newdata)))
+}
+
+# Create an explainer for the XGBoost model
+explainer_xgb <- DALEX::explain(
+  model = fit_xgb, 
+  data = distest %>% select(y1:y22), 
+  y = distest$`Malaria incidence`, 
+  predict_function = predict_xgb,
+  label = "XGBoost",
+  model_info = list(package = "xgboost", ver = packageVersion("xgboost"))
+)
+
+# Print explainer summary
+print(explainer_xgb)
+
+
+
+# Compute SHAP values
+shap_values <- SHAPforxgboost::shap.values(xgb_model = fit_xgb, X_train = as.matrix(distest %>% select(y1:y22)))
+shap_long <- SHAPforxgboost::shap.prep(shap_contrib = shap_values$shap_score, X_train = as.matrix(distest %>% select(y1:y22)))
+
+# Save SHAP values to an Excel file
+write.xlsx(shap_long, "C:/R/LABSTAT/Thesis/data/malaria/1shap_values.xlsx")
+
+# Visualize SHAP summary plot
+SHAPforxgboost::shap.plot.summary(shap_long)
+
+
+library(dplyr)
+library(writexl)
+
+# Compute the mean SHAP values for each variable
+mean_shap_values <- shap_long %>%
+  group_by(variable) %>%
+  summarise(mean_shap = mean(mean_value, na.rm = TRUE))  # Use 'mean_value' instead of 'phi'
+
+# Save to an Excel file
+write_xlsx(mean_shap_values, "C:/R/LABSTAT/Thesis/data/malaria/Mean_SHAP_Values.xlsx")
+
+# Print the mean SHAP values
+print(mean_shap_values)
+
+
+
+
+
+# Calculate mean absolute SHAP values
+shap_importance <- shap_long %>%
+  group_by(variable) %>%
+  summarize(mean_abs_shap = mean(abs(value))) %>%
+  arrange(desc(mean_abs_shap)) %>%
+  slice_head(n = 10)  # Select top 10 features
+
+# Filter shap_long to keep only top 10 variables
+shap_long_top10 <- shap_long %>% filter(variable %in% shap_importance$variable)
+
+# Reset factor levels to remove other variables
+shap_long_top10$variable <- factor(shap_long_top10$variable, levels = shap_importance$variable)
+
+library(SHAPforxgboost)
+library(ggplot2)
+library(cowplot)  # For combining plots and text
+
+# Generate the SHAP summary plot
+shap_plot <- SHAPforxgboost::shap.plot.summary(shap_long_top10)
+
+# Overlay "A" in the top-left corner
+shap_plot_with_title <- ggdraw(shap_plot) + 
+  draw_text("A", x = 0.05, y = .98, size = 14, fontface = "bold")+  # Add title
+  theme(plot.title = element_text(hjust = 0.5, vjust = 1, size = 14, face = "bold"))  # Position title
+# Adjust position if needed
+
+# Save the modified plot
+ggsave("C:/R/LABSTAT/Thesis/data/malaria/14SHAP_Summary_Plot.png", plot = shap_plot_with_title, width = 8, height = 4, dpi = 300)
+
+# Calculate SHAP values
+shap_values <- shap.values(xgb_model = fit_xgb, X_train = as.matrix(distrain %>% select(y1:y22)))
+shap_long <- shap.prep(xgb_model = fit_xgb, X_train = as.matrix(distrain %>% select(y1:y22)))
+
+# Calculate total SHAP contribution for each category
+category_contributions <- shap_values_with_categories %>%
+  group_by(category) %>%
+  summarize(TotalSHAP = sum(MeanAbsSHAP))
+
+# Compute percentage contribution
+total_shap <- sum(category_contributions$TotalSHAP)
+category_contributions <- category_contributions %>%
+  mutate(PercentageContribution = (TotalSHAP / total_shap) * 100)
+
+# Rank categories by SHAP contribution
+category_contributions <- category_contributions %>%
+  arrange(desc(TotalSHAP))
+
+# Create bar plot for percentage contribution
+ggplot(category_contributions, aes(x = reorder(category, -PercentageContribution), y = PercentageContribution, fill = category)) +
+  geom_bar(stat = "identity") +
+  labs(
+    title = "SHAP Contribution by Feature Category",
+    x = "Feature Category",
+    y = "Percentage Contribution (%)"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(hjust = 0.5, vjust = 1, face = "bold")
+  ) +
+  coord_flip()
+
+
+
+
+
+
+
+# Install required packages (if not installed)
+#packages <- c("dagitty", "igraph", "dplyr", "SHAPforxgboost", "openxlsx")
+#n#ew_packages <- packages[!(packages %in% installed.packages()[, "Package"])]
+#if(length(new_packages)) install.packages(new_packages)
+#install.packages("dagitty")
+# Load libraries
+library(dagitty)  # Causal DAG analysis
+library(igraph)   # Graph visualization
+library(dplyr)    # Data manipulation
+library(SHAPforxgboost) # SHAP analysis
+library(openxlsx) # Export data
+# Select top 10 important features + target variable
+causal_data <- distest %>% select(all_of(top_10_features), `Malaria incidence`)
+
+# Convert all data to numeric
+causal_data[] <- lapply(causal_data, as.numeric)
+dag_model <- dagitty("
+dag {
+  y15 -> `Malaria incidence`
+  y14 -> `Malaria incidence`
+  y9 -> `Malaria incidence`
+  y6 -> `Malaria incidence`
+  y1 -> `Malaria incidence`
+  y2 -> `Malaria incidence`
+  y12 -> `Malaria incidence`
+  y7 -> `Malaria incidence`
+  y19 -> `Malaria incidence`
+  y18 -> `Malaria incidence`
+}
+")
+
+# Convert to igraph for visualization
+graph <- graph_from_edgelist(dagitty::edges(dag_model), directed = TRUE)
+
+# Plot the DAG
+plot(graph, vertex.size = 25, vertex.label.cex = 0.8, main = "Causal Structure of Top 10 Features")
+
+# Rename variable to remove spaces
+causal_data <- causal_data %>% rename(Malaria_incidence = `Malaria incidence`)
+
+
+
+
+
+
+
+
+
+
+
+
+library(dagitty)
+library(igraph)
+
+# Define DAG
+dag_model <- dagitty("
+dag {
+  y15 -> Malaria_incidence
+  y14 -> Malaria_incidence
+  y9  -> Malaria_incidence
+  y6  -> Malaria_incidence
+  y1  -> Malaria_incidence
+  y2  -> Malaria_incidence
+  y12 -> Malaria_incidence
+  y7  -> Malaria_incidence
+  y19 -> Malaria_incidence
+  y18 -> Malaria_incidence
+}
+")
+
+# Extract edges as a matrix
+edges_df <- dagitty::edges(dag_model)  # Returns a data frame
+edge_list <- as.matrix(edges_df[, c("v", "w")])  # Ensure correct column selection
+
+# Convert to igraph
+graph <- graph_from_edgelist(edge_list, directed = TRUE)
+
+# Plot the DAG
+plot(graph, vertex.size = 25, vertex.label.cex = 0.8, 
+     main = "C")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+library(dagitty)
+
+dag_model <- dagitty("
+dag {
+  y15 -> Malaria_incidence
+  y14 -> Malaria_incidence
+  y9  -> Malaria_incidence
+  y6  -> Malaria_incidence
+  y1  -> Malaria_incidence
+  y2  -> Malaria_incidence
+  y12 -> Malaria_incidence
+  y7  -> Malaria_incidence
+  y19 -> Malaria_incidence
+  y18 -> Malaria_incidence
+}
+")
+
+# Find adjustment set to estimate causal effect
+adjustment_set <- adjustmentSets(dag_model, exposure = "y1", outcome = "Malaria_incidence")
+print(adjustment_set)
+
+
+#install.packages("lavaan")  # Install if not installed
+#library(lavaan)
+
+# Define the SEM model
+model <- '
+  Malaria_incidence ~ y15 + y14 + y9 + y6 + y1 + y2 + y12 + y7 + y19 + y18
+'
+
+# Assume you have `causal_data` loaded
+fit <- sem(model, data = causal_data)
+
+# Show parameter estimates
+# Load necessary libraries
+library(lavaan)
+library(writexl)
+
+# Extract parameter estimates from the model
+summary_fit <- parameterEstimates(fit, standardized = TRUE)
+
+# Save to Excel
+write_xlsx(summary_fit, "C:/R/LABSTAT/Thesis/data/malaria/model_summary.xlsx")
+
+# The file "model_summary.xlsx" will be saved in your working directory
+
+
+
+# Load necessary packages
+library(WeightIt)
+library(survey)
+library(ggplot2)
+library(dplyr)
+
+# Define treatment variable (Example: High vs. Low GDP)
+causal_data$treatment <- ifelse(causal_data$y6 > median(causal_data$y6, na.rm = TRUE), 1, 0)  # High GDP = 1, Low GDP = 0
+
+# Apply Weighting using IPTW
+weights <- weightit(treatment ~ y15 + y14 + y9 + y6 + y1 + y2 + y12 + y7 + y19 + y18, 
+                    data = causal_data, method = "ps", estimand = "ATE")
+
+# Check the balance of covariates
+summary(weights)
+
+# Create a survey design object for weighted regression
+design <- svydesign(~1, weights = weights$weights, data = causal_data)
+
+# Estimate the effect of features on Malaria Incidence
+model <- svyglm(Malaria_incidence ~ y15 + y14 + y9 + y6 + y1 + y2 + y12 + y7 + y19 + y18, design = design)
+
+# Get feature importance (with positive and negative effects)
+feature_importance <- data.frame(Feature = names(coef(model))[-1], 
+                                 Estimate = coef(model)[-1]) %>%
+  arrange(desc(Estimate)) %>%
+  head(10)  # Select top 10 influential features
+
+# Plot the top influencing features (showing direction of effects)
+e2 = ggplot(feature_importance, aes(x = reorder(Feature, Estimate), y = Estimate, fill = Estimate > 0)) +
+  geom_col() +
+  coord_flip() +
+  scale_fill_manual(values = c("red", "steelblue"), guide = FALSE) +  # Red for negative, Blue for positive
+  theme_minimal() +
+  labs(
+    title = "D",
+    x = "Feature",
+    y = "Effect size (coefficient)"
+  ) +
+  theme(
+    plot.title = element_text(face = "bold", size = 22),
+    axis.title.x = element_text(face = "bold", size = 14),
+    axis.title.y = element_text(face = "bold", size = 14),
+    axis.text = element_text(face = "bold", size = 12)
+  )
+
+
+ggsave("C:/R/LABSTAT/Thesis/data/malaria/14555Summary_Plot.png", e2, width = 5.5, height = 5.5, dpi = 300)
+
+
+
+
+
+
+
+
+
+
+
+# Load required libraries
+library(dagitty)
+library(igraph)
+library(WeightIt)
+library(survey)
+library(ggplot2)
+library(dplyr)
+library(ggrepel)
+library(cobalt)  # For balance diagnostics
+
+# Define DAG
+dag_model <- dagitty("
+dag {
+  y15 -> Malaria_incidence
+  y14 -> Malaria_incidence
+  y9  -> Malaria_incidence
+  y6  -> Malaria_incidence
+  y1  -> Malaria_incidence
+  y2  -> Malaria_incidence
+  y12 -> Malaria_incidence
+  y7  -> Malaria_incidence
+  y19 -> Malaria_incidence
+  y18 -> Malaria_incidence
+}
+")
+
+# Find adjustment set for estimating causal effect of y1 on Malaria_incidence
+adjustment_set <- adjustmentSets(dag_model, exposure = "y1", outcome = "Malaria_incidence")
+print(adjustment_set)
+
+# Define treatment variable (Example: High vs. Low GDP Growth)
+causal_data$treatment <- ifelse(causal_data$y6 > median(causal_data$y6, na.rm = TRUE), 1, 0)  
+
+# Apply IPTW (Inverse Probability Treatment Weighting) with stabilized weights
+weights <- weightit(treatment ~ y15 + y14 + y9 + y6 + y1 + y2 + y12 + y7 + y19 + y18, 
+                    data = causal_data, method = "ps", estimand = "ATE", stabilize = TRUE)
+
+# Check balance diagnostics after weighting
+bal.tab(weights)
+
+# Create survey design object for weighted regression
+design <- svydesign(~1, weights = weights$weights, data = causal_data)
+
+# Estimate causal effect of variables
+model <- svyglm(Malaria_incidence ~ y15 + y14 + y9 + y6 + y1 + y2 + y12 + y7 + y19 + y18, design = design)
+summary(model)
+
+# Extract regression coefficients
+feature_importance <- data.frame(
+  Feature = names(coef(model))[-1], 
+  Estimate = coef(model)[-1]
+) %>%
+  arrange(desc(abs(Estimate))) %>%  # Sort by absolute effect size
+  head(10)  # Select top 10 influential features
+
+# Identify features that appear in both DAG & feature importance
+dag_features <- c("y15", "y14", "y9", "y6", "y1", "y2", "y12", "y7", "y19", "y18")
+feature_importance$Causal_Importance <- ifelse(feature_importance$Feature %in% dag_features, "Yes", "No")
+
+# Show results
+print(feature_importance)
+
+# Ensure Feature is a factor for correct ordering
+feature_importance <- feature_importance %>%
+  mutate(Feature = factor(Feature, levels = Feature[order(Estimate)]))
+
+# Advanced visualization
+ggplot(feature_importance, aes(x = Feature, y = Estimate, fill = Causal_Importance)) +
+  geom_col(width = 0.6, alpha = 0.9, color = "black") +  
+  geom_text(aes(label = round(Estimate, 2)), 
+            hjust = ifelse(feature_importance$Estimate > 0, -0.2, 1.2),  
+            color = "black", size = 5, fontface = "bold") +  
+  scale_fill_manual(values = c("No" = "#FF5733", "Yes" = "#1F618D"), 
+                    name = "Causal Importance") +  
+  coord_flip() +  
+  theme_minimal(base_size = 14) +  
+  labs(title = "Reliable Mixed Analysis: Causal & Statistical Importance",
+       subtitle = "Top Features Influencing Malaria Incidence",
+       x = "Feature",
+       y = "Effect Size (Coefficient)") +
+  theme(legend.position = "top",
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor = element_blank(),
+        plot.title = element_text(face = "bold", size = 16),
+        axis.text.y = element_text(face = "bold", color = "black")) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray50")  
+
+
+
+
+
+library(ggdag)
+library(dagitty)
+library(ggplot2)
+library(dplyr)
+
+# Define DAG
+dag_model <- dagitty("
+dag {
+  y6  -> Malaria
+  y18 -> Malaria 
+  y9  -> Malaria 
+  y19 -> Malaria 
+  y2  -> Malaria 
+  y15 -> Malaria 
+  y1  -> Malaria 
+  y12 -> Malaria 
+  y7  -> Malaria 
+  y14 -> Malaria 
+}")
+
+# Convert to ggdag format
+dag <- tidy_dagitty(dag_model)
+
+# Plot the DAG without thickness adjustments
+e1 = ggdag(dag, text = TRUE) +
+  geom_dag_point(color = "skyblue", size = 22) +  # Nodes
+  geom_dag_text(color = "black", size = 7, fontface = "bold") +  # Node labels
+  theme_minimal() +
+  labs(
+    title = "C"
+  ) +
+  theme(plot.title = element_text(face = "bold", size = 22))  # Bold and size 18 for title
+
+ggsave("C:/R/LABSTAT/Thesis/data/malaria/14555Summary_Plot.png", e1, width = 5.5, height = 5.5, dpi = 300)
+
+
+
+
+
+####Predictive acuricy and future prediction
+
+
+
+
+
+# Load necessary libraries
+library(readxl)
+library(dplyr)
+library(xgboost)
+library(ggplot2)
+library(sf)
+library(rnaturalearth)
+library(rnaturalearthdata)
+
+# Load dataset
+file_path <- "C:/R/LABSTAT/Thesis/data/MD.xlsx"
+mydata <- read_excel(file_path, sheet = "data1")
+
+# Data preprocessing
+mydata <- mydata %>%
+  mutate(across(where(is.character), as.factor))
+
+# Handle missing values (you can customize this section)
+mydata <- mydata %>%
+  mutate(across(where(is.numeric), ~ ifelse(is.na(.), median(., na.rm = TRUE), .)))
+
+# Train XGBoost model
+data_train <- mydata %>% filter(Year <= 2020)
+data_test <- mydata %>% filter(Year >= 2021 & Year <= 2022)
+
+x_train <- data.matrix(data_train %>% select(-`Malaria incidence`))
+y_train <- data_train$`Malaria incidence`
+dtrain <- xgb.DMatrix(data = x_train, label = y_train)
+
+params <- list(
+  objective = "reg:squarederror",
+  eta = 0.1,
+  max_depth = 6,
+  nrounds = 100
+)
+
+model <- xgb.train(params, dtrain, nrounds = 100)
+
+# Make predictions for 2021-2022
+x_test <- data.matrix(data_test %>% select(-`Malaria incidence`))
+dtest <- xgb.DMatrix(data = x_test)
+preds <- predict(model, dtest)
+preds <- round(preds, 3)
+preds[preds < 1] <- 0
+
+# Create data frame with predictions
+predicted_data <- data.frame(
+  Year = data_test$Year,
+  Country = data_test$Country,
+  Malaria_incidence = preds
+)
+
+# Load world map
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+# Merge predicted data with world map
+world <- world %>%
+  left_join(predicted_data, by = c("sovereignt" = "Country"))
+
+# Plotting
+ggplot(data = world) +
+  geom_sf(aes(fill = Malaria_incidence), color = NA) +
+  labs(title = "Predicted Malaria Incidence (2021-2022)", fill = "Malaria Incidence") +
+  theme_minimal() +
+  scale_fill_viridis_c(option = "C")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Load necessary libraries
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(sf)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(rnaturalearthhires)
+
+# Load dataset
+file_path <- "C:/R/LABSTAT/Thesis/data/MD.xlsx"
+mydata <- read_excel(file_path, sheet = "data1")
+
+# Data preprocessing
+mydata <- mydata %>%
+  mutate(across(where(is.character), as.factor))
+
+# Extract actual data for 2022
+actual_data_2022 <- mydata %>% filter(Year == 2022)
+
+# Load world map data
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+# Merge actual data with world map
+world <- left_join(world, actual_data_2022, by = c("admin" = "Country"))
+
+# Remove Antarctica
+world <- world %>% filter(admin != "Antarctica")
+
+# Plotting
+a11= ggplot(data = world) +
+  geom_sf(aes(fill = `Malaria incidence`), color = NA) +
+  scale_fill_viridis_c(option = "C", na.value = "lightgray") +
+  labs(title = "A", fill = "Malaria incidence") +
+  theme_minimal() +
+  theme(legend.position = "NULL")
+
+
+
+
+# Load necessary libraries
+library(readxl)
+library(dplyr)
+library(xgboost)
+library(ggplot2)
+library(sf)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(rnaturalearthhires)
+
+# Load dataset
+file_path <- "C:/R/LABSTAT/Thesis/data/MD.xlsx"
+mydata <- read_excel(file_path, sheet = "data1")
+
+# Data preprocessing
+mydata <- mydata %>%
+  mutate(across(where(is.character), as.factor))
+
+# Handle missing values (you can customize this section)
+mydata <- mydata %>%
+  mutate(across(where(is.numeric), ~ ifelse(is.na(.), median(., na.rm = TRUE), .)))
+
+# Train XGBoost model
+data_train <- mydata %>% filter(Year <= 2020)
+data_test <- mydata %>% filter(Year == 2022)
+
+x_train <- data.matrix(data_train %>% select(-`Malaria incidence`))
+y_train <- data_train$`Malaria incidence`
+dtrain <- xgb.DMatrix(data = x_train, label = y_train)
+
+params <- list(
+  objective = "reg:squarederror",
+  eta = 0.1,
+  max_depth = 6,
+  nrounds = 100
+)
+
+model <- xgb.train(params, dtrain, nrounds = 100)
+
+# Make predictions for 2022
+x_test <- data.matrix(data_test %>% select(-`Malaria incidence`))
+dtest <- xgb.DMatrix(data = x_test)
+preds <- predict(model, dtest)
+preds <- round(preds, 3)
+preds[preds < 1] <- 0
+
+# Create data frame with predictions
+predicted_data <- data.frame(
+  Country = data_test$Country,
+  Malaria_incidence = preds
+)
+
+# Load world map data
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+# Merge predicted data with world map
+world <- left_join(world, predicted_data, by = c("admin" = "Country"))
+
+# Remove Antarctica
+world <- world %>% filter(admin != "Antarctica")
+
+# Plotting
+a12= ggplot(data = world) +
+  geom_sf(aes(fill = Malaria_incidence), color = NA) +
+  scale_fill_viridis_c(option = "C", na.value = "lightgray") +
+  labs(title = "B", fill = "Malaria incidence") +
+  theme_minimal() +
+  theme(legend.position = "right")
+
+
+combined_plots <- ggarrange(a11, a12,  ncol = 2, nrow = 1)
+
+ggsave("C:/R/LABSTAT/Thesis/data/malaria/11combined_plots.png", plot = a12, width = 5.5, height = 3, dpi = 300)
+
+
+
+
+
+
+
+
+
+# Load necessary libraries
+library(readxl)
+library(dplyr)
+library(xgboost)
+library(ggplot2)
+library(pROC)
+library(ggpubr)
+
+# Load dataset
+file_path <- "C:/R/LABSTAT/Thesis/data/MD.xlsx"
+mydata <- read_excel(file_path, sheet = "data1")
+colnames(mydata)  # Print all column names
+
+# Data preprocessing
+mydata <- mydata %>%
+  mutate(across(where(is.character), as.factor)) %>%
+  mutate(across(where(is.numeric), ~ ifelse(is.na(.) | is.infinite(.) | . > 1e+10, median(., na.rm = TRUE), .)))
+
+# Extract actual data for 2022
+actual_data_2022 <- mydata %>% filter(Year == 2022)
+
+# Train XGBoost model
+data_train <- mydata %>% filter(Year <= 2020)
+data_test <- mydata %>% filter(Year == 2022)
+
+x_train <- data.matrix(data_train %>% select(-`Malaria incidence`))
+y_train <- data_train$`Malaria incidence`
+dtrain <- xgb.DMatrix(data = x_train, label = y_train)
+
+params <- list(
+  objective = "reg:squarederror",
+  eta = 0.1,
+  max_depth = 6,
+  nrounds = 100
+)
+
+model <- xgb.train(params, dtrain, nrounds = 100)
+
+# Make predictions for 2022
+x_test <- data.matrix(data_test %>% select(-`Malaria incidence`))
+dtest <- xgb.DMatrix(data = x_test)
+preds <- predict(model, dtest)
+preds <- round(preds, 3)
+preds[preds < 1] <- 0
+
+# Create data frame with predictions
+predicted_data <- data.frame(
+  Country = data_test$Country,
+  Predicted_incidence = preds
+)
+
+# Merge actual and predicted data
+comparison_data <- merge(actual_data_2022, predicted_data, by.x = "Country", by.y = "Country")
+
+# Calculate residuals
+comparison_data <- comparison_data %>%
+  mutate(Residuals = `Malaria incidence` - Predicted_incidence)
+
+# Calculate AUC using a threshold
+threshold <- 1  # Set a threshold for binary classification
+actual_binary <- ifelse(comparison_data$`Malaria incidence` >= threshold, 1, 0)
+predicted_binary <- ifelse(comparison_data$Predicted_incidence >= threshold, 1, 0)
+roc_obj <- roc(actual_binary, predicted_binary)
+auc_value <- auc(roc_obj)
+
+# Print AUC value
+print(paste("Area Under the Curve (AUC):", round(auc_value, 3)))
+
+# Plot ROC curve
+roc_plot <- ggroc(roc_obj) +
+  ggtitle("A") +
+  theme_minimal()
+
+# Calculate R-squared
+r_squared <- summary(lm(`Malaria incidence` ~ Predicted_incidence, data = comparison_data))$r.squared
+print(paste("R-squared:", round(r_squared, 3)))
+
+# Plot actual vs predicted
+actual_vs_predicted_plot <- ggplot(comparison_data, aes(x = `Malaria incidence`, y = Predicted_incidence)) +
+  geom_point(color = "blue") +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red") +
+  labs(title = "B", x = "Actual Incidence", y = "Predicted Incidence") +
+  theme_minimal()
+
+# QQ plot of residuals
+qq_plot <- ggqqplot(comparison_data$Residuals, title = "C")
+# Density plot of residuals
+density_plot <- ggplot(comparison_data, aes(x = Residuals)) +
+  geom_density(fill = "blue", alpha = 0.5) +
+  labs(title = "Density Plot of Residuals", x = "Residuals", y = "Density") +
+  theme_minimal()
+
+
+# Load necessary libraries
+library(readxl)
+library(dplyr)
+library(xgboost)
+library(ggplot2)
+library(sf)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(rnaturalearthhires)
+
+# Load dataset
+file_path <- "C:/R/LABSTAT/Thesis/data/MD.xlsx"
+mydata <- read_excel(file_path, sheet = "data1")
+
+# Data preprocessing
+mydata <- mydata %>%
+  mutate(across(where(is.character), as.factor))
+
+# Handle missing values (you can customize this section)
+mydata <- mydata %>%
+  mutate(across(where(is.numeric), ~ ifelse(is.na(.), median(., na.rm = TRUE), .)))
+
+# Train XGBoost model
+data_train <- mydata %>% filter(Year <= 2020)
+data_test <- mydata %>% filter(Year == 2022)
+
+x_train <- data.matrix(data_train %>% select(-`Malaria incidence`))
+y_train <- data_train$`Malaria incidence`
+dtrain <- xgb.DMatrix(data = x_train, label = y_train)
+
+params <- list(
+  objective = "reg:squarederror",
+  eta = 0.1,
+  max_depth = 6,
+  nrounds = 100
+)
+
+model <- xgb.train(params, dtrain, nrounds = 100)
+
+# Make predictions for 2022
+x_test <- data.matrix(data_test %>% select(-`Malaria incidence`))
+dtest <- xgb.DMatrix(data = x_test)
+preds <- predict(model, dtest)
+preds <- round(preds, 3)
+preds[preds < 1] <- 0
+
+# Create data frame with predictions
+predicted_data <- data.frame(
+  Country = data_test$Country,
+  Malaria_incidence = preds
+)
+
+# Load world map data
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+# Merge predicted data with world map
+world <- left_join(world, predicted_data, by = c("admin" = "Country"))
+
+# Remove Antarctica
+world <- world %>% filter(admin != "Antarctica")
+
+# Plotting
+a11= ggplot(data = world) +
+  geom_sf(aes(fill = Malaria_incidence), color = NA) +
+  scale_fill_viridis_c(option = "C", na.value = "lightgray") +
+  labs(title = "Predicted Malaria Incidence 2022", fill = "Malaria Incidence") +
+  theme_minimal() +
+  theme(legend.position = "right")
+# Combine plots
+# Combine plots
+combined_plots <- ggarrange(roc_plot, actual_vs_predicted_plot, qq_plot, ncol = 2, nrow = 2)
+
+print(combined_plots)
+# Save the combined plot as an image (PNG format)
+ggsave("C:/R/LABSTAT/Thesis/data/malaria/combined_plots.png", plot = combined_plots, width = 10, height = 6, dpi = 300)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Load necessary libraries
+library(readxl)
+library(dplyr)
+library(xgboost)
+library(tidyr)
+library(openxlsx)
+
+# Load dataset
+file_path <- "C:/R/LABSTAT/Thesis/data/MD.xlsx"
+mydata <- read_excel(file_path, sheet = "data1")
+
+# Convert all column names to avoid issues with spaces
+colnames(mydata) <- make.names(colnames(mydata), unique = TRUE)
+
+# Rename malaria-related variables
+mydata <- mydata %>%
+  rename(
+    Total_Incidence = Malaria.incidence,
+    Total_Mortality = Malaria.mortality
+  )
+
+# Select relevant columns (Year, y1-y22, Total_Incidence, Total_Mortality)
+selected_vars <- c("Year", "Total_Incidence", "Total_Mortality", paste0("y", 1:22))
+data_train_total <- mydata %>% select(all_of(selected_vars))
+
+# Convert all numeric columns properly
+data_train_total <- data_train_total %>%
+  mutate(across(where(is.character), as.numeric)) %>%
+  mutate(across(everything(), ~ replace_na(., 0)))
+
+# Separate features and target variables
+x_train <- data_train_total %>% select(-Year, -Total_Incidence, -Total_Mortality)
+y_train_incidence <- data_train_total$Total_Incidence
+y_train_mortality <- data_train_total$Total_Mortality
+
+# Convert to matrix format for XGBoost
+dtrain_incidence <- xgb.DMatrix(data = as.matrix(x_train), label = y_train_incidence)
+dtrain_mortality <- xgb.DMatrix(data = as.matrix(x_train), label = y_train_mortality)
+
+# XGBoost parameters
+params <- list(
+  objective = "reg:squarederror",
+  eta = 0.1,
+  max_depth = 6
+)
+nrounds <- 150  # Number of boosting rounds
+
+# Train XGBoost models
+model_incidence <- xgb.train(params, dtrain_incidence, nrounds = nrounds)
+model_mortality <- xgb.train(params, dtrain_mortality, nrounds = nrounds)
+
+# Create future year data (2023-2030)
+forecast_years <- data.frame(Year = 2023:2030)
+
+# Trend-based extrapolation for predictors (y1 to y22)
+trend_models <- lapply(paste0("y", 1:22), function(var) lm(as.formula(paste(var, "~ Year")), data = data_train_total))
+
+# Predict y1 to y22 for future years
+for (i in 1:22) {
+  forecast_years[[paste0("y", i)]] <- predict(trend_models[[i]], newdata = forecast_years)
+}
+
+# Ensure no negative values
+forecast_years <- forecast_years %>%
+  mutate(across(where(is.numeric), ~ pmax(., 0)))
+
+# Convert future data to XGBoost matrix (Ensure feature names match training data)
+x_forecast <- forecast_years %>% select(-Year)
+colnames(x_forecast) <- colnames(x_train)  # Ensure column names match training data
+dforecast <- xgb.DMatrix(data = as.matrix(x_forecast))
+
+# Predict total incidence & total mortality for 2023-2030
+preds_incidence <- predict(model_incidence, dforecast)
+preds_mortality <- predict(model_mortality, dforecast)
+
+# Round predictions for clarity
+preds_incidence <- round(preds_incidence, 3)
+preds_mortality <- round(preds_mortality, 3)
+
+# Replace very low values with zero
+preds_incidence[preds_incidence < 1] <- 0
+preds_mortality[preds_mortality < 1] <- 0
+
+# Store final results
+final_results <- forecast_years %>%
+  mutate(
+    Predicted_Total_Incidence = preds_incidence,
+    Predicted_Total_Mortality = preds_mortality
+  )
+
+# Save results to an Excel file
+write.xlsx(final_results, "C:/R/LABSTAT/Thesis/data/malaria/Predicted_Malaria.xlsx", overwrite = TRUE)
+
+# Print final results
+print(final_results)
+
+
+
+
+
+
+
+
+
+
+
+# Load necessary libraries
+library(readxl)
+library(dplyr)
+library(tidyr)
+library(openxlsx)
+
+# Load dataset
+file_path <- "C:/R/LABSTAT/Thesis/data/MD.xlsx"
+mydata <- read_excel(file_path, sheet = "data1")
+
+# Rename variables
+mydata <- mydata %>%
+  rename(
+    Total_Incidence = `Malaria incidence`, 
+    Total_Mortality = `Malaria mortality`
+  )
+
+# Get unique country list
+countries <- unique(mydata$Country)
+
+# Initialize list to store results
+early_warning_results <- list()
+
+# Forecast years
+future_years <- data.frame(Year = 2023:2040)
+
+# Loop over each country
+for (country in countries) {
+  
+  # Filter data for the specific country
+  country_data <- mydata %>% filter(Country == country)
+  
+  # Select relevant columns (y1 to y22 + target variables)
+  selected_vars <- c("Year", "Total_Incidence", "Total_Mortality", paste0("y", 1:22))
+  data_train <- country_data %>% select(all_of(selected_vars))
+  
+  # Handle missing values by replacing them with 0
+  data_train <- data_train %>%
+    mutate(across(everything(), ~ replace_na(as.numeric(.), 0)))
+  
+  # Initialize forecast data
+  forecast_data <- future_years
+  
+  # Trend-based extrapolation for y1 to y22 and target variables
+  for (var in c("Total_Incidence", "Total_Mortality", paste0("y", 1:22))) {
+    
+    # Check if the variable has variation (not all zeros)
+    if (sum(data_train[[var]]) > 0) {
+      
+      # Fit a linear model
+      trend_model <- lm(as.formula(paste(var, "~ Year")), data = data_train)
+      
+      # Fit a polynomial model (degree 2) for non-linear trends
+      poly_model <- lm(as.formula(paste(var, "~ poly(Year, 2)")), data = data_train)
+      
+      # Predict using both models
+      linear_pred <- predict(trend_model, newdata = forecast_data)
+      poly_pred <- predict(poly_model, newdata = forecast_data)
+      
+      # Use polynomial prediction if it gives more realistic values
+      forecast_data[[var]] <- ifelse(poly_pred > 0, poly_pred, linear_pred)
+      
+    } else {
+      # If all values are 0, set forecast to 0
+      forecast_data[[var]] <- 0
+    }
+  }
+  
+  # Ensure no negative values
+  forecast_data <- forecast_data %>%
+    mutate(across(where(is.numeric), ~ pmax(., 0)))
+  
+  # Add country name
+  forecast_data$Country <- country
+  
+  # Store results
+  early_warning_results[[country]] <- forecast_data
+}
+
+# Combine results for all countries
+early_warning_final <- bind_rows(early_warning_results)
+
+# Print final results
+print(early_warning_final)
+
+# Save to Excel
+write.xlsx(early_warning_final, "C:/R/LABSTAT/Thesis/data/Early_Warning_Predictions.xlsx")
+
+
+
+
+# Load libraries
+library(ggplot2)
+library(dplyr)
+library(readxl)
+library(openxlsx)
+
+# Load early warning forecast data
+file_path <- "C:/R/LABSTAT/Thesis/data/Early_Warning_Predictions.xlsx"
+early_warning_final <- read_excel(file_path)
+
+# Summarize data for plotting
+plot_data <- early_warning_final %>%
+  group_by(Year) %>%
+  summarise(
+    Avg_Incidence = mean(Total_Incidence, na.rm = TRUE),  # Average Malaria Incidence
+    Affected_Countries = sum(Total_Incidence > 0, na.rm = TRUE)  # Count affected countries
+  )
+
+# Create the dual-axis plot
+plot <- ggplot(plot_data, aes(x = Year)) +
+  
+  # Left Y-axis: Average Incidence (Bar)
+  geom_bar(aes(y = Avg_Incidence), stat = "identity", fill = "steelblue", alpha = 0.6) +
+  
+  # Right Y-axis: Affected Countries (Line)
+  geom_line(aes(y = Affected_Countries * (max(Avg_Incidence) / max(Affected_Countries))), 
+            color = "black", size = 1) +
+  
+  # Add points on the red line for affected countries
+  geom_point(aes(y = Affected_Countries * (max(Avg_Incidence) / max(Affected_Countries))), 
+             color = "black", size = 2) +
+  
+  # Axis Labels
+  labs(title = "C",
+       x = "Year",
+       y = "Malaria incidence") +
+  
+  # Scale Right Y-axis for affected countries
+  scale_y_continuous(sec.axis = sec_axis(~ . / (max(plot_data$Avg_Incidence) / max(plot_data$Affected_Countries)), 
+                                         name = "Total affected countries")) +
+  
+  # Theme for better visualization
+  theme_minimal() +
+  theme(
+    axis.title.y.right = element_text(color = "black"),
+    plot.title = element_text(face = "bold", size = 16, hjust = -.09)  # Bold, size 14, center position
+  )
+
+
+# Save the plot as a PNG image
+output_plot_path <- "C:/R/LABSTAT/Thesis/data/malaria/Early_Warning_Plot.png"
+ggsave(output_plot_path, plot = plot, width = 6, height = 4, dpi = 300)
+
+# Save the summarized data (plot_data) to an Excel file
+output_file_path <- "C:/R/LABSTAT/Thesis/data/malaria/Plot_Data_Summary.xlsx"
+write.xlsx(plot_data, output_file_path)
+
+
+
+
+
+
+# Load libraries
+library(ggplot2)
+library(dplyr)
+library(readxl)
+library(openxlsx)
+
+# Load early warning forecast data
+file_path <- "C:/R/LABSTAT/Thesis/data/Early_Warning_Predictions.xlsx"
+early_warning_final <- read_excel(file_path)
+
+# Summarize data for plotting
+plot_data <- early_warning_final %>%
+  group_by(Year) %>%
+  summarise(
+    Avg_Mortality = mean(Total_Mortality, na.rm = TRUE),  # Average Malaria Mortality
+    Affected_Countries = sum(Total_Mortality > 0, na.rm = TRUE)  # Count affected countries
+  )
+
+# Create the dual-axis plot
+plot <- ggplot(plot_data, aes(x = Year)) +
+  
+  # Left Y-axis: Average Mortality (Bar)
+  geom_bar(aes(y = Avg_Mortality), stat = "identity", fill = "red", alpha = 0.6) +
+  
+  # Right Y-axis: Affected Countries (Line)
+  geom_line(aes(y = Affected_Countries * (max(Avg_Mortality) / max(Affected_Countries))), 
+            color = "black", size = 1.2) +
+  
+  # Add points on the line for each year
+  geom_point(aes(y = Affected_Countries * (max(Avg_Mortality) / max(Affected_Countries))), 
+             color = "black", size = 3) +
+  
+  # Axis Labels
+  labs(title = "D",
+      
+       x = "Year",
+       y = "Malaria mortality") +
+  
+  # Scale Right Y-axis for affected countries
+  scale_y_continuous(sec.axis = sec_axis(~ . / (max(plot_data$Avg_Mortality) / max(plot_data$Affected_Countries)), 
+                                         name = "Total affected countries")) +
+  
+  # Theme for better visualization
+  theme_minimal()+
+  theme(
+    axis.title.y.right = element_text(color = "black"),
+    plot.title = element_text(face = "bold", size = 16, hjust = -.08)  # Bold, size 14, center position
+  )
+
+# Save the plot as a PNG image
+output_plot_path <- "C:/R/LABSTAT/Thesis/data/malaria/Early_Warning_Mortality_Plot.png"
+ggsave(output_plot_path, plot = plot, width = 6, height = 4, dpi = 300)
+
+# Save the summarized data (plot_data) to an Excel file
+output_file_path <- "C:/R/LABSTAT/Thesis/data/malaria/Plot_Data_Summary_Mortality.xlsx"
+write.xlsx(plot_data, output_file_path)
+
+
+
+# Load necessary libraries
+library(dplyr)
+
+# Calculate average incidence and mortality for each country across years
+average_risk <- early_warning_final %>%
+  group_by(Country) %>%
+  summarise(
+    Avg_Incidence = mean(Total_Incidence, na.rm = TRUE),
+    Avg_Mortality = mean(Total_Mortality, na.rm = TRUE)
+  ) %>%
+  arrange(desc(Avg_Incidence))  # Sort by Avg_Incidence in descending order
+
+# Get the top 10 countries with highest average incidence
+top_10_incidence <- average_risk %>%
+  head(10) %>%
+  select(Country, Avg_Incidence)
+
+# Sort by Avg_Mortality and get top 10 countries with highest average mortality
+top_10_mortality <- average_risk %>%
+  arrange(desc(Avg_Mortality)) %>%
+  head(10) %>%
+  select(Country, Avg_Mortality)
+
+# View the results
+top_10_incidence
+top_10_mortality
+
+
+# Define the file paths
+incidence_file_path <- "C:/R/LABSTAT/Thesis/data/malaria/Top_10_Incidence.xlsx"
+mortality_file_path <- "C:/R/LABSTAT/Thesis/data/malaria/Top_10_Mortality.xlsx"
+
+# Save the top 10 countries for average incidence
+write.xlsx(top_10_incidence, file = incidence_file_path, sheetName = "Top_10_Incidence", row.names = FALSE)
+
+# Save the top 10 countries for average mortality
+write.xlsx(top_10_mortality, file = mortality_file_path, sheetName = "Top_10_Mortality", row.names = FALSE)
+
+
+
+
+
+
+
+
+
+
+
+
+#### Cross validation
+
+# Load necessary libraries
+library(caret)
+library(xgboost)
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Define XGBoost parameters
+params <- list(
+  objective = "reg:squarederror", 
+  eval_metric = "rmse",  
+  max_depth = 6, 
+  eta = 0.05,  
+  subsample = 0.8, 
+  colsample_bytree = 0.8
+)
+
+# Create 10-fold cross-validation
+kfolds <- createFolds(y, k = 10, list = TRUE)
+
+# Store results
+cv_results <- sapply(kfolds, function(test_idx) {
+  train_idx <- setdiff(seq_len(nrow(X)), test_idx)
+  
+  X_train <- X[train_idx, , drop = FALSE]
+  y_train <- y[train_idx]
+  X_test <- X[test_idx, , drop = FALSE]
+  y_test <- y[test_idx]
+  
+  dtrain <- xgb.DMatrix(data = X_train, label = y_train)
+  dtest <- xgb.DMatrix(data = X_test, label = y_test)
+  
+  # Train XGBoost model
+  fit <- xgb.train(params = params, data = dtrain, nrounds = 300, verbose = 0)
+  
+  # Predictions
+  preds <- predict(fit, dtest)
+  
+  # Compute RMSE
+  return(RMSE(preds, y_test))
+})
+
+# Print average RMSE
+mean_rmse <- mean(cv_results)
+cat("Average XGBoost RMSE from Cross-Validation:", mean_rmse, "\n")
+
+
+
+
+
+# Load necessary libraries
+library(lightgbm)
+library(caret)
+
+# Set up cross-validation
+set.seed(123)
+kfolds <- createFolds(y, k = 10, list = TRUE)
+
+# Define LightGBM parameters
+params <- list(
+  objective = "regression",
+  metric = "rmse",
+  learning_rate = 0.01,
+  num_leaves = 31,
+  max_depth = -1,
+  min_data_in_leaf = 20,
+  feature_fraction = 0.8,
+  bagging_fraction = 0.8,
+  bagging_freq = 5
+)
+
+# Store RMSE results
+cv_results <- sapply(kfolds, function(test_idx) {
+  train_idx <- setdiff(seq_len(nrow(X)), test_idx)
+  
+  X_train <- X[train_idx, , drop = FALSE]
+  y_train <- y[train_idx]
+  X_test <- X[test_idx, , drop = FALSE]
+  y_test <- y[test_idx]
+  
+  dtrain <- lgb.Dataset(data = X_train, label = y_train)
+  dtest <- lgb.Dataset(data = X_test, label = y_test)
+  
+  # Train LightGBM model
+  fit <- lgb.train(params = params, data = dtrain, nrounds = 500, verbose = -1)
+  
+  # Predict and compute RMSE
+  preds <- predict(fit, X_test)
+  return(RMSE(preds, y_test))
+})
+
+# Print average RMSE
+mean_rmse <- mean(cv_results)
+cat("Average LightGBM RMSE from Cross-Validation:", mean_rmse, "\n")
+
+# Print RMSE for each fold
+print(cv_results)
