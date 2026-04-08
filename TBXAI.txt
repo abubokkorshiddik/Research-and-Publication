@@ -1,0 +1,5488 @@
+# Load required libraries
+library(ggplot2)
+library(dplyr)
+library(maps)
+
+# Load world map data from built-in 'maps' package
+world_map <- map_data("world")
+
+# Read your dataset
+library(readxl)
+data <- read_excel("C:/R/LABSTAT/datatb.xlsx", sheet = "data")
+data
+# Extract unique country names
+study_countries <- unique(data$Countries)
+
+# Make country names match the world map dataset
+world_map <- world_map %>%
+  mutate(region = tolower(region)) # Convert to lowercase
+
+study_countries <- tolower(study_countries) # Convert your data country names to lowercase
+
+# Mark study area
+world_map <- world_map %>%
+  mutate(study_area = ifelse(region %in% study_countries, "Study Country", "Other Country"))
+
+# Plot the world map with study area highlighted
+ggplot() +
+  geom_polygon(data = world_map, aes(x = long, y = lat, group = group, fill = study_area),
+               color = "black", size = 0.3) +
+  scale_fill_manual(values = c("Study Country" = "blue", "Other Country" = "lightgray")) +
+  theme_minimal() +
+  theme(legend.title = element_blank()) +
+  ggtitle("Study Area: 194 Countries with TB Data")
+
+
+
+
+
+# Load required libraries
+library(ggplot2)
+library(dplyr)
+library(maps)
+library(readxl)
+
+library(ggplot2)
+library(cowplot)
+library(ggspatial)
+# Load world map data from built-in 'maps' package
+world_map <- map_data("world")
+
+# Read your dataset
+data <- read_excel("C:/R/LABSTAT/datatb.xlsx", sheet = "data")
+
+# Aggregate X1 values for each country (sum over the years) and convert to millions
+data_summary <- data %>%
+  group_by(Countries) %>%
+  summarise(X1_million = sum(X1, na.rm = TRUE) / 1e6)  # Convert to millions
+
+# Convert country names to lowercase for matching
+world_map <- world_map %>%
+  mutate(region = tolower(region))
+
+data_summary <- data_summary %>%
+  mutate(Countries = tolower(Countries))
+
+# Merge world map with TB data
+world_map <- left_join(world_map, data_summary, by = c("region" = "Countries"))
+
+# Plot the world map with X1 (TB cases in millions) as an indicator
+a= ggplot() +
+  geom_polygon(data = world_map, aes(x = long, y = lat, group = group, fill = X1_million),
+               color = "black", size = 0.3) +
+  scale_fill_gradient(low = "lightyellow", high = "red", na.value = "gray") +
+  labs(fill = "TB Cases (Million)") +  # Updated legend label
+  theme_minimal() +
+  theme(legend.title = element_text(size = 10),
+        legend.text = element_text(size = 8),
+        plot.title = element_text(hjust = 0, size = 14)) +
+  ggtitle("A. Global TB Cases from 2000 to 2022")+
+  annotation_north_arrow(location = "tr", which_north = "true", 
+                         style = north_arrow_fancy_orienteering)
+
+a
+
+# Load required libraries
+library(ggplot2)
+library(dplyr)
+library(maps)
+library(readxl)
+
+# Load world map data from built-in 'maps' package
+world_map <- map_data("world")
+
+# Read your dataset
+data <- read_excel("C:/R/LABSTAT/datatb.xlsx", sheet = "data")
+data
+# Aggregate X3 values for each country (sum over the years) and convert to millions
+data_summary <- data %>%
+  group_by(Countries) %>%
+  summarise(X3_million = sum(X4, na.rm = TRUE) / 1e6)  # Convert to millions
+
+# Convert country names to lowercase for matching
+world_map <- world_map %>%
+  mutate(region = tolower(region))
+
+data_summary <- data_summary %>%
+  mutate(Countries = tolower(Countries))
+
+# Merge world map with TB deaths data
+world_map <- left_join(world_map, data_summary, by = c("region" = "Countries"))
+
+# Plot the world map with X3 (TB deaths in millions) as an indicator
+b <- ggplot() +
+  geom_polygon(data = world_map, aes(x = long, y = lat, group = group, fill = X3_million),
+               color = "black", size = 0.3) +
+  scale_fill_gradient(low = "lightyellow", high = "red", na.value = "gray") +
+  labs(fill = "TB Deaths (Million)") +  # Updated legend label
+  theme_minimal() +
+  theme(legend.title = element_text(size = 10),
+        legend.text = element_text(size = 8),
+        plot.title = element_text(hjust = 0, size = 14)) +
+  ggtitle("B. Global TB Deaths from 2000 to 2022")+
+  annotation_scale(location = "bl", width_hint = 0.5)
+b
+library(cowplot)
+#Combine plots a and b in a single column
+combined_plot <- plot_grid(a, b, ncol = 1)
+combined_plot
+
+
+
+# Save the combined plot
+ggsave("C:/R/LABSTAT/1798combined_plot.png", combined_plot, width = 12, height = 8)
+ggsave("C:/R/LABSTAT/1798studyarea194.png", width = 8, height = 6)
+
+
+# Install and load necessary packages (Run manually if needed)
+if (!requireNamespace("plm", quietly = TRUE)) install.packages("plm")
+if (!requireNamespace("lmtest", quietly = TRUE)) install.packages("lmtest")
+if (!requireNamespace("car", quietly = TRUE)) install.packages("car")
+if (!requireNamespace("randomForest", quietly = TRUE)) install.packages("randomForest")
+if (!requireNamespace("lime", quietly = TRUE)) install.packages("lime")
+if (!requireNamespace("iml", quietly = TRUE)) install.packages("iml")
+if (!requireNamespace("readxl", quietly = TRUE)) install.packages("readxl")
+
+# Load required libraries
+library(plm)         # Panel regression
+library(lmtest)      # Hypothesis testing
+library(car)         # Multicollinearity check (VIF)
+library(randomForest)# Machine learning model
+library(lime)        # Explainability (LIME)
+library(iml)         # Explainability (SHAP)
+library(readxl)      # Reading Excel files
+
+# Load dataset
+data <- read_excel("C:/R/LABSTAT/TB.xlsx", sheet = "data")
+data
+
+
+
+
+
+
+# Load necessary libraries
+library(xgboost)
+library(tidyr)
+library(dplyr)
+library(Matrix)
+library(caret)
+
+# Convert categorical columns (Continent and Countries) to factors
+data$Continent <- as.factor(data$Continent)
+data$Countries <- as.factor(data$Countries)
+
+# Select predictor columns (X1, x2, ..., y1, y2, ..., y31)
+predictors <- data %>%
+  select(x1, x2, x3, x4, y1, y2, y3, y4, y5, y6, y7, y8, y9, y10, y11, y12, y13, y14, y15, y16, y17, y18, y19, y20, y21, y22, y23, y24, y25, y26, y27, y28, y29, y30, y31)
+
+# Select target variable (e.g., TB incidence or mortality, 'y1' here is used as an example)
+target <- data$x1  # Replace with your desired target variable
+
+# Convert the data into matrix format for XGBoost
+dtrain <- xgb.DMatrix(data = as.matrix(predictors), label = target)
+
+# Split data into training and testing sets (80% training, 20% testing)
+set.seed(123)
+train_indices <- sample(1:nrow(data), 0.8 * nrow(data))
+train_data <- predictors[train_indices, ]
+test_data <- predictors[-train_indices, ]
+train_labels <- target[train_indices]
+test_labels <- target[-train_indices]
+
+# Convert to DMatrix format for XGBoost
+dtrain <- xgb.DMatrix(data = as.matrix(train_data), label = train_labels)
+dtest <- xgb.DMatrix(data = as.matrix(test_data), label = test_labels)
+
+# Set up the parameters for XGBoost
+params <- list(
+  objective = "reg:squarederror",  # For regression tasks
+  metric = "rmse",                 # Root Mean Squared Error
+  booster = "gbtree",              # Tree-based model
+  eta = 0.05,                      # Learning rate
+  max_depth = 6,                   # Maximum depth of trees
+  subsample = 0.8,                 # Fraction of samples used per tree
+  colsample_bytree = 0.8           # Fraction of features used per tree
+)
+
+# Train the XGBoost model
+xgb_model <- xgb.train(
+  params = params,
+  data = dtrain,
+  nrounds = 1000,
+  watchlist = list(train = dtrain, test = dtest),
+  early_stopping_rounds = 50,
+  verbose = 1
+)
+
+# Make predictions
+predictions <- predict(xgb_model, dtest)
+
+# Evaluate performance: RMSE and R-squared
+rmsexg <- sqrt(mean((test_labels - predictions)^2))
+r_squaredxg <- 1 - sum((test_labels - predictions)^2) / sum((test_labels - mean(test_labels))^2)
+
+# Print results
+cat("RMSE:", rmsexg, "\n")
+cat("R-squared:", r_squaredxg, "\n")
+
+
+
+# Load necessary libraries
+library(lightgbm)
+library(dplyr)
+library(Matrix)
+library(caret)
+
+# Convert categorical columns (Continent and Countries) to factors
+data$Continent <- as.factor(data$Continent)
+data$Countries <- as.factor(data$Countries)
+
+# Select predictor columns (X1, x2, ..., y1, y2, ..., y31)
+predictors <- data %>%
+  select(x1, x2, x3, x4, y1, y2, y3, y4, y5, y6, y7, y8, y9, y10, y11, y12, y13, y14, y15, y16, y17, y18, y19, y20, y21, y22, y23, y24, y25, y26, y27, y28, y29, y30, y31)
+
+# Select target variable (e.g., TB incidence or mortality, 'y1' here is used as an example)
+target <- data$x1  # Replace with your desired target variable
+
+# Split data into training and testing sets (80% training, 20% testing)
+set.seed(123)
+train_indices <- sample(1:nrow(data), 0.8 * nrow(data))
+train_data <- predictors[train_indices, ]
+test_data <- predictors[-train_indices, ]
+train_labels <- target[train_indices]
+test_labels <- target[-train_indices]
+
+# Convert data to LightGBM format (lightgbm requires a special matrix format)
+train_matrix <- lgb.Dataset(data = as.matrix(train_data), label = train_labels)
+test_matrix <- lgb.Dataset(data = as.matrix(test_data), label = test_labels)
+
+# Set up the parameters for LightGBM
+params <- list(
+  objective = "regression",  # For regression tasks
+  metric = "rmse",           # Root Mean Squared Error
+  boosting_type = "gbdt",    # Gradient Boosting Decision Tree
+  num_leaves = 31,           # Number of leaves in one tree
+  learning_rate = 0.05,      # Learning rate
+  feature_fraction = 0.8,    # Fraction of features used per iteration
+  bagging_fraction = 0.8,    # Fraction of data used per iteration
+  bagging_freq = 5,          # Bagging frequency
+  max_depth = -1,            # No limit on depth
+  min_data_in_leaf = 20      # Minimum number of data points in a leaf
+)
+
+# Train the LightGBM model
+lgb_model <- lgb.train(
+  params = params,
+  data = train_matrix,
+  nrounds = 1000,             # Number of boosting rounds
+  valids = list(test = test_matrix),
+  early_stopping_rounds = 50, # Stop early if no improvement
+  verbose = 1
+)
+
+# Make predictions
+predictions <- predict(lgb_model, as.matrix(test_data))
+
+# Evaluate performance: RMSE and R-squared
+rmselg <- sqrt(mean((test_labels - predictions)^2))
+r_squaredlg <- 1 - sum((test_labels - predictions)^2) / sum((test_labels - mean(test_labels))^2)
+
+# Print results
+cat("RMSE:", rmselg, "\n")
+cat("R-squared:", r_squaredlg, "\n")
+
+
+
+
+# Install packages if not already installed
+#install.packages("rpart")
+#install.packages("rpart.plot")
+
+# Load the packages
+library(rpart)
+library(rpart.plot)
+
+# Load the dataset (replace this with your dataset loading code)
+data <- read_excel("C:/R/LABSTAT/TB.xlsx", sheet = "data")
+
+# Example data split (assuming 'data' is already loaded)
+set.seed(42)
+train_index <- sample(1:nrow(data), 0.8 * nrow(data))
+train_data <- data[train_index, ]
+test_data <- data[-train_index, ]
+
+# Build the Decision Tree model (assuming y1 is the target variable)
+# Use 'anova' method for regression or 'class' for classification
+dt_model <- rpart(x1 ~ ., data = train_data, method = "anova")  # For regression
+# dt_model <- rpart(y1 ~ ., data = train_data, method = "class")  # For classification
+
+# Plot the decision tree
+rpart.plot(dt_model)
+
+# Predict on the test data
+predictions <- predict(dt_model, newdata = test_data)
+
+# If it's a classification task, convert predictions to class labels
+# For binary classification example:
+# predictions <- ifelse(predictions > 0.5, 1, 0)
+
+# View first few predictions
+head(predictions)
+
+# Evaluate the model (for regression: RMSE, R-squared)
+# Compute RMSE for regression
+rmse <- sqrt(mean((predictions - test_data$y1)^2))
+cat("RMSE:", rmse, "\n")
+
+# Compute R-squared for regression
+rss <- sum((predictions - test_data$y1)^2)
+tss <- sum((test_data$y1 - mean(test_data$y1))^2)
+r_squared <- 1 - (rss / tss)
+cat("R-squared:", r_squared, "\n")
+
+# For classification, use accuracy and confusion matrix
+# If you are working on a classification task, uncomment and use the following:
+# confusion <- table(predictions = predictions, actual = test_data$y1)
+# accuracy <- sum(diag(confusion)) / sum(confusion)
+# cat("Accuracy:", accuracy, "\n")
+
+
+
+
+# Load the necessary library
+library(randomForest)
+library(readxl)
+
+# Load the dataset
+data <- read_excel("C:/R/LABSTAT/TB.xlsx", sheet = "data")
+data
+# Replace missing values with 0
+data[is.na(data)] <- 0
+
+# Example data split (80% for training, 20% for testing)
+set.seed(42)
+train_index <- sample(1:nrow(data), 0.8 * nrow(data))
+train_data <- data[train_index, ]
+test_data <- data[-train_index, ]
+
+# Check the column names to ensure they match the formula
+colnames(data)
+
+# Train a Random Forest model (assuming 'y1' is the target variable)
+# Make sure the formula uses existing column names in the dataset
+rf_model <- randomForest(x1 ~ ., data = train_data, ntree = 500, mtry = sqrt(ncol(train_data)))
+
+# Print the Random Forest model summary
+print(rf_model)
+
+# Make predictions on the test data
+predictions <- predict(rf_model, newdata = test_data)
+
+# View first few predictions
+head(predictions)
+
+# Evaluate the model (for regression: RMSE, R-squared)
+
+# Compute RMSE for regression
+rmse <- sqrt(mean((predictions - test_data$y1)^2))
+cat("RMSE:", rmse, "\n")
+
+# Compute R-squared for regression
+rss <- sum((predictions - test_data$y1)^2)
+tss <- sum((test_data$y1 - mean(test_data$y1))^2)
+r_squared <- 1 - (rss / tss)
+cat("R-squared:", r_squared, "\n")
+
+
+
+
+#####################################################
+####################
+# Install required packages if not installed
+required_packages <- c("readxl", "dplyr", "ggplot2", "ggcorrplot", "openxlsx", 
+                       "reshape2", "sf", "leaflet", "rnaturalearth", "rnaturalearthdata", "tidyr", "car")
+
+install_if_missing <- function(pkg) {
+  if (!require(pkg, character.only = TRUE)) install.packages(pkg, dependencies = TRUE)
+}
+
+lapply(required_packages, install_if_missing)
+
+# Load libraries
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(ggcorrplot)
+library(openxlsx)  
+library(reshape2)
+library(sf)
+library(leaflet)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(tidyr)
+library(car)
+
+
+# Load the dataset
+data <- read_excel("C:/R/LABSTAT/TB.xlsx", sheet = "data")
+
+# Split dataset into Train (2000-2019) and Test (2020-2022)
+train_data <- data %>% filter(Year >= 2000 & Year <= 2019)
+test_data <- data %>% filter(Year >= 2020 & Year <= 2022)
+
+
+# Calculate Mean ± SD for Train and Test sets
+summary_train <- train_data %>%
+  summarise(across(where(is.numeric), 
+                   list(mean_sd = ~ paste0(round(mean(.x, na.rm = TRUE), 2), " ± ", round(sd(.x, na.rm = TRUE), 2)))))
+
+summary_test <- test_data %>%
+  summarise(across(where(is.numeric), 
+                   list(mean_sd = ~ paste0(round(mean(.x, na.rm = TRUE), 2), " ± ", round(sd(.x, na.rm = TRUE), 2)))))
+
+
+# Initialize p-values dataframe with NA
+p_values <- data.frame(Variable = colnames(train_data)[4:ncol(train_data)], P_Value = NA)
+
+# Perform t-tests and store p-values
+for (col in colnames(train_data)[4:ncol(train_data)]) {
+  test_result <- tryCatch(
+    t.test(train_data[[col]], test_data[[col]], var.equal = FALSE, na.action = na.omit),
+    error = function(e) return(NULL)  # Return NULL in case of an error
+  )
+  
+  if (!is.null(test_result)) {
+    p_values$P_Value[p_values$Variable == col] <- round(test_result$p.value, 4)
+  }
+}
+
+
+# Save all results into a single Excel file
+output_file <- "C:/R/LABSTAT/1absTB_Analysis.xlsx"
+wb <- createWorkbook()
+
+# Add sheets
+addWorksheet(wb, "Train_Summary")
+addWorksheet(wb, "Test_Summary")
+addWorksheet(wb, "Significance_Test")
+
+# Write data
+writeData(wb, "Train_Summary", summary_train)
+writeData(wb, "Test_Summary", summary_test)
+writeData(wb, "Significance_Test", p_values)
+
+# Save workbook
+saveWorkbook(wb, output_file, overwrite = TRUE)
+
+
+
+
+
+
+
+
+
+
+ggplot(data, aes(x = Year, y = x1, color = Continent)) +
+  geom_line(size = 1) +
+  theme_minimal() +
+  labs(title = "TB Cases Trend Over Time", y = "TB Cases", x = "Year")
+ggsave("C:/R/LABSTAT/00TB_LinePlot.png", width = 8, height = 6)
+
+library(ggplot2)
+
+ggplot(data, aes(x = Year, y = x1, color = Continent)) +
+  geom_line(size = 1) +
+  theme_minimal() +
+  labs(title = "TB Cases Trend Over Time by Continent", 
+       y = "TB Cases", 
+       x = "Year") +
+  facet_wrap(~Continent, scales = "free_y")  # Separate plots for each continent
+
+ggsave("C:/R/LABSTAT/00TB_LinePlot_by_Continent.png", width = 10, height = 8)
+
+
+
+library(ggplot2)
+
+ggplot(data, aes(x = Year, y = x1, color = Continent)) +
+  geom_smooth(method = "loess", se = FALSE, size = 1) +  # Smoothed trend line
+  theme_minimal() +
+  labs(title = "TB Cases Trend Over Time by Continent", 
+       y = "TB Cases", 
+       x = "Year") +
+  facet_wrap(~Continent, scales = "free_y")  # Separate trends for each continent
+
+ggsave("C:/R/LABSTAT/00TB_Trend_by_Continent.png", width = 10, height = 8)
+
+
+
+
+
+
+
+
+
+
+
+heatmap_data <- data %>%
+  group_by(Year, Continent) %>%
+  summarise(mean_cases = mean(x1, na.rm = TRUE))
+
+ggplot(heatmap_data, aes(x = Year, y = Continent, fill = mean_cases)) +
+  geom_tile() +
+  scale_fill_gradient(low = "white", high = "red") +
+  theme_minimal() +
+  labs(title = "Heatmap of TB Cases by Year & Continent")
+ggsave("C:/R/LABSTAT/2absTB_Heatmap.png", width = 8, height = 6)
+
+
+
+
+# Load world map
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+# Prepare data for mapping rg
+data_geo <- data %>%
+  group_by(Countries) %>%
+  summarise(mean_cases = mean(x1, na.rm = TRUE))
+
+# Merge world map with TB data
+world <- left_join(world, data_geo, by = c("name" = "Countries"))
+
+# Create choropleth map
+ggplot(world) +
+  geom_sf(aes(fill = mean_cases)) +
+  scale_fill_gradient(low = "white", high = "red", na.value = "gray") +
+  theme_minimal() +
+  labs(title = "Choropleth Map of TB Cases")
+
+ggsave("C:/R/LABSTAT/TB_Choropleth.png", width = 10, height = 6)
+
+
+# Load necessary libraries
+library(ggplot2)
+library(reshape2)
+library(writexl)
+
+# Replace NA values with 0
+train_data[is.na(train_data)] <- 0
+
+# Select only numeric columns for correlation analysis
+numeric_data <- train_data[, sapply(train_data, is.numeric)]
+
+# Compute the correlation matrix
+cor_matrix <- cor(numeric_data, use = "everything", method = "pearson")
+
+# Round to 2 decimal places
+cor_matrix <- round(cor_matrix, 2)
+
+# Reshape correlation matrix for plotting
+cor_melt <- melt(cor_matrix)
+
+# Plot the correlation matrix as a heatmap
+a= ggplot(cor_melt, aes(Var1, Var2, fill = value)) +
+  geom_tile() +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = 0, limit = c(-1, 1), name = "Correlation") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Correlation Matrix Heatmap", x = "Variables", y = "Variables")
+a
+# Save correlation matrix to an Excel file
+write_xlsx(as.data.frame(cor_matrix), "11Correlation_Matrix.xlsx")
+
+# Print correlation matrix
+print(cor_matrix)
+ggsave("C:/R/LABSTAT/111cor.png", width = 10, height = 6)
+a
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Load necessary libraries
+library(readxl)
+library(ggplot2)
+library(dplyr)
+library(RColorBrewer)
+library(leaflet)
+library(spdep)
+library(tidyr)
+library(rnaturalearth)  # For world shapefile data
+library(rnaturalearthdata) # For world shapefile data
+library(openxlsx)
+
+# Load the dataset
+data <- read_excel("C:/R/LABSTAT/TB.xlsx", sheet = "data")
+
+# Replace missing values with 0
+data[is.na(data)] <- 0
+
+# Filter data for TB incidence and mortality for the years 2000-2022
+tb_data <- data %>% filter(Year >= 2000 & Year <= 2022)
+
+# Define a custom color palette for the choropleth map
+colors <- colorRampPalette(brewer.pal(9, "YlOrRd"))(100)
+
+# Choropleth Map of TB Incidence by Country (example for 2020)
+tb_data_2020 <- tb_data %>% filter(Year == 2020)
+
+# Load world shapefile using rnaturalearth
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+# Merge the TB data with the world shapefile (based on country name)
+world_data <- merge(world, tb_data_2020, by.x = "name", by.y = "Countries", all.x = TRUE)
+
+# Plot choropleth map using ggplot
+ggplot(data = world_data) +
+  geom_sf(aes(fill = x1), color = "black", size = 0.1) +
+  scale_fill_gradientn(colours = colors, name = "TB Incidence") +
+  labs(title = "Choropleth Map of TB Incidence in 2020") +
+  theme_minimal()
+
+# Save plot as an image
+ggsave("C:/R/LABSTAT/TB_incidence_map_2020.png")
+
+
+
+
+
+
+# Replace NA values in tb_rates_valid with 0
+tb_rates_valid[is.na(tb_rates_valid)] <- 0
+
+# Ensure that weights_list and tb_rates_valid have the same number of valid countries
+valid_ids <- valid_ids[!is.na(tb_rates[valid_ids])]  # Remove invalid entries corresponding to NAs in TB rates
+weights_list <- weights_list[!sapply(weights_list, function(x) any(is.na(tb_rates[x])))]
+
+# Check if lengths match
+if (length(tb_rates_valid) == length(valid_ids)) {
+  # Proceed with the spatial weights matrix creation and Moran's I test
+  weights_matrix <- nb2listw(weights_list, style = "W")
+  
+  # Perform Moran's I test
+  moran_result <- moran.test(tb_rates_valid, weights_matrix)
+  
+  # Print the Moran's I result
+  print(moran_result)
+  
+  # Save the Moran's I result to an Excel file
+  wb <- createWorkbook()
+  addWorksheet(wb, "Moran's I Test Results")
+  writeData(wb, "Moran's I Test Results", moran_result)
+  saveWorkbook(wb, "C:/R/LABSTAT/TB_spatial_analysis_results.xlsx", overwrite = TRUE)
+} else {
+  print("Mismatch in the number of valid countries and TB rates.")
+}
+
+print(moran_result)
+
+# Replace NA values in tb_rates_valid with 0
+tb_rates[is.na(tb_rates)] <- 0
+
+# Ensure that weights_list and tb_rates have the same number of valid countries
+valid_ids <- unlist(weights_list)  # Get the valid country IDs used in weights list
+
+# Subset tb_rates based on valid_ids to match the TB rates with valid countries
+tb_rates_valid <- tb_rates[valid_ids]
+
+# Ensure there are no missing values after subsetting
+tb_rates_valid[is.na(tb_rates_valid)] <- 0
+
+# Check if lengths match
+if (length(tb_rates_valid) == length(valid_ids)) {
+  # Proceed with the spatial weights matrix creation and Moran's I test
+  weights_matrix <- nb2listw(weights_list, style = "W")
+  
+  # Perform Moran's I test
+  moran_result <- moran.test(tb_rates_valid, weights_matrix)
+  
+  # Print the Moran's I result
+  print(moran_result)
+  
+  # Save the Moran's I result to an Excel file
+  wb <- createWorkbook()
+  addWorksheet(wb, "Moran's I Test Results")
+  writeData(wb, "Moran's I Test Results", moran_result)
+  saveWorkbook(wb, "C:/R/LABSTAT/TB_spatial_analysis_results.xlsx", overwrite = TRUE)
+} else {
+  print("Mismatch in the number of valid countries and TB rates.")
+}
+moran_result
+
+
+
+
+
+# Install necessary packages if not already installed
+# install.packages("spdep")
+# install.packages("sf")
+
+# Load the libraries
+library(spdep)
+library(sf)
+
+# Perform Local Moran's I (LISA) calculation
+lisa_result <- localmoran(tb_rates_valid, weights_matrix)
+
+# Check the LISA result (contains Local Moran's I statistic and p-values)
+print(lisa_result)
+
+# Save the LISA results to an Excel file
+wb <- createWorkbook()
+addWorksheet(wb, "LISA Results")
+writeData(wb, "LISA Results", lisa_result)
+saveWorkbook(wb, "C:/R/LABSTAT/TB_LISA_results.xlsx", overwrite = TRUE)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Load necessary libraries
+library(spdep)
+library(readxl)
+library(openxlsx)
+library(ggplot2)
+library(dplyr)
+library(RColorBrewer)
+library(leaflet)
+library(spdep)
+library(tidyr)
+library(rnaturalearth)
+library(rnaturalearthdata)
+
+# Load the dataset
+data <- read_excel("C:/R/LABSTAT/TB.xlsx", sheet = "data")
+
+# Replace missing values in the dataset with 0
+data[is.na(data)] <- 0
+
+# Filter the data for TB incidence and mortality for the years 2000-2022
+tb_data <- data %>% filter(Year >= 2000 & Year <= 2022)
+
+# Define a custom color palette for the choropleth map
+colors <- colorRampPalette(brewer.pal(9, "YlOrRd"))(100)
+
+# Choropleth Map of TB Incidence by Country for the year 2020
+tb_data_2020 <- tb_data %>% filter(Year == 2020)
+
+# Load world shapefile using rnaturalearth
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+# Merge the TB data with the world shapefile based on country name
+world_data <- merge(world, tb_data_2020, by.x = "name", by.y = "Countries", all.x = TRUE)
+
+# Plot the choropleth map using ggplot
+ggplot(data = world_data) +
+  geom_sf(aes(fill = x1), color = "black", size = 0.1) +
+  scale_fill_gradientn(colours = colors, name = "TB Incidence") +
+  labs(title = "Choropleth Map of TB Incidence in 2020") +
+  theme_minimal()
+
+# Ensure that weights_list and tb_rates have matching country identifiers
+valid_ids <- unlist(weights_list)  # Get the valid country IDs used in the weights list
+
+# Subset tb_rates based on valid_ids to match the TB rates with valid countries
+tb_rates_valid <- tb_rates[valid_ids]
+
+# Replace NA values in tb_rates_valid with 0
+tb_rates_valid[is.na(tb_rates_valid)] <- 0
+
+# Ensure lengths match between tb_rates_valid and valid_ids
+if (length(tb_rates_valid) == length(valid_ids)) {
+  
+  # Ensure weights_list is properly created and it's a valid nb object
+  if (inherits(weights_list, "nb")) {
+    weights_matrix <- nb2listw(weights_list, style = "W")
+    
+    # Perform Moran's I test
+    moran_result <- moran.test(tb_rates_valid, weights_matrix)
+    
+    # Print the Moran's I result
+    print(moran_result)
+    
+    # Save the Moran's I result to an Excel file
+    wb <- createWorkbook()
+    addWorksheet(wb, "Moran's I Test Results")
+    writeData(wb, "Moran's I Test Results", moran_result)
+    saveWorkbook(wb, "C:/R/LABSTAT/TB_spatial_analysis_results.xlsx", overwrite = TRUE)
+    
+  } else {
+    print("Invalid weights list: Not a valid neighbors list.")
+  }
+  
+} else {
+  print("Mismatch in the number of valid countries and TB rates.")
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Load necessary libraries
+library(spdep)
+library(readxl)
+library(openxlsx)
+library(ggplot2)
+library(dplyr)
+library(RColorBrewer)
+library(leaflet)
+library(tidyr)
+library(rnaturalearth)
+library(rnaturalearthdata)
+
+# Load the dataset
+data <- read_excel("C:/R/LABSTAT/TB.xlsx", sheet = "data")
+data
+# Replace missing values in the dataset with 0
+data[is.na(data)] <- 0
+
+# Filter the data for TB incidence and mortality for the years 2000-2022
+tb_data <- data %>% filter(Year >= 2000 & Year <= 2022)
+
+# Choropleth Map of TB Incidence by Country for the year 2020
+tb_data_2020 <- tb_data %>% filter(Year == 2020)
+
+# Load world shapefile using rnaturalearth
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+# Merge the TB data with the world shapefile based on country name
+world_data <- merge(world, tb_data_2020, by.x = "name", by.y = "Countries", all.x = TRUE)
+
+# Plot the choropleth map using ggplot
+ggplot(data = world_data) +
+  geom_sf(aes(fill = x1), color = "black", size = 0.1) +
+  scale_fill_gradientn(colours = brewer.pal(9, "YlOrRd"), name = "TB Incidence") +
+  labs(title = "Choropleth Map of TB Incidence in 2020") +
+  theme_minimal()
+
+# Load the shapefile for spatial analysis
+world_spatial <- st_as_sf(world)
+
+# Create spatial neighbors using K-nearest neighbors or other distance-based methods
+# We will use the `spdep::poly2nb` function to create the neighbors list for polygons
+weights_list <- poly2nb(world_spatial)  # Creates neighbors based on polygon adjacency
+
+# Check if the weights_list has any empty neighbor sets
+empty_neighbors <- sapply(weights_list, length) == 0
+if (any(empty_neighbors)) {
+  print("Some countries do not have neighbors. These will be handled.")
+}
+
+# Ensure that the weights_list and tb_rates are correctly aligned (same length)
+tb_rates <- tb_data_2020$x1  # Example column for TB rates in 2020
+tb_rates[is.na(tb_rates)] <- 0  # Replace NA values with 0
+valid_ids <- unlist(weights_list)  # Get valid country indices
+tb_rates_valid <- tb_rates[valid_ids]  # Subset the TB rates based on valid IDs
+
+# Create a spatial weights matrix, allowing zero neighbors if needed
+weights_matrix <- nb2listw(weights_list, style = "W", zero.policy = TRUE)
+
+# Perform Moran's I test
+moran_result <- moran.test(tb_rates_valid, weights_matrix)
+
+# Print the Moran's I result
+print(moran_result)
+
+# Save the Moran's I result to an Excel file
+wb <- createWorkbook()
+addWorksheet(wb, "Moran's I Test Results")
+writeData(wb, "Moran's I Test Results", moran_result)
+saveWorkbook(wb, "C:/R/LABSTAT/TB_spatial_analysis_results.xlsx", overwrite = TRUE)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Load necessary libraries
+library(car)  # For variance inflation factor (VIF)
+library(ggplot2)  # For visualization
+
+# Replace missing values with 0
+data[is.na(data)] <- 0
+
+# Check if missing values are replaced
+sum(is.na(data))  # Should be 0 if all NA values are replaced
+
+# Visualize the distribution of independent variables (x1 to x4)
+ggplot(data, aes(x = x1)) + 
+  geom_boxplot() + 
+  ggtitle("Boxplot of x1")
+ggplot(data, aes(x = x2)) + 
+  geom_boxplot() + 
+  ggtitle("Boxplot of x2")
+ggplot(data, aes(x = x3)) + 
+  geom_boxplot() + 
+  ggtitle("Boxplot of x3")
+ggplot(data, aes(x = x4)) + 
+  geom_boxplot() + 
+  ggtitle("Boxplot of x4")
+
+# Check correlations between independent variables (x1 to x4)
+cor_matrix <- cor(data[, c("x1", "x2", "x3", "x4")], use = "complete.obs")
+write.table(cor_matrix, file = "correlation_matrix.txt", sep = "\t", col.names = NA)
+
+# Check for multicollinearity using Variance Inflation Factor (VIF)
+model <- lm(y1 ~ x1 + x2 + x3 + x4, data = data)  # Using y1 as an example
+vif_values <- vif(model)  # Returns VIF for each predictor; values > 10 indicate multicollinearity
+write.table(vif_values, file = "vif_values.txt", sep = "\t", col.names = NA)
+
+# Log transformation for highly skewed variables (if needed)
+data$log_y1 <- log(data$y1 + 1)  # Adding 1 to avoid log(0)
+data$log_y2 <- log(data$y2 + 1)
+data$log_y3 <- log(data$y3 + 1)
+data$log_y4 <- log(data$y4 + 1)
+# Repeat the transformation for other y variables as needed
+for (i in 5:31) {
+  var_name <- paste("y", i, sep = "")
+  log_var_name <- paste("log_", var_name, sep = "")
+  data[[log_var_name]] <- log(data[[var_name]] + 1)
+}
+
+# Check the summary of the transformed data
+summary_output <- summary(data)
+summary_output
+write.table(summary_output, file = "data_summary.txt", sep = "\t", col.names = NA)
+
+# Fit the linear model with log-transformed y variables
+model_log <- lm(x1 ~ y1 + y2 + y3 + y4+y5+y6+y7+y8+y9+y10+y11+y12+y13+y14+y15+y16+y17+y18+y19+y20+y21+y22+y23+y24+y25+y26+y27+y28+y29+y30+y31, data = data)  # Example for log_y1
+model_log_summary <- summary(model_log)
+model_log_summary
+# Save the coefficients and other important statistics from the model summary
+model_log_summary_data <- as.data.frame(model_log_summary$coefficients)
+write.table(model_log_summary_data, file = "111log_y1_model_summary.txt", sep = "\t", col.names = NA)
+
+# Stepwise selection for the best model (for each y variable)
+model_stepwise <- step(lm(y1 ~ x1 + x2 + x3 + x4, data = data))  # Stepwise regression for y1
+write.table(summary(model_stepwise), file = "stepwise_selection_summary.txt", sep = "\t", col.names = NA)
+
+# Check for singularity or errors in model fitting
+pooled_model <- lm(y1 ~ x1 + x2 + x3 + x4, data = data)  # Replace y1 with other y variables
+write.table(summary(pooled_model), file = "pooled_model_summary.txt", sep = "\t", col.names = NA)
+
+# Apply the model fitting and diagnostics for all y variables
+results <- list()
+
+
+
+
+# Create the directory if it doesn't exist
+dir.create("111model_diagnostics", showWarnings = FALSE)
+
+# Perform regression for all y variables (1 to 31) and save the results
+for (i in 1:31) {
+  var_name <- paste("y", i, sep = "")
+  formula <- as.formula(paste(var_name, "~ x1 + x2 + x3 + x4", sep = ""))
+  model <- lm(formula, data = data)
+  summary_output <- summary(model)
+  
+  # Save residuals and diagnostics with the variable name as the title
+  png(filename = paste("111model_diagnostics/", var_name, "_diagnostics.png", sep = ""))
+  par(mfrow = c(2, 2))  # Set up for multiple plots
+  
+  # Plot residuals and diagnostics
+  plot(model, main = paste("Diagnostics for", var_name))  # Set the title as the variable name
+  
+  dev.off()
+}
+
+
+
+
+
+
+
+
+
+
+
+
+library(caret)
+library(xgboost)
+library(lightgbm)
+library(readxl)
+library(Metrics)
+
+# Load the dataset
+data <- read_excel("C:/R/LABSTAT/TB.xlsx", sheet = "data")
+
+# Check the first few rows
+head(data)
+
+# Set target and features (adjust y1 to y31 depending on your focus)
+target <- "x1"  # Replace with your actual target variable (e.g., y1, y2, etc.)
+features <- setdiff(names(data), c("Continent", "Countries", "Year", target))  # Remove non-feature columns
+
+# Filter the training and test data based on the Year column
+train_data <- data[data$Year >= 2000 & data$Year <= 2019, ]
+test_data <- data[data$Year >= 2020 & data$Year <= 2022, ]
+
+# Prepare the features (X) and target (y) for training and testing sets
+train_X <- as.matrix(train_data[, features])
+train_y <- as.vector(train_data[, target])
+
+test_X <- as.matrix(test_data[, features])
+test_y <- as.vector(test_data[, target])
+
+# Define 10-fold cross-validation setup (using training data)
+k <- 10
+folds <- createFolds(train_y, k = k)
+
+# Hyperparameter grid for XGBoost
+xgb_grid <- expand.grid(
+  nrounds = c(130, 140, 150, 160, 170, 180, 190),
+  eta = c(0.070, 0.075, 0.080, 0.085, 0.090, 0.095),
+  max_depth = c(3, 4, 5, 6),
+  subsample = c(0.7, 0.8, 0.9),
+  colsample_bytree = c(0.7, 0.8, 0.9)
+)
+
+# Hyperparameter grid for LightGBM
+lgb_grid <- expand.grid(
+  nrounds = c(110, 120, 130, 140),
+  eta = c(0.070, 0.075, 0.080, 0.085, 0.090),
+  max_bin = c(100, 150, 200)
+)
+
+# Train XGBoost model on training data
+xgb_train_control <- trainControl(
+  method = "cv", 
+  number = k,
+  search = "grid", 
+  index = folds
+)
+
+xgb_model <- train(
+  x = train_X, 
+  y = train_y,
+  method = "xgbTree",
+  trControl = xgb_train_control,
+  tuneGrid = xgb_grid,
+  metric = "RMSE"
+)
+
+# Train LightGBM model on training data
+lgb_train_control <- trainControl(
+  method = "cv", 
+  number = k,
+  search = "grid", 
+  index = folds
+)
+
+lgb_model <- train(
+  x = train_X, 
+  y = train_y,
+  method = "lightgbm",
+  trControl = lgb_train_control,
+  tuneGrid = lgb_grid,
+  metric = "RMSE"
+)
+
+# Print the best tuning parameters
+cat("Best XGBoost parameters:\n")
+print(xgb_model$bestTune)
+
+cat("Best LightGBM parameters:\n")
+print(lgb_model$bestTune)
+
+# Evaluate models on the test data (predictions)
+xgb_best_model <- xgb_model$finalModel
+lgb_best_model <- lgb_model$finalModel
+
+# Make predictions on the test set
+xgb_predictions <- predict(xgb_best_model, test_X)
+lgb_predictions <- predict(lgb_best_model, test_X)
+
+# Calculate MAPE for both models on test data
+xgb_mape <- mape(test_y, xgb_predictions)
+lgb_mape <- mape(test_y, lgb_predictions)
+
+cat("XGBoost MAPE on test data:", xgb_mape, "\n")
+cat("LightGBM MAPE on test data:", lgb_mape, "\n")
+
+
+
+
+
+
+
+
+
+
+
+# Load necessary libraries
+library(xgboost)
+library(tidyr)
+library(dplyr)
+library(Matrix)
+library(caret)
+
+# Convert categorical columns (Continent and Countries) to factors
+data$Continent <- as.factor(data$Continent)
+data$Countries <- as.factor(data$Countries)
+
+# Select predictor columns (x1, x2, ..., y1, y2, ..., y31)
+predictors <- data %>% 
+  select(x1, x2, x3, x4, y1, y2, y3, y4, y5, y6, y7, y8, y9, y10, y11, y12, y13, y14, y15, y16, y17, y18, y19, y20, y21, y22, y23, y24, y25, y26, y27, y28, y29, y30, y31)
+
+# Select target variable (e.g., TB incidence or mortality, 'x1' here is used as an example)
+target <- data$x1  # Replace with your desired target variable
+
+# Convert the data into matrix format for XGBoost
+dtrain <- xgb.DMatrix(data = as.matrix(predictors), label = target)
+
+# Set up parameters for cross-validation
+params <- list(
+  objective = "reg:squarederror",  # For regression tasks
+  metric = "rmse",                 # Root Mean Squared Error
+  booster = "gbtree",              # Tree-based model
+  max_depth = 6,                   # Maximum depth of trees
+  subsample = 0.8,                 # Fraction of samples used per tree
+  colsample_bytree = 0.8           # Fraction of features used per tree
+)
+
+# Perform k-fold cross-validation (using 5 folds as an example)
+cv_results <- xgb.cv(
+  params = params,
+  data = dtrain,
+  nrounds = 1000,                  # Max number of boosting rounds
+  nfold = 5,                       # Number of folds
+  early_stopping_rounds = 50,       # Stop early if performance stops improving
+  verbose = 1,
+  metrics = "rmse",                # Performance metric to track
+  maximize = FALSE                 # Minimize RMSE
+)
+
+# Display the cross-validation results
+cat("Best number of boosting rounds: ", cv_results$best_iteration, "\n")
+cat("Best RMSE: ", cv_results$evaluation_log[cv_results$best_iteration, "test_rmse_mean"], "\n")
+
+# Plot the cross-validation results
+plot(cv_results$evaluation_log$iter, cv_results$evaluation_log$test_rmse_mean, type = "l", col = "blue", lwd = 2, 
+     xlab = "Boosting Rounds", ylab = "Test RMSE", main = "Cross-validation: Test RMSE vs. Boosting Rounds")
+
+# Tune the learning rate by trying different values
+learning_rates <- c(0.01, 0.05, 0.1, 0.2)
+
+# Store results
+learning_rate_results <- list()
+
+# Loop through different learning rates and perform cross-validation for each
+for (lr in learning_rates) {
+  cat("Training with learning rate: ", lr, "\n")
+  
+  params$eta <- lr  # Set the learning rate
+  
+  cv_results_lr <- xgb.cv(
+    params = params,
+    data = dtrain,
+    nrounds = 1000, 
+    nfold = 5,
+    early_stopping_rounds = 50,
+    verbose = 1,
+    metrics = "rmse", 
+    maximize = FALSE
+  )
+  
+  # Save the results
+  learning_rate_results[[as.character(lr)]] <- cv_results_lr
+  
+  # Print the best RMSE for this learning rate
+  cat("Best RMSE for eta =", lr, ": ", cv_results_lr$evaluation_log[cv_results_lr$best_iteration, "test_rmse_mean"], "\n")
+}
+
+# Find the best learning rate based on cross-validation results
+best_lr <- learning_rates[which.min(sapply(learning_rate_results, function(x) x$evaluation_log[x$best_iteration, "test_rmse_mean"]))]
+cat("Best Learning Rate: ", best_lr, "\n")
+
+# Final training with the best learning rate
+params$eta <- best_lr  # Use the best learning rate
+
+# Train the XGBoost model with the best learning rate
+xgb_model <- xgb.train(
+  params = params,
+  data = dtrain,
+  nrounds = cv_results$best_iteration,  # Best boosting rounds from cross-validation
+  watchlist = list(train = dtrain),
+  verbose = 1
+)
+
+# Make predictions
+predictions <- predict(xgb_model, dtrain)
+
+# Evaluate performance: RMSE and R-squared
+rmsexg <- sqrt(mean((target - predictions)^2))
+r_squaredxg <- 1 - sum((target - predictions)^2) / sum((target - mean(target))^2)
+
+# Print results
+cat("RMSE:", rmsexg, "\n")
+cat("R-squared:", r_squaredxg, "\n")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Load necessary libraries
+library(dplyr)
+library(ggplot2)
+library(readxl)
+
+# Read the dataset
+data <- read_excel("C:/R/LABSTAT/TB.xlsx", sheet = "data")
+
+# Convert relevant columns to numeric
+data <- data %>%
+  mutate(across(starts_with("X"), as.numeric))
+
+# Transform the columns to millions
+data <- data %>%
+  mutate(
+    x1_million = x1 ,
+    x4_million = x4 
+  )
+
+# Summarize global trends by year for TB incidence and mortality
+global_trends <- data %>%
+  group_by(Year) %>%
+  summarise(
+    total_incidence = sum(x1_million, na.rm = TRUE),    # Total incidence of TB in millions
+    total_mortality = sum(x4_million, na.rm = TRUE),    # Total mortality due to TB (HIV-negative) in millions
+    avg_incidence = mean(x1_million, na.rm = TRUE),
+    avg_mortality = mean(x4_million, na.rm = TRUE)
+  )
+
+# Plot global incidence trends
+incidence_plot <- ggplot(global_trends, aes(x = Year, y = total_incidence)) +
+  geom_line(color = "blue") +
+  labs(
+    title = "A",
+    x = "",
+    y = "Total incidence"
+  ) +
+  theme_minimal()+
+  theme(legend.title = element_text(size = 10),
+        legend.text = element_text(size = 8),
+        plot.title = element_text(hjust = 0, size = 14))
+
+# Plot global mortality trends
+mortality_plot <- ggplot(global_trends, aes(x = Year, y = total_mortality)) +
+  geom_line(color = "red") +
+  labs(
+    title = "B",
+    x = "Year",
+    y = "Total mortality"
+  ) +
+  theme_minimal()+
+  theme(legend.title = element_text(size = 10),
+        legend.text = element_text(size = 8),
+        plot.title = element_text(hjust = 0, size = 14))
+
+# Print the plots
+print(incidence_plot)
+print(mortality_plot)
+
+# Summary of changes and patterns
+summary(global_trends)
+library(cowplot)
+#Combine plots a and b in a single column
+combined_plot <- plot_grid(incidence_plot, mortality_plot, ncol = 1)
+combined_plot
+
+
+
+# Save the combined plot
+ggsave("C:/R/LABSTAT/54542798combined_plot.png", combined_plot, width = 8, height = 4)
+
+
+
+
+
+
+
+
+# Load necessary libraries
+library(dplyr)
+library(readxl)
+
+# Read the dataset
+data <- read_excel("C:/R/LABSTAT/datatb.xlsx", sheet = "data")
+
+# Convert relevant columns to numeric
+data <- data %>%
+  mutate(across(starts_with("X"), as.numeric))
+
+# Summarize TB burden by country and year
+country_summary <- data %>%
+  group_by(Countries) %>%
+  summarise(
+    total_incidence = sum(X1, na.rm = TRUE),
+    total_mortality = sum(X4, na.rm = TRUE)
+  )
+
+# Summarize TB burden by continent
+continent_summary <- data %>%
+  group_by(Continent) %>%
+  summarise(
+    total_incidence = sum(X1, na.rm = TRUE),
+    total_mortality = sum(X4, na.rm = TRUE)
+  )
+
+# Identify the top and bottom countries
+top_country_incidence <- country_summary %>%
+  filter(total_incidence == max(total_incidence, na.rm = TRUE))
+
+bottom_country_incidence <- country_summary %>%
+  filter(total_incidence == min(total_incidence, na.rm = TRUE))
+
+top_country_mortality <- country_summary %>%
+  filter(total_mortality == max(total_mortality, na.rm = TRUE))
+
+bottom_country_mortality <- country_summary %>%
+  filter(total_mortality == min(total_mortality, na.rm = TRUE))
+
+# Identify the top and bottom continents
+top_continent_incidence <- continent_summary %>%
+  filter(total_incidence == max(total_incidence, na.rm = TRUE))
+
+bottom_continent_incidence <- continent_summary %>%
+  filter(total_incidence == min(total_incidence, na.rm = TRUE))
+
+top_continent_mortality <- continent_summary %>%
+  filter(total_mortality == max(total_mortality, na.rm = TRUE))
+
+bottom_continent_mortality <- continent_summary %>%
+  filter(total_mortality == min(total_mortality, na.rm = TRUE))
+
+# Summarize TB burden by year
+year_summary <- data %>%
+  group_by(Year) %>%
+  summarise(
+    total_incidence = sum(X1, na.rm = TRUE),
+    total_mortality = sum(X4, na.rm = TRUE)
+  )
+
+# Identify the year with the highest incidence
+top_year_incidence <- year_summary %>%
+  filter(total_incidence == max(total_incidence, na.rm = TRUE))
+
+# Identify the year with the lowest incidence
+bottom_year_incidence <- year_summary %>%
+  filter(total_incidence == min(total_incidence, na.rm = TRUE))
+
+# Print the results
+print("Top Country by Incidence:")
+print(top_country_incidence)
+
+print("Bottom Country by Incidence:")
+print(bottom_country_incidence)
+
+print("Top Country by Mortality:")
+print(top_country_mortality)
+
+print("Bottom Country by Mortality:")
+print(bottom_country_mortality)
+
+print("Top Continent by Incidence:")
+print(top_continent_incidence)
+
+print("Bottom Continent by Incidence:")
+print(bottom_continent_incidence)
+
+print("Top Continent by Mortality:")
+print(top_continent_mortality)
+
+print("Bottom Continent by Mortality:")
+print(bottom_continent_mortality)
+
+print("Year with Highest Incidence:")
+print(top_year_incidence)
+
+print("Year with Lowest Incidence:")
+print(bottom_year_incidence)
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Load necessary libraries
+library(ggplot2)
+library(dplyr)
+library(readxl)
+library(maps)
+library(ggspatial)
+library(cowplot)
+
+# Load world map data from built-in 'maps' package
+world_map <- map_data("world")
+
+# Read the dataset
+data <- read_excel("C:/R/LABSTAT/TB.xlsx", sheet = "data")
+
+# Convert relevant columns to numeric
+data <- data %>%
+  mutate(across(starts_with("X"), as.numeric))
+
+# Summarize TB burden by country and year
+country_summary <- data %>%
+  group_by(Countries) %>%
+  summarise(
+    total_incidence = sum(x1, na.rm = TRUE),
+    total_mortality = sum(x4, na.rm = TRUE)
+  )
+country_summary
+# Summarize TB burden by continent
+continent_summary <- data %>%
+  group_by(Continent) %>%
+  summarise(
+    total_incidence = sum(x1, na.rm = TRUE),
+    total_mortality = sum(x4, na.rm = TRUE)
+  )
+
+# Identify the top and bottom countries
+top_country_incidence <- country_summary %>%
+  filter(total_incidence == max(total_incidence, na.rm = TRUE))
+
+bottom_country_incidence <- country_summary %>%
+  filter(total_incidence == min(total_incidence, na.rm = TRUE))
+
+top_country_mortality <- country_summary %>%
+  filter(total_mortality == max(total_mortality, na.rm = TRUE))
+
+bottom_country_mortality <- country_summary %>%
+  filter(total_mortality == min(total_mortality, na.rm = TRUE))
+
+# Summarize TB burden by year
+year_summary <- data %>%
+  group_by(Year) %>%
+  summarise(
+    total_incidence = sum(x1, na.rm = TRUE),
+    total_mortality = sum(x4, na.rm = TRUE)
+  )
+
+# Identify the year with the highest incidence
+top_year_incidence <- year_summary %>%
+  filter(total_incidence == max(total_incidence, na.rm = TRUE))
+
+# Identify the year with the lowest incidence
+bottom_year_incidence <- year_summary %>%
+  filter(total_incidence == min(total_incidence, na.rm = TRUE))
+
+# Convert country names to lowercase for matching
+world_map <- world_map %>%
+  mutate(region = tolower(region))
+
+country_summary <- country_summary %>%
+  mutate(Countries = tolower(Countries))
+
+# Merge world map with TB data
+world_map <- left_join(world_map, country_summary, by = c("region" = "Countries"))
+
+# Plot the world map with total_incidence (TB cases) as an indicator
+incidence_plot <- ggplot() +
+  geom_polygon(data = world_map, aes(x = long, y = lat, group = group, fill = total_incidence),
+               color = "black", size = 0.3) +
+  scale_fill_gradient(low = "lightyellow", high = "red", na.value = "gray") +
+  labs(fill = "TB Cases") +
+  theme_minimal() +
+  theme(legend.title = element_text(size = 10),
+        legend.text = element_text(size = 8),
+        plot.title = element_text(hjust = 0.5, size = 14)) +
+  ggtitle("Global TB Incidence") +
+  annotation_north_arrow(location = "tr", which_north = "true", 
+                         style = north_arrow_fancy_orienteering)
+
+# Plot the world map with total_mortality (TB deaths) as an indicator
+mortality_plot <- ggplot() +
+  geom_polygon(data = world_map, aes(x = long, y = lat, group = group, fill = total_mortality),
+               color = "black", size = 0.3) +
+  scale_fill_gradient(low = "lightyellow", high = "red", na.value = "gray") +
+  labs(fill = "TB Mortality") +
+  theme_minimal() +
+  theme(legend.title = element_text(size = 10),
+        legend.text = element_text(size = 8),
+        plot.title = element_text(hjust = 0.5, size = 14)) +
+  ggtitle("Global TB Mortality") +
+  annotation_north_arrow(location = "tr", which_north = "true", 
+                         style = north_arrow_fancy_orienteering)
+
+# Combine the plots
+combined_plot <- plot_grid(incidence_plot, mortality_plot, ncol = 1)
+
+# Display the combined plot
+print(combined_plot)
+
+# Print the summary results
+print("Top Country by Incidence:")
+print(top_country_incidence)
+
+print("Bottom Country by Incidence:")
+print(bottom_country_incidence)
+
+print("Top Country by Mortality:")
+print(top_country_mortality)
+
+print("Bottom Country by Mortality:")
+print(bottom_country_mortality)
+
+print("Year with Highest Incidence:")
+print(top_year_incidence)
+
+print("Year with Lowest Incidence:")
+print(bottom_year_incidence)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Load necessary libraries
+library(ggplot2)
+library(dplyr)
+library(readxl)
+library(maps)
+library(ggspatial)
+library(cowplot)
+
+# Load world map data from built-in 'maps' package
+world_map <- map_data("world")
+
+# Read the dataset
+data <- read_excel("C:/R/LABSTAT/TB.xlsx", sheet = "data")
+
+# Convert relevant columns to numeric
+data <- data %>%
+  mutate(across(starts_with("X"), as.numeric))
+
+# Convert country names to lowercase for matching
+world_map <- world_map %>%
+  mutate(region = tolower(region))
+
+data <- data %>%
+  mutate(Countries = tolower(Countries))
+
+# Loop through each year and create maps
+for (year in 2000:2022) {
+  # Filter data for the specific year
+  year_data <- data %>%
+    filter(Year == year) %>%
+    group_by(Countries) %>%
+    summarise(
+      total_incidence = sum(x1, na.rm = TRUE),
+      total_mortality = sum(x4, na.rm = TRUE)
+    )
+  
+  # Merge world map with TB data for the specific year
+  world_map_year <- left_join(world_map, year_data, by = c("region" = "Countries"))
+  
+  # Plot the world map with total_incidence (TB cases) as an indicator
+  incidence_plot <- ggplot() +
+    geom_polygon(data = world_map_year, aes(x = long, y = lat, group = group, fill = total_incidence),
+                 color = "black", size = 0.3) +
+    scale_fill_gradient(low = "lightyellow", high = "red", na.value = "gray") +
+    labs(fill = "TB Cases") +
+    theme_minimal() +
+    theme(legend.title = element_text(size = 10),
+          legend.text = element_text(size = 8),
+          plot.title = element_text(hjust = 0.5, size = 14)) +
+    ggtitle(paste("Global TB Incidence in", year)) +
+    annotation_north_arrow(location = "tr", which_north = "true", 
+                           style = north_arrow_fancy_orienteering)
+  
+  # Plot the world map with total_mortality (TB deaths) as an indicator
+  mortality_plot <- ggplot() +
+    geom_polygon(data = world_map_year, aes(x = long, y = lat, group = group, fill = total_mortality),
+                 color = "black", size = 0.3) +
+    scale_fill_gradient(low = "lightyellow", high = "red", na.value = "gray") +
+    labs(fill = "TB Mortality") +
+    theme_minimal() +
+    theme(legend.title = element_text(size = 10),
+          legend.text = element_text(size = 8),
+          plot.title = element_text(hjust = 0.5, size = 14)) +
+    ggtitle(paste("Global TB Mortality in", year)) +
+    annotation_north_arrow(location = "tr", which_north = "true", 
+                           style = north_arrow_fancy_orienteering)
+  
+  # Combine the plots
+  combined_plot <- plot_grid(incidence_plot, mortality_plot, ncol = 1)
+  
+  # Save the combined plot
+  ggsave(paste0("TB_Map_", year, ".png"), plot = combined_plot)
+}
+
+# Print completion message
+print("Maps for each year from 2000 to 2022 have been created and saved.")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Load necessary libraries
+library(ggplot2)
+library(dplyr)
+library(readxl)
+library(maps)
+library(ggspatial)
+library(cowplot)
+
+# Load world map data from built-in 'maps' package
+world_map <- map_data("world")
+
+# Read the dataset
+data <- read_excel("C:/R/LABSTAT/TB.xlsx", sheet = "data")
+
+# Convert relevant columns to numeric
+data <- data %>%
+  mutate(across(starts_with("X"), as.numeric))
+
+# Convert country names to lowercase for matching
+world_map <- world_map %>%
+  mutate(region = tolower(region))
+
+data <- data %>%
+  mutate(Countries = tolower(Countries))
+
+# Filter data for the year 2000
+data_2000 <- data %>%
+  filter(Year == 2000) %>%
+  group_by(Countries) %>%
+  summarise(
+    total_incidence = sum(x1, na.rm = TRUE),
+    total_mortality = sum(x4, na.rm = TRUE)
+  )
+
+# Merge world map with TB data for the year 2000
+world_map_2000 <- left_join(world_map, data_2000, by = c("region" = "Countries"))
+
+# Plot the world map with total_incidence (TB cases) as an indicator
+incidence_plot_2000 <- ggplot() +
+  geom_polygon(data = world_map_2000, aes(x = long, y = lat, group = group, fill = total_incidence),
+               color = "black", size = 0.3) +
+  scale_fill_gradient(low = "lightyellow", high = "red", na.value = "gray") +
+  labs(fill = "TB incidence") +
+  theme_minimal() +
+  theme(legend.title = element_text(size = 10),
+        legend.text = element_text(size = 8),
+        plot.title = element_text(hjust = 0, size = 14)) +
+  ggtitle("2000") +
+  annotation_north_arrow(location = "tr", which_north = "true", 
+                         style = north_arrow_fancy_orienteering)
+
+# Plot the world map with total_mortality (TB deaths) as an indicator
+mortality_plot_2000 <- ggplot() +
+  geom_polygon(data = world_map_2000, aes(x = long, y = lat, group = group, fill = total_mortality),
+               color = "black", size = 0.3) +
+  scale_fill_gradient(low = "lightyellow", high = "red", na.value = "gray") +
+  labs(fill = "TB mortality") +
+  theme_minimal() +
+  theme(legend.title = element_text(size = 10),
+        legend.text = element_text(size = 8),
+        plot.title = element_text(hjust = 0, size = 14)) +
+  ggtitle("") +
+  annotation_north_arrow(location = "tr", which_north = "true", 
+                         style = north_arrow_fancy_orienteering)
+
+# Combine the plots
+combined_plot_2000 <- plot_grid(incidence_plot_2000, mortality_plot_2000, ncol = 1)
+# Save the combined plot as a PNG file
+ggsave("C:/R/LABSTAT/Global_TB_Map_2000.png", plot = combined_plot_2000, width = 8, height = 6, dpi = 300)
+
+print("Combined plot for the year 2000 has been saved as 'Global_TB_Map_2000.png'.")
+
+# Display the combined plot
+print(combined_plot_2000)
+
+# Find the country with the highest TB incidence in 2000
+highest_incidence_country <- data_2000 %>%
+  filter(total_incidence == max(total_incidence, na.rm = TRUE))
+
+# Find the country with the lowest TB incidence in 2000
+lowest_incidence_country <- data_2000 %>%
+  filter(total_incidence == min(total_incidence, na.rm = TRUE))
+
+# Find the country with the highest TB mortality in 2000
+highest_mortality_country <- data_2000 %>%
+  filter(total_mortality == max(total_mortality, na.rm = TRUE))
+
+# Find the country with the lowest TB mortality in 2000
+lowest_mortality_country <- data_2000 %>%
+  filter(total_mortality == min(total_mortality, na.rm = TRUE))
+
+# Print the results
+print("Country with the Highest TB Incidence in 2000:")
+print(highest_incidence_country)
+
+print("Country with the Lowest TB Incidence in 2000:")
+print(lowest_incidence_country)
+
+print("Country with the Highest TB Mortality in 2000:")
+print(highest_mortality_country)
+
+print("Country with the Lowest TB Mortality in 2000:")
+print(lowest_mortality_country)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Load necessary libraries
+library(ggplot2)
+library(dplyr)
+library(readxl)
+library(maps)
+library(ggspatial)
+library(cowplot)
+
+# Load world map data from built-in 'maps' package
+world_map <- map_data("world")
+
+# Read the dataset
+data <- read_excel("C:/R/LABSTAT/TB.xlsx", sheet = "data")
+
+# Convert relevant columns to numeric
+data <- data %>%
+  mutate(across(starts_with("X"), as.numeric))
+
+# Convert country names to lowercase for matching
+world_map <- world_map %>%
+  mutate(region = tolower(region))
+
+data <- data %>%
+  mutate(Countries = tolower(Countries))
+
+# Filter data for the year 2001
+data_2001 <- data %>%
+  filter(Year == 2001) %>%
+  group_by(Countries) %>%
+  summarise(
+    total_incidence = sum(x1, na.rm = TRUE),
+    total_mortality = sum(x4, na.rm = TRUE)
+  )
+
+# Merge world map with TB data for the year 2001
+world_map_2001 <- left_join(world_map, data_2001, by = c("region" = "Countries"))
+
+# Plot the world map with total_incidence (TB cases) as an indicator
+incidence_plot_2001 <- ggplot() +
+  geom_polygon(data = world_map_2001, aes(x = long, y = lat, group = group, fill = total_incidence),
+               color = "black", size = 0.3) +
+  scale_fill_gradient(low = "lightyellow", high = "red", na.value = "gray") +
+  labs(fill = "TB incidence") +
+  theme_minimal() +
+  theme(legend.title = element_text(size = 10),
+        legend.text = element_text(size = 8),
+        plot.title = element_text(hjust = 0, size = 14)) +
+  ggtitle("2001") +
+  annotation_north_arrow(location = "tr", which_north = "true", 
+                         style = north_arrow_fancy_orienteering)
+
+# Plot the world map with total_mortality (TB deaths) as an indicator
+mortality_plot_2001 <- ggplot() +
+  geom_polygon(data = world_map_2001, aes(x = long, y = lat, group = group, fill = total_mortality),
+               color = "black", size = 0.3) +
+  scale_fill_gradient(low = "lightyellow", high = "red", na.value = "gray") +
+  labs(fill = "TB mortality") +
+  theme_minimal() +
+  theme(legend.title = element_text(size = 10),
+        legend.text = element_text(size = 8),
+        plot.title = element_text(hjust = 0, size = 14)) +
+  ggtitle("") +
+  annotation_north_arrow(location = "tr", which_north = "true", 
+                         style = north_arrow_fancy_orienteering)
+
+# Combine the plots
+combined_plot_2001 <- plot_grid(incidence_plot_2001, mortality_plot_2001, ncol = 1)
+
+# Save the combined plot as a PNG file
+ggsave("C:/R/LABSTAT/Global_TB_Map_2001.png", plot = combined_plot_2001, width = 8, height = 6, dpi = 300)
+
+print("Combined plot for the year 2001 has been saved as 'Global_TB_Map_2001.png'.")
+
+# Display the combined plot
+print(combined_plot_2001)
+
+# Find the country with the highest TB incidence in 2001
+highest_incidence_country_2001 <- data_2001 %>%
+  filter(total_incidence == max(total_incidence, na.rm = TRUE))
+
+# Find the country with the lowest TB incidence in 2001
+lowest_incidence_country_2001 <- data_2001 %>%
+  filter(total_incidence == min(total_incidence, na.rm = TRUE))
+
+# Find the country with the highest TB mortality in 2001
+highest_mortality_country_2001 <- data_2001 %>%
+  filter(total_mortality == max(total_mortality, na.rm = TRUE))
+
+# Find the country with the lowest TB mortality in 2001
+lowest_mortality_country_2001 <- data_2001 %>%
+  filter(total_mortality == min(total_mortality, na.rm = TRUE))
+
+# Print the results
+print("Country with the Highest TB Incidence in 2001:")
+print(highest_incidence_country_2001)
+
+print("Country with the Lowest TB Incidence in 2001:")
+print(lowest_incidence_country_2001)
+
+print("Country with the Highest TB Mortality in 2001:")
+print(highest_mortality_country_2001)
+
+print("Country with the Lowest TB Mortality in 2001:")
+print(lowest_mortality_country_2001)
+
+
+
+
+
+
+
+
+
+
+# Load necessary libraries
+library(ggplot2)
+library(dplyr)
+library(readxl)
+library(maps)
+library(ggspatial)
+library(cowplot)
+
+# Load world map data from built-in 'maps' package
+world_map <- map_data("world")
+
+# Read the dataset
+data <- read_excel("C:/R/LABSTAT/TB.xlsx", sheet = "data")
+
+# Convert relevant columns to numeric
+data <- data %>%
+  mutate(across(starts_with("X"), as.numeric))
+
+# Convert country names to lowercase for matching
+world_map <- world_map %>%
+  mutate(region = tolower(region))
+
+data <- data %>%
+  mutate(Countries = tolower(Countries))
+
+# Filter data for the year 2002
+data_2002 <- data %>%
+  filter(Year == 2002) %>%
+  group_by(Countries) %>%
+  summarise(
+    total_incidence = sum(x1, na.rm = TRUE),
+    total_mortality = sum(x4, na.rm = TRUE)
+  )
+
+# Merge world map with TB data for the year 2002
+world_map_2002 <- left_join(world_map, data_2002, by = c("region" = "Countries"))
+
+# Plot the world map with total_incidence (TB cases) as an indicator
+incidence_plot_2002 <- ggplot() +
+  geom_polygon(data = world_map_2002, aes(x = long, y = lat, group = group, fill = total_incidence),
+               color = "black", size = 0.3) +
+  scale_fill_gradient(low = "lightyellow", high = "red", na.value = "gray") +
+  labs(fill = "TB incidence") +
+  theme_minimal() +
+  theme(legend.title = element_text(size = 10),
+        legend.text = element_text(size = 8),
+        plot.title = element_text(hjust = 0, size = 14)) +
+  ggtitle("2002") +
+  annotation_north_arrow(location = "tr", which_north = "true", 
+                         style = north_arrow_fancy_orienteering)
+
+# Plot the world map with total_mortality (TB deaths) as an indicator
+mortality_plot_2002 <- ggplot() +
+  geom_polygon(data = world_map_2002, aes(x = long, y = lat, group = group, fill = total_mortality),
+               color = "black", size = 0.3) +
+  scale_fill_gradient(low = "lightyellow", high = "red", na.value = "gray") +
+  labs(fill = "TB mortality") +
+  theme_minimal() +
+  theme(legend.title = element_text(size = 10),
+        legend.text = element_text(size = 8),
+        plot.title = element_text(hjust = 0, size = 14)) +
+  ggtitle("") +
+  annotation_north_arrow(location = "tr", which_north = "true", 
+                         style = north_arrow_fancy_orienteering)
+
+# Combine the plots
+combined_plot_2002 <- plot_grid(incidence_plot_2002, mortality_plot_2002, ncol = 1)
+
+# Save the combined plot as a PNG file
+ggsave("C:/R/LABSTAT/Global_TB_Map_2002.png", plot = combined_plot_2002, width = 8, height = 6, dpi = 300)
+
+print("Combined plot for the year 2002 has been saved as 'Global_TB_Map_2002.png'.")
+
+# Display the combined plot
+print(combined_plot_2002)
+
+# Find the country with the highest TB incidence in 2002
+highest_incidence_country_2002 <- data_2002 %>%
+  filter(total_incidence == max(total_incidence, na.rm = TRUE))
+
+# Find the country with the lowest TB incidence in 2002
+lowest_incidence_country_2002 <- data_2002 %>%
+  filter(total_incidence == min(total_incidence, na.rm = TRUE))
+
+# Find the country with the highest TB mortality in 2002
+highest_mortality_country_2002 <- data_2002 %>%
+  filter(total_mortality == max(total_mortality, na.rm = TRUE))
+
+# Find the country with the lowest TB mortality in 2002
+lowest_mortality_country_2002 <- data_2002 %>%
+  filter(total_mortality == min(total_mortality, na.rm = TRUE))
+
+# Print the results
+print("Country with the Highest TB Incidence in 2002:")
+print(highest_incidence_country_2002)
+
+print("Country with the Lowest TB Incidence in 2002:")
+print(lowest_incidence_country_2002)
+
+print("Country with the Highest TB Mortality in 2002:")
+print(highest_mortality_country_2002)
+
+print("Country with the Lowest TB Mortality in 2002:")
+print(lowest_mortality_country_2002)
+
+
+
+
+
+
+
+
+
+# Load necessary libraries
+library(dplyr)
+library(readxl)
+library(writexl)
+
+# Read the dataset
+data <- read_excel("C:/R/LABSTAT/TB.xlsx", sheet = "data")
+
+# Convert relevant columns to numeric
+data <- data %>%
+  mutate(across(starts_with("X"), as.numeric))
+
+# Initialize a list to store data frames for each year
+yearly_data <- list()
+
+# Loop through each year from 2003 to 2022 and calculate statistics
+for (year in 2000:2022) {
+  # Filter data for the specific year
+  data_year <- data %>%
+    filter(Year == year) %>%
+    group_by(Countries) %>%
+    summarise(
+      total_incidence = sum(x1, na.rm = TRUE),
+      total_mortality = sum(x4, na.rm = TRUE)
+    )
+  
+  # Find the country with the highest TB incidence in the specific year
+  highest_incidence_country_year <- data_year %>%
+    filter(total_incidence == max(total_incidence, na.rm = TRUE))
+  
+  # Find the country with the lowest TB incidence in the specific year
+  lowest_incidence_country_year <- data_year %>%
+    filter(total_incidence == min(total_incidence, na.rm = TRUE))
+  
+  # Find the country with the highest TB mortality in the specific year
+  highest_mortality_country_year <- data_year %>%
+    filter(total_mortality == max(total_mortality, na.rm = TRUE))
+  
+  # Find the country with the lowest TB mortality in the specific year
+  lowest_mortality_country_year <- data_year %>%
+    filter(total_mortality == min(total_mortality, na.rm = TRUE))
+  
+  # Combine the results into a single data frame
+  year_results <- data.frame(
+    Year = year,
+    Highest_Incidence_Country = ifelse(nrow(highest_incidence_country_year) > 0, highest_incidence_country_year$Countries, NA),
+    Highest_Incidence = ifelse(nrow(highest_incidence_country_year) > 0, highest_incidence_country_year$total_incidence, NA),
+    Lowest_Incidence_Country = ifelse(nrow(lowest_incidence_country_year) > 0, lowest_incidence_country_year$Countries, NA),
+    Lowest_Incidence = ifelse(nrow(lowest_incidence_country_year) > 0, lowest_incidence_country_year$total_incidence, NA),
+    Highest_Mortality_Country = ifelse(nrow(highest_mortality_country_year) > 0, highest_mortality_country_year$Countries, NA),
+    Highest_Mortality = ifelse(nrow(highest_mortality_country_year) > 0, highest_mortality_country_year$total_mortality, NA),
+    Lowest_Mortality_Country = ifelse(nrow(lowest_mortality_country_year) > 0, lowest_mortality_country_year$Countries, NA),
+    Lowest_Mortality = ifelse(nrow(lowest_mortality_country_year) > 0, lowest_mortality_country_year$total_mortality, NA)
+  )
+  
+  # Store the data frame in the list with the year as the sheet name
+  yearly_data[[as.character(year)]] <- year_results
+}
+
+# Save the results to an Excel file with separate sheets for each year
+write_xlsx(yearly_data, "C:/R/LABSTAT/1TB_Statistics_2003_to_2022.xlsx")
+
+print("The statistics for each year from 2003 to 2022 have been saved in 'TB_Statistics_2003_to_2022.xlsx' with separate sheets.")
+
+
+
+# Load necessary libraries
+library(dplyr)
+library(readxl)
+library(writexl)
+
+# Read the dataset
+data <- read_excel("C:/R/LABSTAT/TB.xlsx", sheet = "data")
+
+# Convert relevant columns to numeric
+data <- data %>%
+  mutate(across(starts_with("X"), as.numeric))
+
+# Summarize TB burden by year
+year_summary <- data %>%
+  group_by(Year) %>%
+  summarise(
+    total_incidence = sum(x1, na.rm = TRUE),
+    total_mortality = sum(x4, na.rm = TRUE)
+  )
+
+# Save the results to an Excel file
+write_xlsx(year_summary, "C:/R/LABSTAT/TB_Yearly_Summary_2000_to_2022.xlsx")
+
+print("The yearly summary of TB incidence and mortality from 2000 to 2022 has been saved in 'TB_Yearly_Summary_2000_to_2022.xlsx'.")
+
+
+
+# Load necessary libraries
+library(dplyr)
+library(readxl)
+library(corrplot)
+
+# Read the dataset
+data <- read_excel("C:/R/LABSTAT/TB.xlsx", sheet = "data")
+
+# Convert relevant columns to numeric
+data <- data %>%
+  mutate(across(starts_with("x"), as.numeric)) %>%
+  mutate(across(starts_with("y"), as.numeric))
+
+# Select only the columns of interest (x1 to x4 and y1 to y31)
+selected_data <- data %>%
+  select(x1:x4, y1:y31)
+
+# Calculate the correlation matrix
+correlation_matrix <- cor(selected_data, use = "complete.obs")
+
+# Print the correlation matrix
+print(correlation_matrix)
+
+# Visualize the correlation matrix using corrplot
+corrplot(correlation_matrix, method = "circle", type = "upper", tl.col = "black", tl.cex = 0.8, cl.cex = 0.8, addCoef.col = "black", number.cex = 0.7)
+
+
+
+
+
+
+
+
+
+
+# Load necessary libraries
+library(dplyr)
+library(readxl)
+library(spdep)
+library(sf)
+library(ggplot2)
+library(maps)
+library(cowplot)
+
+# Read the dataset
+data <- read_excel("C:/R/LABSTAT/TB.xlsx", sheet = "data")
+
+# Load world map data from built-in 'maps' package
+world_map <- map_data("world")
+
+# Convert country names to lowercase for matching
+world_map <- world_map %>%
+  mutate(region = tolower(region))
+
+data <- data %>%
+  mutate(Countries = tolower(Countries))
+
+# Filter data for a specific year (e.g., 2020) and select relevant columns
+data_year <- data %>%
+  filter(Year == 2020) %>%
+  select(Countries, x1, x4) %>%
+  rename(incidence = x1, mortality = x4)
+
+# Merge world map with TB data for the specific year
+world_map_year <- left_join(world_map, data_year, by = c("region" = "Countries"))
+
+# Convert to spatial data frame
+world_map_sf <- st_as_sf(world_map_year, coords = c("long", "lat"), crs = 4326, agr = "constant")
+
+# Ensure incidence and mortality columns are retained
+world_map_sf <- world_map_sf %>%
+  group_by(group) %>%
+  summarise(incidence = first(incidence), mortality = first(mortality), geometry = st_combine(geometry)) %>%
+  st_cast("POLYGON")
+
+# Remove rows with missing incidence or mortality values
+world_map_sf <- world_map_sf %>%
+  filter(!is.na(incidence) & !is.na(mortality))
+
+# Convert to Spatial object for spdep compatibility
+world_map_sp <- as(world_map_sf, "Spatial")
+
+# Handle cases where there are no neighbors
+zero.policy <- TRUE
+
+# Calculate spatial weights (neighbors) with increased snap argument
+neighbors <- poly2nb(world_map_sp, row.names = row.names(world_map_sp), snap = 1)
+weights <- nb2listw(neighbors, style = "W", zero.policy = zero.policy)
+
+# Calculate spatial autocorrelation for TB incidence
+incidence_moran <- moran.test(world_map_sf$incidence, weights, zero.policy = zero.policy)
+print(incidence_moran)
+
+# Calculate spatial autocorrelation for TB mortality
+mortality_moran <- moran.test(world_map_sf$mortality, weights, zero.policy = zero.policy)
+print(mortality_moran)
+
+# Plot the world map with TB incidence
+incidence_plot <- ggplot(data = world_map_year) +
+  geom_polygon(aes(x = long, y = lat, group = group, fill = incidence),
+               color = "black", size = 0.3) +
+  scale_fill_gradient(low = "lightyellow", high = "red", na.value = "gray") +
+  labs(fill = "TB Incidence") +
+  theme_minimal() +
+  theme(legend.title = element_text(size = 10),
+        legend.text = element_text(size = 8),
+        plot.title = element_text(hjust = 0.5, size = 14)) +
+  ggtitle("Global TB Incidence in 2020")
+
+# Plot the world map with TB mortality
+mortality_plot <- ggplot(data = world_map_year) +
+  geom_polygon(aes(x = long, y = lat, group = group, fill = mortality),
+               color = "black", size = 0.3) +
+  scale_fill_gradient(low = "lightyellow", high = "red", na.value = "gray") +
+  labs(fill = "TB Mortality") +
+  theme_minimal() +
+  theme(legend.title = element_text(size = 10),
+        legend.text = element_text(size = 8),
+        plot.title = element_text(hjust = 0.5, size = 14)) +
+  ggtitle("Global TB Mortality in 2020")
+
+# Combine the plots
+combined_plot <- plot_grid(incidence_plot, mortality_plot, ncol = 1)
+combined_plot
+# Save the combined plot as a PNG file
+ggsave("C:/R/LABSTAT/Global_TB_Spatial_Correlation_2020.png", plot = combined_plot, width = 10, height = 8, dpi = 300)
+
+print("The spatial correlation map for the year 2020 has been saved as 'Global_TB_Spatial_Correlation_2020.png'.")
+
+
+
+
+
+# Load necessary libraries
+library(dplyr)
+library(readxl)
+library(corrplot)
+
+# Read the dataset
+data <- read_excel("C:/R/LABSTAT/TB.xlsx", sheet = "data")
+data
+# Convert relevant columns to numeric
+data <- data %>%
+  mutate(across(starts_with("x"), as.numeric)) %>%
+  mutate(across(starts_with("y"), as.numeric))
+
+# Select only the columns of interest (x1 to x4 and y1 to y31)
+selected_data <- data %>%
+  select(x1:x4, y1:y31)
+
+# Calculate the correlation matrix
+correlation_matrix <- cor(selected_data, use = "complete.obs")
+correlation_matrix
+# Visualize the correlation matrix using corrplot and save it
+png("C:/R/LABSTAT/1Correlation_Matrix_Plot.png", width = 2000, height = 2000)
+corrplot(correlation_matrix, method = "circle", type = "upper", tl.col = "black", tl.cex = 0.8, cl.cex = 0.8, addCoef.col = "black", number.cex = 0.7)
+dev.off()
+
+print("The correlation matrix plot has been saved as 'Correlation_Matrix_Plot.png'.")
+
+
+
+
+
+
+# Load necessary libraries
+library(dplyr)
+library(readxl)
+library(spdep)
+library(sf)
+library(ggplot2)
+library(maps)
+library(cowplot)
+
+# Read the dataset
+data <- read_excel("C:/R/LABSTAT/TB.xlsx", sheet = "data")
+
+# Load world map data from built-in 'maps' package
+world_map <- map_data("world")
+
+# Convert country names to lowercase for matching
+world_map <- world_map %>%
+  mutate(region = tolower(region))
+
+data <- data %>%
+  mutate(Countries = tolower(Countries))
+
+# Select only the columns of interest (x1 to x4 and y1 to y31) and ensure numeric
+selected_data <- data %>%
+  mutate(across(c(starts_with("x"), starts_with("y")), as.numeric))
+
+# Filter data for a specific year (e.g., 2020) and select relevant columns
+data_year <- selected_data %>%
+  filter(Year == 2020)
+
+# Merge world map with TB data for the specific year
+world_map_year <- left_join(world_map, data_year, by = c("region" = "Countries"))
+
+# Convert to spatial data frame
+world_map_sf <- st_as_sf(world_map_year, coords = c("long", "lat"), crs = 4326, agr = "constant")
+
+# Ensure incidence and mortality columns are retained
+world_map_sf <- world_map_sf %>%
+  group_by(group) %>%
+  summarise(across(c(starts_with("x"), starts_with("y")), first), geometry = st_combine(geometry)) %>%
+  st_cast("POLYGON")
+
+# Remove rows with missing values for x1 to x4 and y1 to y31
+world_map_sf <- world_map_sf %>%
+  filter(across(c(starts_with("x"), starts_with("y")), ~ !is.na(.)))
+
+# Convert to Spatial object for spdep compatibility
+world_map_sp <- as(world_map_sf, "Spatial")
+
+# Handle cases where there are no neighbors
+zero.policy <- TRUE
+
+# Calculate spatial weights (neighbors) with increased snap argument
+neighbors <- poly2nb(world_map_sp, row.names = row.names(world_map_sp), snap = 1)
+weights <- nb2listw(neighbors, style = "W", zero.policy = zero.policy)
+
+# Function to safely calculate Moran's I for a given variable
+safe_calculate_moran <- function(data, var_name, weights) {
+  tryCatch({
+    value <- moran.test(data[[var_name]], weights, zero.policy = TRUE)$estimate[["Moran I statistic"]]
+    return(value)
+  }, warning = function(w) {
+    message(paste("Warning for", var_name, ":", w$message))
+    return(0)
+  }, error = function(e) {
+    message(paste("Error for", var_name, ":", e$message))
+    return(0)
+  })
+}
+
+# Initialize a list to store Moran's I values
+moran_values <- list()
+
+# Loop through all factors (x1 to x4 and y1 to y31) and calculate Moran's I
+factors <- c(paste0("x", 1:4), paste0("y", 1:31))
+for (factor in factors) {
+  moran_value <- safe_calculate_moran(world_map_sf, factor, weights)
+  moran_values[[factor]] <- moran_value
+}
+
+# Filter out NAs from Moran's I values and print the results
+moran_df <- data.frame(
+  Factor = names(moran_values),
+  Moran_I = unlist(moran_values)
+) %>%
+  filter(!is.na(Moran_I))
+
+print(moran_df)
+
+# Plot Moran's I values with annotations
+moran_plot <- ggplot(moran_df, aes(x = reorder(Factor, -Moran_I), y = Moran_I)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  geom_text(aes(label = sprintf("%.3f", Moran_I)), hjust = -0.1, size = 3) +
+  coord_flip() +
+  labs(title = "", x = "Factors", y = "Moran's I") +
+  theme_minimal()
+moran_plot
+# Save the plot
+ggsave("C:/R/LABSTAT/Moran_I_Plot.png", plot = moran_plot, width = 8, height = 6, dpi = 300)
+
+print("The Moran's I spatial autocorrelation plot has been saved as 'Moran_I_Plot.png'.")
+
+
+
+
+
+# Load necessary libraries
+library(dplyr)
+library(readxl)
+library(corrplot)
+
+# Read the dataset
+data <- read_excel("C:/R/LABSTAT/TB.xlsx", sheet = "data")
+
+# Convert relevant columns to numeric
+data <- data %>%
+  mutate(across(starts_with("x"), as.numeric)) %>%
+  mutate(across(starts_with("y"), as.numeric))
+
+# Select only the columns of interest (x1 to x4 and y1 to y31)
+selected_data <- data %>%
+  select(x1:x4, y1:y31)
+
+# Calculate the correlation matrix
+correlation_matrix <- cor(selected_data, use = "complete.obs")
+correlation_matrix
+# Visualize the correlation matrix using corrplot and save it
+png("C:/R/LABSTAT/Correlation_Matrix_Plot.png", width = 1700, height = 1500)
+corrplot(correlation_matrix, method = "circle", type = "upper", tl.col = "black", tl.cex = 2, cl.cex = 2, addCoef.col = "black", number.cex = 1.5)
+dev.off()
+
+
+print("The correlation matrix plot has been saved as 'Correlation_Matrix_Plot.png'.")
+
+
+
+# Load necessary libraries
+library(dplyr)
+library(readxl)
+library(writexl)
+
+# Read the dataset
+data <- read_excel("C:/R/LABSTAT/TB.xlsx", sheet = "data")
+
+# Convert relevant columns to numeric
+data <- data %>%
+  mutate(across(starts_with("x"), as.numeric)) %>%
+  mutate(across(starts_with("y"), as.numeric))
+
+# Select only the columns of interest (x1 to x4 and y1 to y31)
+selected_data <- data %>%
+  select(x1:x4, y1:y31)
+
+# Calculate the correlation matrix
+correlation_matrix <- cor(selected_data, use = "complete.obs")
+
+# Round the correlation matrix to 2 decimal places
+correlation_matrix <- round(correlation_matrix, 2)
+
+# Convert the correlation matrix to a data frame for saving
+correlation_df <- as.data.frame(correlation_matrix)
+
+# Save the correlation matrix to an Excel file
+write_xlsx(correlation_df, "C:/R/LABSTAT/Correlation_Matrix_Rounded.xlsx")
+
+print("The correlation matrix has been saved as 'Correlation_Matrix_Rounded.xlsx'.")
+
+
+
+
+# Load necessary libraries
+library(ggplot2)
+library(dplyr)
+library(readxl)
+library(maps)
+library(ggspatial)
+library(cowplot)
+
+# Load world map data from built-in 'maps' package
+world_map <- map_data("world")
+
+# Read the dataset
+data <- read_excel("C:/R/LABSTAT/TB.xlsx", sheet = "data")
+data
+# Convert relevant columns to numeric
+data <- data %>%
+  mutate(across(starts_with("X"), as.numeric))
+
+# Convert country names to lowercase for matching
+world_map <- world_map %>%
+  mutate(region = tolower(region))
+
+data <- data %>%
+  mutate(Countries = tolower(Countries))
+
+# Define a function to create plots for a given year
+create_plots <- function(year) {
+  # Filter data for the specified year
+  data_year <- data %>%
+    filter(Year == year) %>%
+    group_by(Countries) %>%
+    summarise(
+      total_incidence = sum(x1, na.rm = TRUE),
+      total_mortality = sum(x4, na.rm = TRUE)
+    )
+  
+  # Merge world map with TB data for the specified year
+  world_map_year <- left_join(world_map, data_year, by = c("region" = "Countries"))
+  
+  # Plot the world map with total_incidence (TB cases) as an indicator
+  incidence_plot <- ggplot() +
+    geom_polygon(data = world_map_year, aes(x = long, y = lat, group = group, fill = total_incidence),
+                 color = "black", size = 0.3) +
+    scale_fill_gradient(low = "lightyellow", high = "red", na.value = "gray") +
+    labs(fill = "TB incidence") +
+    theme_minimal() +
+    theme(legend.title = element_text(size = 10),
+          legend.text = element_text(size = 8),
+          plot.title = element_text(hjust = 0, size = 14)) +
+    ggtitle(as.character(year)) +
+    annotation_north_arrow(location = "tr", which_north = "true", 
+                           style = north_arrow_fancy_orienteering)
+  
+  # Plot the world map with total_mortality (TB deaths) as an indicator
+  mortality_plot <- ggplot() +
+    geom_polygon(data = world_map_year, aes(x = long, y = lat, group = group, fill = total_mortality),
+                 color = "black", size = 0.3) +
+    scale_fill_gradient(low = "lightyellow", high = "red", na.value = "gray") +
+    labs(fill = "TB mortality") +
+    theme_minimal() +
+    theme(legend.title = element_text(size = 10),
+          legend.text = element_text(size = 8),
+          plot.title = element_text(hjust = 0, size = 14)) +
+    ggtitle("") +
+    annotation_north_arrow(location = "tr", which_north = "true", 
+                           style = north_arrow_fancy_orienteering)
+  
+  # Combine the plots
+  combined_plot <- plot_grid(incidence_plot, mortality_plot, ncol = 1)
+  
+  # Save the combined plot as a PNG file
+  ggsave(paste0("C:/R/LABSTAT/11Global_TB_Map_", year, ".png"), plot = combined_plot, width = 6, height = 5, dpi = 300)
+  
+  print(paste("The TB map for the year", year, "has been saved."))
+}
+
+# Generate and save plots for the years 2003 and 2020
+create_plots(2003)
+create_plots(2020)
+
+
+
+###############Model Selection##############
+
+
+# Load required libraries
+library(readxl)
+library(dplyr)
+library(tidymodels)
+library(xgboost)
+library(lightgbm)
+library(DALEX)
+library(ggplot2)
+library(e1071)  # For SVM
+library(rpart)  # For Decision Tree
+library(pROC)   # For AUC-ROC
+library(missRanger) # For missing value imputation
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Load the dataset
+file_path <- "C:/R/LABSTAT/TB.xlsx"  # Ensure this path is correct
+if (!file.exists(file_path)) {
+  stop("File not found. Please check the file path.")
+}
+
+mydata <- read_excel(file_path, sheet = "data")
+
+# Select relevant columns
+discharge <- mydata %>% select(Year, x1, y1:y31)
+
+# Log transform each variable (excluding Year)
+discharge <- discharge %>%
+  mutate(across(-Year, ~ log1p(.)))
+
+# Impute missing values
+discharge_imputed <- missRanger(discharge, pmm.k = 5, seed = 123)
+
+# Split the dataset into training (2000 to 2019) and testing (2020 to 2022) datasets
+distrain <- discharge_imputed %>% filter(Year >= 2000 & Year <= 2019)
+distest <- discharge_imputed %>% filter(Year >= 2020 & Year <= 2022)
+
+# Define Root Mean Squared Error (RMSE) function
+rmse <- function(y_true, y_pred) {
+  sqrt(mean((y_true - y_pred)^2))
+}
+
+# Define Mean Absolute Error (MAE) function
+mae <- function(y_true, y_pred) {
+  mean(abs(y_true - y_pred))
+}
+
+# Define Adjusted R2 function
+adj_r2 <- function(model, X, y) {
+  preds <- predict(model, X)
+  r2 <- 1 - sum((y - preds)^2) / sum((y - mean(y))^2)
+  n <- length(y)
+  p <- ncol(X)
+  adj_r2 <- 1 - ((1 - r2) * (n - 1)) / (n - p - 1)
+  return(adj_r2)
+}
+
+### Multiple Regression Model ###
+multi_formula <- as.formula(x1 ~ y1 + y2 + y3 + y4 + y5 + y6 + y7 + y8 + y9 + y10 + y11 + y12 + y13 + y14 + y15 + y16 + y17 + y18 + y19 + y20 + y21 + y22 + y23 + y24 + y25 + y26 + y27 + y28 + y29 + y30 + y31)
+fit_multi <- lm(multi_formula, data = distrain)
+preds_multi <- predict(fit_multi, newdata = distest)
+rmse_multi <- rmse(distest$x1, preds_multi)
+r2_multi <- summary(fit_multi)$r.squared
+mae_multi <- mae(distest$x1, preds_multi)
+adj_r2_multi <- 1 - ((1 - r2_multi) * (nrow(distest) - 1)) / (nrow(distest) - length(fit_multi$coefficients) - 1)
+
+### Naive Model ###
+preds_naive <- rep(mean(distrain$x1), nrow(distest))
+rmse_naive <- rmse(distest$x1, preds_naive)
+r2_naive <- 1 - sum((distest$x1 - preds_naive)^2) / sum((distest$x1 - mean(distest$x1))^2)
+mae_naive <- mae(distest$x1, preds_naive)
+adj_r2_naive <- 1 - ((1 - r2_naive) * (nrow(distest) - 1)) / (nrow(distest) - 1 - 1)
+
+### Decision Tree Model ###
+fit_dt <- rpart(multi_formula, data = distrain, method = "anova")
+preds_dt <- predict(fit_dt, newdata = distest)
+rmse_dt <- rmse(distest$x1, preds_dt)
+r2_dt <- 1 - sum((distest$x1 - preds_dt)^2) / sum((distest$x1 - mean(distest$x1))^2)
+mae_dt <- mae(distest$x1, preds_dt)
+adj_r2_dt <- adj_r2(fit_dt, distest %>% select(y1:y31), distest$x1)
+
+### XGBoost Model ###
+dtrain <- xgb.DMatrix(as.matrix(distrain %>% select(y1:y31)), label = distrain$x1)
+dtest <- xgb.DMatrix(as.matrix(distest %>% select(y1:y31)), label = distest$x1)
+params <- list(objective = "reg:squarederror", eval_metric = "rmse", max_depth = 6, eta = 0.05, subsample = 0.8, colsample_bytree = 0.8)
+fit_xgb <- xgb.train(params = params, data = dtrain, nrounds = 300, watchlist = list(train = dtrain, eval = dtest), early_stopping_rounds = 10)
+preds_xgb <- predict(fit_xgb, dtest)
+rmse_xgb <- rmse(distest$x1, preds_xgb)
+r2_xgb <- 1 - sum((distest$x1 - preds_xgb)^2) / sum((distest$x1 - mean(distest$x1))^2)
+mae_xgb <- mae(distest$x1, preds_xgb)
+# Adjusted R2 for XGBoost
+adj_r2_xgb <- adj_r2(fit_xgb, as.matrix(distest %>% select(y1:y31)), distest$x1)
+
+
+### LightGBM Model ###
+dtrain_lgb <- lgb.Dataset(as.matrix(distrain %>% select(y1:y31)), label = distrain$x1)
+dtest_lgb <- lgb.Dataset(as.matrix(distest %>% select(y1:y31)), label = distest$x1)
+params_lgb <- list(objective = "regression", metric = "rmse", num_leaves = 31, learning_rate = 0.05, feature_fraction = 0.9)
+fit_lgb <- lgb.train(params_lgb, dtrain_lgb, 100, valids = list(train = dtrain_lgb, eval = dtest_lgb), early_stopping_rounds = 10)
+preds_lgb <- predict(fit_lgb, as.matrix(distest %>% select(y1:y31)))
+rmse_lgb <- rmse(distest$x1, preds_lgb)
+r2_lgb <- 1 - sum((distest$x1 - preds_lgb)^2) / sum((distest$x1 - mean(distest$x1))^2)
+mae_lgb <- mae(distest$x1, preds_lgb)
+# Convert to matrix and predict for LightGBM
+adj_r2_lgb <- adj_r2(fit_lgb, as.matrix(distest %>% select(y1:y31)), distest$x1)
+
+
+### Support Vector Machine (SVM) Model ###
+fit_svm <- svm(multi_formula, data = distrain)
+preds_svm <- predict(fit_svm, newdata = distest)
+rmse_svm <- rmse(distest$x1, preds_svm)
+r2_svm <- 1 - sum((distest$x1 - preds_svm)^2) / sum((distest$x1 - mean(distest$x1))^2)
+mae_svm <- mae(distest$x1, preds_svm)
+adj_r2_svm <- adj_r2(fit_svm, distest %>% select(y1:y31), distest$x1)
+
+# Create a matrix to summarize the performance
+performance_matrix <- data.frame(
+  Model = c("GLM", "Naive", "Decision Tree", "XGBoost", "LightGBM", "SVM"),
+  RMSE = c( rmse_multi, rmse_naive, rmse_dt, rmse_xgb, rmse_lgb, rmse_svm),
+  R2 = c( r2_multi, r2_naive, r2_dt, r2_xgb, r2_lgb, r2_svm),
+  Adjusted_R2 = c( adj_r2_multi, adj_r2_naive, adj_r2_dt, adj_r2_xgb, adj_r2_lgb, adj_r2_svm),
+  MAE = c( mae_multi, mae_naive, mae_dt, mae_xgb, mae_lgb, mae_svm)
+)
+
+# Round the performance metrics to two decimal places
+performance_matrix$RMSE <- round(performance_matrix$RMSE, 2)
+performance_matrix$R2 <- round(performance_matrix$R2, 2)
+performance_matrix$Adjusted_R2 <- round(performance_matrix$Adjusted_R2, 2)
+performance_matrix$MAE <- round(performance_matrix$MAE, 2)
+
+# Print the updated performance matrix
+print(performance_matrix)
+
+# Create a long format data frame for visualization
+performance_long <- performance_matrix %>% 
+  gather(key = "Metric", value = "Value", RMSE, R2, Adjusted_R2, MAE)
+
+# Plot the performance metrics (horizontal plot with negative values visible)
+ggplot(performance_long, aes(x = Value, y = Model, fill = Metric)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(
+    x = "Metric value",
+    y = "Model",
+    fill = "Metric") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 16),
+    axis.title = element_text(face = "bold", size = 14),
+    axis.text = element_text(size = 12),
+    legend.position = "bottom"
+  ) +
+  scale_fill_brewer(palette = "Set1") 
+
+# Save the plot as a PNG file
+ggsave("Model_Performance_Comparison_Horizontal.png", width = 10, height = 6)
+
+
+#########XAI XGboost
+
+
+
+# Load required libraries
+library(readxl)
+library(dplyr)
+library(tidymodels)
+library(xgboost)
+library(missRanger)  # For missing value imputation
+library(shapviz)
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Load the dataset
+file_path <- "C:/R/LABSTAT/TB.xlsx"  # Ensure this path is correct
+if (!file.exists(file_path)) {
+  stop("File not found. Please check the file path.")
+}
+
+mydata <- read_excel(file_path, sheet = "data")
+
+# Select relevant columns
+discharge <- mydata %>% select(Year, x1, y1:y31)
+
+# Log transform each variable (excluding Year)
+discharge <- discharge %>%
+  mutate(across(-Year, ~ log1p(.)))
+
+# Impute missing values
+discharge_imputed <- missRanger(discharge, pmm.k = 5, seed = 123)
+
+# Split the dataset into training (2000 to 2019) and testing (2020 to 2022) datasets
+distrain <- discharge_imputed %>% filter(Year >= 2000 & Year <= 2019)
+distest <- discharge_imputed %>% filter(Year >= 2020 & Year <= 2022)
+
+### XGBoost Model ###
+dtrain <- xgb.DMatrix(as.matrix(distrain %>% select(y1:y31)), label = distrain$x1)
+dtest <- xgb.DMatrix(as.matrix(distest %>% select(y1:y31)), label = distest$x1)
+params <- list(objective = "reg:squarederror", eval_metric = "rmse", max_depth = 6, eta = 0.05, subsample = 0.8, colsample_bytree = 0.8)
+fit_xgb <- xgb.train(params = params, data = dtrain, nrounds = 300, watchlist = list(train = dtrain, eval = dtest), early_stopping_rounds = 10)
+
+# SHAP Analysis with shapviz
+sv <- shapviz(fit_xgb, X_pred = as.matrix(distest %>% select(y1:y31)))
+
+# SHAP summary plot
+sv_importance(sv)
+
+# SHAP dependence plot for the first variable (y1)
+sv_dependence(sv, "y31")
+
+# SHAP force plot for the first row
+sv_force(sv, row_id = 1)
+
+# SHAP waterfall plot for the first row
+sv_waterfall(sv, row_id = 1)
+
+
+
+
+
+
+
+
+
+
+
+
+# Load required libraries
+library(readxl)
+library(dplyr)
+library(tidymodels)
+library(xgboost)
+library(missRanger)  # For missing value imputation
+library(shapviz)
+library(openxlsx)
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Load the dataset
+file_path <- "C:/R/LABSTAT/TB.xlsx"  # Ensure this path is correct
+if (!file.exists(file_path)) {
+  stop("File not found. Please check the file path.")
+}
+
+mydata <- read_excel(file_path, sheet = "data")
+
+# Select relevant columns
+discharge <- mydata %>% select(Year, x1, y1:y12)
+
+# Log transform each variable (excluding Year)
+discharge <- discharge %>%
+  mutate(across(-Year, ~ log1p(.)))
+
+# Impute missing values
+discharge_imputed <- missRanger(discharge, pmm.k = 5, seed = 123)
+
+# Split the dataset into training (2000 to 2019) and testing (2020 to 2022) datasets
+distrain <- discharge_imputed %>% filter(Year >= 2000 & Year <= 2019)
+distest <- discharge_imputed %>% filter(Year >= 2020 & Year <= 2022)
+
+### XGBoost Model ###
+dtrain <- xgb.DMatrix(as.matrix(distrain %>% select(y1:y12)), label = distrain$x1)
+dtest <- xgb.DMatrix(as.matrix(distest %>% select(y1:y12)), label = distest$x1)
+params <- list(objective = "reg:squarederror", eval_metric = "rmse", max_depth = 6, eta = 0.05, subsample = 0.8, colsample_bytree = 0.8)
+fit_xgb <- xgb.train(params = params, data = dtrain, nrounds = 300, watchlist = list(train = dtrain, eval = dtest), early_stopping_rounds = 10)
+
+# SHAP Analysis with shapviz
+sv <- shapviz(fit_xgb, X_pred = as.matrix(distest %>% select(y1:y12)))
+sv
+
+
+# Enhanced SHAP plots
+
+
+library(ggplot2)
+library(shapviz)
+
+# Convert SHAP values to a dataframe
+shap_df <- as.data.frame(sv$S)  # Extract SHAP values
+
+# Compute mean absolute SHAP values for importance ranking
+shap_importance <- data.frame(
+  Feature = colnames(shap_df),
+  Importance = colMeans(abs(shap_df), na.rm = TRUE)
+)
+
+# SHAP importance bar plot with different colors
+a1= ggplot(shap_importance, aes(x = reorder(Feature, Importance), y = Importance, fill = Feature)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  theme_minimal() +
+  scale_fill_brewer(palette = "Set3") +  # Different color for each feature
+  labs(title = "", x = "A. TB treatment and HIV-related TB factors", y = "Mean |SHAP| value")+
+  theme(legend.position = "none")
+
+a1
+shap_importance
+
+# Extract SHAP values for the first row
+row_id <- 1  # You can change this to any other row number
+shap_values <- sv$S[row_id, ]
+base_value <- sv$baseline  # Get the baseline (expected value)
+prediction <- sv$yhat[row_id]  # Get the model's prediction for the row
+
+# Create a data frame to display the SHAP values
+shap_df <- data.frame(
+  Feature = colnames(sv$S),
+  SHAP_Value = as.numeric(shap_values),
+  Contribution = base_value + cumsum(as.numeric(shap_values))
+)
+shap_df
+# Add the base value to the data frame
+shap_df <- rbind(data.frame(Feature = "Base Value", SHAP_Value = 0, Contribution = base_value), shap_df)
+
+# Add the final prediction to the data frame
+final_row <- data.frame(Feature = "Prediction", SHAP_Value = prediction - base_value, Contribution = prediction)
+shap_df <- rbind(shap_df, final_row)
+
+# Display the SHAP values
+print(shap_df)
+w11= sv_waterfall(sv, row_id = 1) + ggtitle("row 1") + theme_minimal()
+
+w14= sv_waterfall(sv, row_id = 4) + ggtitle("row 4") + theme_minimal()
+
+library(gridExtra)
+
+# Save the combined plot
+png("C:/R/LABSTAT/w1combined_shap_plots.png", width = 10, height = 5, units = "in", res = 300)
+grid.arrange(w11, w12, w13, w14, ncol = 4)  # Arrange plots in 2 columns
+dev.off()
+
+# Load required libraries
+library(readxl)
+library(dplyr)
+library(tidymodels)
+library(xgboost)
+library(missRanger)  # For missing value imputation
+library(shapviz)
+library(openxlsx)
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Load the dataset
+file_path <- "C:/R/LABSTAT/TB.xlsx"  # Ensure this path is correct
+if (!file.exists(file_path)) {
+  stop("File not found. Please check the file path.")
+}
+
+mydata <- read_excel(file_path, sheet = "data")
+
+# Select relevant columns
+discharge <- mydata %>% select(Year, x1, y13:y16)
+
+# Log transform each variable (excluding Year)
+discharge <- discharge %>%
+  mutate(across(-Year, ~ log1p(.)))
+
+# Impute missing values
+discharge_imputed <- missRanger(discharge, pmm.k = 5, seed = 123)
+
+# Split the dataset into training (2000 to 2019) and testing (2020 to 2022) datasets
+distrain <- discharge_imputed %>% filter(Year >= 2000 & Year <= 2019)
+distest <- discharge_imputed %>% filter(Year >= 2020 & Year <= 2022)
+
+### XGBoost Model ###
+dtrain <- xgb.DMatrix(as.matrix(distrain %>% select(y13:y16)), label = distrain$x1)
+dtest <- xgb.DMatrix(as.matrix(distest %>% select(y13:y16)), label = distest$x1)
+params <- list(objective = "reg:squarederror", eval_metric = "rmse", max_depth = 6, eta = 0.05, subsample = 0.8, colsample_bytree = 0.8)
+fit_xgb <- xgb.train(params = params, data = dtrain, nrounds = 300, watchlist = list(train = dtrain, eval = dtest), early_stopping_rounds = 10)
+
+# SHAP Analysis with shapviz
+sv <- shapviz(fit_xgb, X_pred = as.matrix(distest %>% select(y13:y16)))
+sv
+
+
+# Enhanced SHAP plots
+
+
+library(ggplot2)
+library(shapviz)
+
+# Convert SHAP values to a dataframe
+shap_df <- as.data.frame(sv$S)  # Extract SHAP values
+
+# Compute mean absolute SHAP values for importance ranking
+shap_importance <- data.frame(
+  Feature = colnames(shap_df),
+  Importance = colMeans(abs(shap_df), na.rm = TRUE)
+)
+
+# SHAP importance bar plot with different colors
+a2= ggplot(shap_importance, aes(x = reorder(Feature, Importance), y = Importance, fill = Feature)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  theme_minimal() +
+  scale_fill_brewer(palette = "Set2") +  # Different color for each feature
+  labs(title = "", x = "B. Health risk factors", y = "Mean |SHAP| value")+
+  theme(legend.position = "none")
+
+a2
+shap_importance
+# Extract SHAP values for the first row
+row_id <- 1  # You can change this to any other row number
+shap_values <- sv$S[row_id, ]
+base_value <- sv$baseline  # Get the baseline (expected value)
+prediction <- sv$yhat[row_id]  # Get the model's prediction for the row
+
+# Create a data frame to display the SHAP values
+shap_df <- data.frame(
+  Feature = colnames(sv$S),
+  SHAP_Value = as.numeric(shap_values),
+  Contribution = base_value + cumsum(as.numeric(shap_values))
+)
+shap_df
+# Add the base value to the data frame
+shap_df <- rbind(data.frame(Feature = "Base Value", SHAP_Value = 0, Contribution = base_value), shap_df)
+
+# Add the final prediction to the data frame
+final_row <- data.frame(Feature = "Prediction", SHAP_Value = prediction - base_value, Contribution = prediction)
+shap_df <- rbind(shap_df, final_row)
+
+# Display the SHAP values
+print(shap_df)
+w2= sv_waterfall(sv, row_id = 1) + ggtitle("row 1") + theme_minimal()
+
+
+library(gridExtra)
+
+# Save the combined plot
+png("C:/R/LABSTAT/w1combined_shap_plots.png", width = 10, height = 5, units = "in", res = 300)
+grid.arrange(w11, w12, w13, w14, ncol = 4)  # Arrange plots in 2 columns
+dev.off()
+
+
+# SHAP waterfall plot 
+sv_waterfall(sv) + ggtitle("SHAP Waterfall Plot") + theme_minimal()
+
+# Save the enhanced plots
+ggsave("C:/R/LABSTAT/SHAP_Summary_Plot.png", a1, width = 10, height = 6)
+ggsave("C:/R/LABSTAT/SHAP_Waterfall_Plot_Row1.png", plot = sv_waterfall(sv, row_id = 1) + ggtitle("SHAP Waterfall Plot: Row 1") + theme_minimal(), width = 10, height = 6)
+
+
+
+
+
+
+
+# Load required libraries
+library(readxl)
+library(dplyr)
+library(tidymodels)
+library(xgboost)
+library(missRanger)  # For missing value imputation
+library(shapviz)
+library(openxlsx)
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Load the dataset
+file_path <- "C:/R/LABSTAT/TB.xlsx"  # Ensure this path is correct
+if (!file.exists(file_path)) {
+  stop("File not found. Please check the file path.")
+}
+
+mydata <- read_excel(file_path, sheet = "data")
+
+# Select relevant columns
+discharge <- mydata %>% select(Year, x1, y17:y26)
+
+# Log transform each variable (excluding Year)
+discharge <- discharge %>%
+  mutate(across(-Year, ~ log1p(.)))
+
+# Impute missing values
+discharge_imputed <- missRanger(discharge, pmm.k = 5, seed = 123)
+
+# Split the dataset into training (2000 to 2019) and testing (2020 to 2022) datasets
+distrain <- discharge_imputed %>% filter(Year >= 2000 & Year <= 2019)
+distest <- discharge_imputed %>% filter(Year >= 2020 & Year <= 2022)
+
+### XGBoost Model ###
+dtrain <- xgb.DMatrix(as.matrix(distrain %>% select(y17:y26)), label = distrain$x1)
+dtest <- xgb.DMatrix(as.matrix(distest %>% select(y17:y26)), label = distest$x1)
+params <- list(objective = "reg:squarederror", eval_metric = "rmse", max_depth = 6, eta = 0.05, subsample = 0.8, colsample_bytree = 0.8)
+fit_xgb <- xgb.train(params = params, data = dtrain, nrounds = 300, watchlist = list(train = dtrain, eval = dtest), early_stopping_rounds = 10)
+
+# SHAP Analysis with shapviz
+sv <- shapviz(fit_xgb, X_pred = as.matrix(distest %>% select(y17:y26)))
+sv
+
+
+# Enhanced SHAP plots
+
+
+library(ggplot2)
+library(shapviz)
+
+# Convert SHAP values to a dataframe
+shap_df <- as.data.frame(sv$S)  # Extract SHAP values
+
+# Compute mean absolute SHAP values for importance ranking
+shap_importance <- data.frame(
+  Feature = colnames(shap_df),
+  Importance = colMeans(abs(shap_df), na.rm = TRUE)
+)
+
+# SHAP importance bar plot with different colors
+a3= ggplot(shap_importance, aes(x = reorder(Feature, Importance), y = Importance, fill = Feature)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  theme_minimal() +
+  scale_fill_brewer(palette = "Set3") +  # Different color for each feature
+  labs(title = "", x = "C. Socio-demographic and economic factors", y = "Mean |SHAP| value")+
+  theme(legend.position = "none")
+
+a3
+shap_importance
+
+# Extract SHAP values for the first row
+row_id <- 1  # You can change this to any other row number
+shap_values <- sv$S[row_id, ]
+base_value <- sv$baseline  # Get the baseline (expected value)
+prediction <- sv$yhat[row_id]  # Get the model's prediction for the row
+
+# Create a data frame to display the SHAP values
+shap_df <- data.frame(
+  Feature = colnames(sv$S),
+  SHAP_Value = as.numeric(shap_values),
+  Contribution = base_value + cumsum(as.numeric(shap_values))
+)
+shap_df
+# Add the base value to the data frame
+shap_df <- rbind(data.frame(Feature = "Base Value", SHAP_Value = 0, Contribution = base_value), shap_df)
+
+# Add the final prediction to the data frame
+final_row <- data.frame(Feature = "Prediction", SHAP_Value = prediction - base_value, Contribution = prediction)
+shap_df <- rbind(shap_df, final_row)
+
+# Display the SHAP values
+print(shap_df)
+w3= sv_waterfall(sv, row_id = 1) + ggtitle("row 1") + theme_minimal()
+
+
+library(gridExtra)
+
+# Save the combined plot
+png("C:/R/LABSTAT/w1combined_shap_plots.png", width = 10, height = 5, units = "in", res = 300)
+grid.arrange(w11, w12, w13, w14, ncol = 4)  # Arrange plots in 2 columns
+dev.off()
+
+# SHAP waterfall plot 
+sv_waterfall(sv) + ggtitle("SHAP Waterfall Plot") + theme_minimal()
+
+# Save the enhanced plots
+ggsave("C:/R/LABSTAT/SHAP_Summary_Plot.png", a1, width = 10, height = 6)
+ggsave("C:/R/LABSTAT/SHAP_Waterfall_Plot_Row1.png", plot = sv_waterfall(sv, row_id = 1) + ggtitle("SHAP Waterfall Plot: Row 1") + theme_minimal(), width = 10, height = 6)
+
+
+
+
+
+
+
+# Load required libraries
+library(readxl)
+library(dplyr)
+library(tidymodels)
+library(xgboost)
+library(missRanger)  # For missing value imputation
+library(shapviz)
+library(openxlsx)
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Load the dataset
+file_path <- "C:/R/LABSTAT/TB.xlsx"  # Ensure this path is correct
+if (!file.exists(file_path)) {
+  stop("File not found. Please check the file path.")
+}
+
+mydata <- read_excel(file_path, sheet = "data")
+
+# Select relevant columns
+discharge <- mydata %>% select(Year, x1, y27:y31)
+
+# Log transform each variable (excluding Year)
+discharge <- discharge %>%
+  mutate(across(-Year, ~ log1p(.)))
+
+# Impute missing values
+discharge_imputed <- missRanger(discharge, pmm.k = 5, seed = 123)
+
+# Split the dataset into training (2000 to 2019) and testing (2020 to 2022) datasets
+distrain <- discharge_imputed %>% filter(Year >= 2000 & Year <= 2019)
+distest <- discharge_imputed %>% filter(Year >= 2020 & Year <= 2022)
+
+### XGBoost Model ###
+dtrain <- xgb.DMatrix(as.matrix(distrain %>% select(y27:y31)), label = distrain$x1)
+dtest <- xgb.DMatrix(as.matrix(distest %>% select(y27:y31)), label = distest$x1)
+params <- list(objective = "reg:squarederror", eval_metric = "rmse", max_depth = 6, eta = 0.05, subsample = 0.8, colsample_bytree = 0.8)
+fit_xgb <- xgb.train(params = params, data = dtrain, nrounds = 300, watchlist = list(train = dtrain, eval = dtest), early_stopping_rounds = 10)
+
+# SHAP Analysis with shapviz
+sv <- shapviz(fit_xgb, X_pred = as.matrix(distest %>% select(y27:y31)))
+sv
+
+
+# Enhanced SHAP plots
+
+
+library(ggplot2)
+library(shapviz)
+
+# Convert SHAP values to a dataframe
+shap_df <- as.data.frame(sv$S)  # Extract SHAP values
+
+# Compute mean absolute SHAP values for importance ranking
+shap_importance <- data.frame(
+  Feature = colnames(shap_df),
+  Importance = colMeans(abs(shap_df), na.rm = TRUE)
+)
+
+# SHAP importance bar plot with different colors
+a4= ggplot(shap_importance, aes(x = reorder(Feature, Importance), y = Importance, fill = Feature)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  theme_minimal() +
+  scale_fill_brewer(palette = "Set2") +  # Different color for each feature
+  labs(title = "", x = "D. Environmental and land use factors", y = "Mean |SHAP| value")+
+  theme(legend.position = "none")
+
+a4
+shap_importance
+
+library(gridExtra)
+
+# Save the combined plot
+png("C:/R/LABSTAT/combined_shap_plots.png", width = 10, height = 5, units = "in", res = 300)
+grid.arrange(a1, a2, a3, a4, ncol = 4)  # Arrange plots in 2 columns
+dev.off()
+
+
+# Extract SHAP values for the first row
+row_id <- 1  # You can change this to any other row number
+shap_values <- sv$S[row_id, ]
+base_value <- sv$baseline  # Get the baseline (expected value)
+prediction <- sv$yhat[row_id]  # Get the model's prediction for the row
+
+# Create a data frame to display the SHAP values
+shap_df <- data.frame(
+  Feature = colnames(sv$S),
+  SHAP_Value = as.numeric(shap_values),
+  Contribution = base_value + cumsum(as.numeric(shap_values))
+)
+shap_df
+# Add the base value to the data frame
+shap_df <- rbind(data.frame(Feature = "Base Value", SHAP_Value = 0, Contribution = base_value), shap_df)
+
+# Add the final prediction to the data frame
+final_row <- data.frame(Feature = "Prediction", SHAP_Value = prediction - base_value, Contribution = prediction)
+shap_df <- rbind(shap_df, final_row)
+
+# Display the SHAP values
+print(shap_df)
+w4= sv_waterfall(sv, row_id = 1) + ggtitle("") + theme_minimal()
+
+
+library(gridExtra)
+
+# Save the combined plot
+png("C:/R/LABSTAT/w1combined_shap_plots.png", width = 10, height = 5, units = "in", res = 300)
+grid.arrange(w11, w12, w13, w14, ncol = 4)  # Arrange plots in 2 columns
+dev.off()
+
+# SHAP waterfall plot 
+sv_waterfall(sv) + ggtitle("SHAP Waterfall Plot") + theme_minimal()
+
+# Save the enhanced plots
+ggsave("C:/R/LABSTAT/SHAP_Summary_Plot.png", a1, width = 10, height = 6)
+ggsave("C:/R/LABSTAT/SHAP_Waterfall_Plot_Row1.png", plot = sv_waterfall(sv, row_id = 1) + ggtitle("SHAP Waterfall Plot: Row 1") + theme_minimal(), width = 10, height = 6)
+
+
+
+
+
+
+# Load required libraries
+library(readxl)
+library(dplyr)
+library(tidymodels)
+library(xgboost)
+library(missRanger)  # For missing value imputation
+library(shapviz)
+library(openxlsx)
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Load the dataset
+file_path <- "C:/R/LABSTAT/TB.xlsx"  # Ensure this path is correct
+if (!file.exists(file_path)) {
+  stop("File not found. Please check the file path.")
+}
+
+mydata <- read_excel(file_path, sheet = "data")
+
+# Select relevant columns
+discharge <- mydata %>% select(Year, x1, y1:y31)
+
+# Log transform each variable (excluding Year)
+discharge <- discharge %>%
+  mutate(across(-Year, ~ log1p(.)))
+
+# Impute missing values
+discharge_imputed <- missRanger(discharge, pmm.k = 5, seed = 123)
+
+# Split the dataset into training (2000 to 2019) and testing (2020 to 2022) datasets
+distrain <- discharge_imputed %>% filter(Year >= 2000 & Year <= 2019)
+distest <- discharge_imputed %>% filter(Year >= 2020 & Year <= 2022)
+
+### XGBoost Model ###
+dtrain <- xgb.DMatrix(as.matrix(distrain %>% select(y1:y31)), label = distrain$x1)
+dtest <- xgb.DMatrix(as.matrix(distest %>% select(y1:y31)), label = distest$x1)
+params <- list(objective = "reg:squarederror", eval_metric = "rmse", max_depth = 6, eta = 0.05, subsample = 0.8, colsample_bytree = 0.8)
+fit_xgb <- xgb.train(params = params, data = dtrain, nrounds = 300, watchlist = list(train = dtrain, eval = dtest), early_stopping_rounds = 10)
+
+# SHAP Analysis with shapviz
+sv <- shapviz(fit_xgb, X_pred = as.matrix(distest %>% select(y1:y31)))
+sv
+
+
+# Enhanced SHAP plots
+
+
+library(ggplot2)
+library(shapviz)
+
+# Convert SHAP values to a dataframe
+shap_df <- as.data.frame(sv$S)  # Extract SHAP values
+
+# Compute mean absolute SHAP values for importance ranking
+shap_importance <- data.frame(
+  Feature = colnames(shap_df),
+  Importance = colMeans(abs(shap_df), na.rm = TRUE)
+)
+
+# SHAP importance bar plot with different colors
+a5= ggplot(shap_importance, aes(x = reorder(Feature, Importance), y = Importance, fill = Feature)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  theme_minimal()  +  # Different color for each feature
+  labs(title = "", x = "E. factors", y = "Mean |SHAP| value")+
+  theme(legend.position = "none")
+
+a5
+shap_importance
+
+library(gridExtra)
+
+# Save the combined plot
+png("C:/R/LABSTAT/1combined_shap_plots.png", width = 8, height = 5, units = "in", res = 300)
+a5
+dev.off()
+
+
+# Extract SHAP values for the first row
+row_id <- 1  # You can change this to any other row number
+shap_values <- sv$S[row_id, ]
+base_value <- sv$baseline  # Get the baseline (expected value)
+prediction <- sv$yhat[row_id]  # Get the model's prediction for the row
+
+# Create a data frame to display the SHAP values
+shap_df <- data.frame(
+  Feature = colnames(sv$S),
+  SHAP_Value = as.numeric(shap_values),
+  Contribution = base_value + cumsum(as.numeric(shap_values))
+)
+shap_df
+# Add the base value to the data frame
+shap_df <- rbind(data.frame(Feature = "Base Value", SHAP_Value = 0, Contribution = base_value), shap_df)
+
+# Add the final prediction to the data frame
+final_row <- data.frame(Feature = "Prediction", SHAP_Value = prediction - base_value, Contribution = prediction)
+shap_df <- rbind(shap_df, final_row)
+
+# Display the SHAP values
+print(shap_df)
+w5= sv_waterfall(sv, row_id = 1) + ggtitle("") + theme_minimal()
+
+
+library(gridExtra)
+
+# Save the combined plot
+png("C:/R/LABSTAT/w1combined_shap_plots.png", width = 10, height = 5, units = "in", res = 300)
+grid.arrange(w11, w12, w13, w14, ncol = 4)  # Arrange plots in 2 columns
+dev.off()
+
+
+# SHAP waterfall plot 
+sv_waterfall(sv) + ggtitle("SHAP Waterfall Plot") + theme_minimal()
+
+# Save the enhanced plots
+ggsave("C:/R/LABSTAT/SHAP_Summary_Plot.png", a1, width = 10, height = 6)
+ggsave("C:/R/LABSTAT/SHAP_Waterfall_Plot_Row1.png", plot = sv_waterfall(sv, row_id = 1) + ggtitle("SHAP Waterfall Plot: Row 1") + theme_minimal(), width = 10, height = 6)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Load required libraries
+library(readxl)
+library(dplyr)
+library(tidymodels)
+library(xgboost)
+library(missRanger)  # For missing value imputation
+library(shapviz)
+library(openxlsx)
+library(ggplot2)
+library(sf)  # For spatial data handling
+library(rnaturalearth)  # For map data
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Load the dataset
+file_path <- "C:/R/LABSTAT/TB.xlsx"  # Ensure this path is correct
+if (!file.exists(file_path)) {
+  stop("File not found. Please check the file path.")
+}
+
+mydata <- read_excel(file_path, sheet = "data")
+
+# Select relevant columns
+discharge <- mydata %>% select(Countries, Year, x1, y1:y12)  # Assuming Countries column exists
+
+# Log transform each variable (excluding Year)
+discharge <- discharge %>%
+  mutate(across(-c(Year, Countries), ~ log1p(.)))
+
+# Impute missing values
+discharge_imputed <- missRanger(discharge, pmm.k = 5, seed = 123)
+
+# Split the dataset into training (2000 to 2019) and testing (2020 to 2022) datasets
+distrain <- discharge_imputed %>% filter(Year >= 2000 & Year <= 2019)
+distest <- discharge_imputed %>% filter(Year >= 2020 & Year <= 2022)
+
+### XGBoost Model ###
+dtrain <- xgb.DMatrix(as.matrix(distrain %>% select(y1:y12)), label = distrain$x1)
+dtest <- xgb.DMatrix(as.matrix(distest %>% select(y1:y12)), label = distest$x1)
+params <- list(objective = "reg:squarederror", eval_metric = "rmse", max_depth = 6, eta = 0.05, subsample = 0.8, colsample_bytree = 0.8)
+fit_xgb <- xgb.train(params = params, data = dtrain, nrounds = 300, watchlist = list(train = dtrain, eval = dtest), early_stopping_rounds = 10)
+
+# SHAP Analysis with shapviz
+sv <- shapviz(fit_xgb, X_pred = as.matrix(distest %>% select(y1:y12)))
+
+# Extract and aggregate SHAP values by countries
+shap_values <- as.data.frame(sv$S)
+shap_values$Countries <- distest$Countries  # Add country information
+shap_country <- shap_values %>%
+  group_by(Countries) %>%
+  summarize(across(everything(), mean, na.rm = TRUE))
+
+# Categorize countries based on aggregated SHAP values
+shap_country$Category <- cut(rowMeans(shap_country[, -1]), breaks = 3, labels = c("Low", "Medium", "High"))
+
+# Load map data
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+# Merge SHAP categories with map data
+world_shap <- left_join(world, shap_country, by = c("name" = "Countries"))
+
+# Plot map with categorized SHAP values
+c1= ggplot(data = world_shap) +
+  geom_sf(aes(fill = Category)) +
+  scale_fill_manual(values = c("Low" = "green", "Medium" = "yellow", "High" = "red")) +
+  theme_minimal() +
+  labs(
+    title = "A",
+    fill = "contributions"
+  ) +
+  theme(
+    plot.title = element_text(hjust = 0, face = "bold", size = 16),
+    legend.position = "none",
+    legend.title = element_text(face = "bold", size = 12),
+    legend.text = element_text(size = 10)
+  )
+
+c1
+
+
+
+
+# Load required libraries
+library(readxl)
+library(dplyr)
+library(tidymodels)
+library(xgboost)
+library(missRanger)  # For missing value imputation
+library(shapviz)
+library(openxlsx)
+library(ggplot2)
+library(sf)  # For spatial data handling
+library(rnaturalearth)  # For map data
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Load the dataset
+file_path <- "C:/R/LABSTAT/TB.xlsx"  # Ensure this path is correct
+if (!file.exists(file_path)) {
+  stop("File not found. Please check the file path.")
+}
+
+mydata <- read_excel(file_path, sheet = "data")
+
+# Select relevant columns
+discharge <- mydata %>% select(Countries, Year, x1, y1:y12)  # Assuming Countries column exists
+
+# Log transform each variable (excluding Year)
+discharge <- discharge %>%
+  mutate(across(-c(Year, Countries), ~ log1p(.)))
+
+# Impute missing values
+discharge_imputed <- missRanger(discharge, pmm.k = 5, seed = 123)
+
+# Split the dataset into training (2000 to 2019) and testing (2020 to 2022) datasets
+distrain <- discharge_imputed %>% filter(Year >= 2000 & Year <= 2019)
+distest <- discharge_imputed %>% filter(Year >= 2020 & Year <= 2022)
+
+### XGBoost Model ###
+dtrain <- xgb.DMatrix(as.matrix(distrain %>% select(y1:y12)), label = distrain$x1)
+dtest <- xgb.DMatrix(as.matrix(distest %>% select(y1:y12)), label = distest$x1)
+params <- list(objective = "reg:squarederror", eval_metric = "rmse", max_depth = 6, eta = 0.05, subsample = 0.8, colsample_bytree = 0.8)
+fit_xgb <- xgb.train(params = params, data = dtrain, nrounds = 300, watchlist = list(train = dtrain, eval = dtest), early_stopping_rounds = 10)
+
+# SHAP Analysis with shapviz
+sv <- shapviz(fit_xgb, X_pred = as.matrix(distest %>% select(y1:y12)))
+
+# Extract and aggregate SHAP values by countries
+shap_values <- as.data.frame(sv$S)
+shap_values$Countries <- distest$Countries  # Add country information
+shap_country <- shap_values %>%
+  group_by(Countries) %>%
+  summarize(across(everything(), mean, na.rm = TRUE))
+
+# Create summary statements for each country
+summary_statements <- shap_country %>%
+  rowwise() %>%
+  mutate(Summary = paste( round(mean(c_across(starts_with("y"))), 2))) 
+
+# Print summary statements
+print(summary_statements$Summary)
+
+
+# Ins
+library(writexl)
+write.table(summary_statements, file = "111454555554summary_statements.csv", sep = ",", row.names = FALSE, col.names = TRUE)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Load required libraries
+library(readxl)
+library(dplyr)
+library(tidymodels)
+library(xgboost)
+library(missRanger)  # For missing value imputation
+library(shapviz)
+library(openxlsx)
+library(ggplot2)
+library(sf)  # For spatial data handling
+library(rnaturalearth)  # For map data
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Load the dataset
+file_path <- "C:/R/LABSTAT/TB.xlsx"  # Ensure this path is correct
+if (!file.exists(file_path)) {
+  stop("File not found. Please check the file path.")
+}
+
+mydata <- read_excel(file_path, sheet = "data")
+
+# Select relevant columns
+discharge <- mydata %>% select(Countries, Year, x1, y13:y16)  # Assuming Countries column exists
+
+# Log transform each variable (excluding Year)
+discharge <- discharge %>%
+  mutate(across(-c(Year, Countries), ~ log1p(.)))
+
+# Impute missing values
+discharge_imputed <- missRanger(discharge, pmm.k = 5, seed = 123)
+
+# Split the dataset into training (2000 to 2019) and testing (2020 to 2022) datasets
+distrain <- discharge_imputed %>% filter(Year >= 2000 & Year <= 2019)
+distest <- discharge_imputed %>% filter(Year >= 2020 & Year <= 2022)
+
+### XGBoost Model ###
+dtrain <- xgb.DMatrix(as.matrix(distrain %>% select(y13:y16)), label = distrain$x1)
+dtest <- xgb.DMatrix(as.matrix(distest %>% select(y13:y16)), label = distest$x1)
+params <- list(objective = "reg:squarederror", eval_metric = "rmse", max_depth = 6, eta = 0.05, subsample = 0.8, colsample_bytree = 0.8)
+fit_xgb <- xgb.train(params = params, data = dtrain, nrounds = 300, watchlist = list(train = dtrain, eval = dtest), early_stopping_rounds = 10)
+
+# SHAP Analysis with shapviz
+sv <- shapviz(fit_xgb, X_pred = as.matrix(distest %>% select(y13:y16)))
+
+# Extract and aggregate SHAP values by countries
+shap_values <- as.data.frame(sv$S)
+shap_values$Countries <- distest$Countries  # Add country information
+shap_country <- shap_values %>%
+  group_by(Countries) %>%
+  summarize(across(everything(), mean, na.rm = TRUE))
+
+# Categorize countries based on aggregated SHAP values
+shap_country$Category <- cut(rowMeans(shap_country[, -1]), breaks = 3, labels = c("Low", "Medium", "High"))
+
+# Load map data
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+# Merge SHAP categories with map data
+world_shap <- left_join(world, shap_country, by = c("name" = "Countries"))
+
+# Plot map with categorized SHAP values
+c2= ggplot(data = world_shap) +
+  geom_sf(aes(fill = Category)) +
+  scale_fill_manual(values = c("Low" = "green", "Medium" = "yellow", "High" = "red")) +
+  theme_minimal() +
+  labs(
+    title = "B",
+    fill = "Contributions"
+  ) +
+  theme(
+    plot.title = element_text(hjust = 0, face = "bold", size = 16),
+    legend.position = "none",
+    legend.title = element_text(face = "bold", size = 12),
+    legend.text = element_text(size = 10)
+  )
+
+c2
+
+
+
+
+# Load required libraries
+library(readxl)
+library(dplyr)
+library(tidymodels)
+library(xgboost)
+library(missRanger)  # For missing value imputation
+library(shapviz)
+library(openxlsx)
+library(ggplot2)
+library(sf)  # For spatial data handling
+library(rnaturalearth)  # For map data
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Load the dataset
+file_path <- "C:/R/LABSTAT/TB.xlsx"  # Ensure this path is correct
+if (!file.exists(file_path)) {
+  stop("File not found. Please check the file path.")
+}
+
+mydata <- read_excel(file_path, sheet = "data")
+
+# Select relevant columns
+discharge <- mydata %>% select(Countries, Year, x1, y13:y16)  # Assuming Countries column exists
+
+# Log transform each variable (excluding Year)
+discharge <- discharge %>%
+  mutate(across(-c(Year, Countries), ~ log1p(.)))
+
+# Impute missing values
+discharge_imputed <- missRanger(discharge, pmm.k = 5, seed = 123)
+
+# Split the dataset into training (2000 to 2019) and testing (2020 to 2022) datasets
+distrain <- discharge_imputed %>% filter(Year >= 2000 & Year <= 2019)
+distest <- discharge_imputed %>% filter(Year >= 2020 & Year <= 2022)
+
+### XGBoost Model ###
+dtrain <- xgb.DMatrix(as.matrix(distrain %>% select(y13:y16)), label = distrain$x1)
+dtest <- xgb.DMatrix(as.matrix(distest %>% select(y13:y16)), label = distest$x1)
+params <- list(objective = "reg:squarederror", eval_metric = "rmse", max_depth = 6, eta = 0.05, subsample = 0.8, colsample_bytree = 0.8)
+fit_xgb <- xgb.train(params = params, data = dtrain, nrounds = 300, watchlist = list(train = dtrain, eval = dtest), early_stopping_rounds = 10)
+
+# SHAP Analysis with shapviz
+sv <- shapviz(fit_xgb, X_pred = as.matrix(distest %>% select(y13:y16)))
+
+# Extract and aggregate SHAP values by countries
+shap_values <- as.data.frame(sv$S)
+shap_values$Countries <- distest$Countries  # Add country information
+shap_country <- shap_values %>%
+  group_by(Countries) %>%
+  summarize(across(everything(), mean, na.rm = TRUE))
+
+# Create summary statements for each country
+summary_statements <- shap_country %>%
+  rowwise() %>%
+  mutate(Summary = paste( round(mean(c_across(starts_with("y"))), 2))) 
+
+# Print summary statements
+print(summary_statements$Summary)
+
+
+# Ins
+library(writexl)
+write.table(summary_statements, file = "115541454555554summary_statements.csv", sep = ",", row.names = FALSE, col.names = TRUE)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Load required libraries
+library(readxl)
+library(dplyr)
+library(tidymodels)
+library(xgboost)
+library(missRanger)  # For missing value imputation
+library(shapviz)
+library(openxlsx)
+library(ggplot2)
+library(sf)  # For spatial data handling
+library(rnaturalearth)  # For map data
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Load the dataset
+file_path <- "C:/R/LABSTAT/TB.xlsx"  # Ensure this path is correct
+if (!file.exists(file_path)) {
+  stop("File not found. Please check the file path.")
+}
+
+mydata <- read_excel(file_path, sheet = "data")
+
+# Select relevant columns
+discharge <- mydata %>% select(Countries, Year, x1, y17:y26)  # Assuming Countries column exists
+
+# Log transform each variable (excluding Year)
+discharge <- discharge %>%
+  mutate(across(-c(Year, Countries), ~ log1p(.)))
+
+# Impute missing values
+discharge_imputed <- missRanger(discharge, pmm.k = 5, seed = 123)
+
+# Split the dataset into training (2000 to 2019) and testing (2020 to 2022) datasets
+distrain <- discharge_imputed %>% filter(Year >= 2000 & Year <= 2019)
+distest <- discharge_imputed %>% filter(Year >= 2020 & Year <= 2022)
+
+### XGBoost Model ###
+dtrain <- xgb.DMatrix(as.matrix(distrain %>% select(y17:y26)), label = distrain$x1)
+dtest <- xgb.DMatrix(as.matrix(distest %>% select(y17:y26)), label = distest$x1)
+params <- list(objective = "reg:squarederror", eval_metric = "rmse", max_depth = 6, eta = 0.05, subsample = 0.8, colsample_bytree = 0.8)
+fit_xgb <- xgb.train(params = params, data = dtrain, nrounds = 300, watchlist = list(train = dtrain, eval = dtest), early_stopping_rounds = 10)
+
+# SHAP Analysis with shapviz
+sv <- shapviz(fit_xgb, X_pred = as.matrix(distest %>% select(y17:y26)))
+
+# Extract and aggregate SHAP values by countries
+shap_values <- as.data.frame(sv$S)
+shap_values$Countries <- distest$Countries  # Add country information
+shap_country <- shap_values %>%
+  group_by(Countries) %>%
+  summarize(across(everything(), mean, na.rm = TRUE))
+
+# Categorize countries based on aggregated SHAP values
+shap_country$Category <- cut(rowMeans(shap_country[, -1]), breaks = 3, labels = c("Low", "Medium", "High"))
+
+# Load map data
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+# Merge SHAP categories with map data
+world_shap <- left_join(world, shap_country, by = c("name" = "Countries"))
+
+# Plot map with categorized SHAP values
+c3= ggplot(data = world_shap) +
+  geom_sf(aes(fill = Category)) +
+  scale_fill_manual(values = c("Low" = "green", "Medium" = "yellow", "High" = "red")) +
+  theme_minimal() +
+  labs(
+    title = "C",
+    fill = "Contributions"
+  ) +
+  theme(
+    plot.title = element_text(hjust = 0, face = "bold", size = 16),
+    legend.position = "none",
+    legend.title = element_text(face = "bold", size = 12),
+    legend.text = element_text(size = 10)
+  )
+
+c3
+
+
+
+
+# Load required libraries
+library(readxl)
+library(dplyr)
+library(tidymodels)
+library(xgboost)
+library(missRanger)  # For missing value imputation
+library(shapviz)
+library(openxlsx)
+library(ggplot2)
+library(sf)  # For spatial data handling
+library(rnaturalearth)  # For map data
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Load the dataset
+file_path <- "C:/R/LABSTAT/TB.xlsx"  # Ensure this path is correct
+if (!file.exists(file_path)) {
+  stop("File not found. Please check the file path.")
+}
+
+mydata <- read_excel(file_path, sheet = "data")
+
+# Select relevant columns
+discharge <- mydata %>% select(Countries, Year, x1, y17:y26)  # Assuming Countries column exists
+
+# Log transform each variable (excluding Year)
+discharge <- discharge %>%
+  mutate(across(-c(Year, Countries), ~ log1p(.)))
+
+# Impute missing values
+discharge_imputed <- missRanger(discharge, pmm.k = 5, seed = 123)
+
+# Split the dataset into training (2000 to 2019) and testing (2020 to 2022) datasets
+distrain <- discharge_imputed %>% filter(Year >= 2000 & Year <= 2019)
+distest <- discharge_imputed %>% filter(Year >= 2020 & Year <= 2022)
+
+### XGBoost Model ###
+dtrain <- xgb.DMatrix(as.matrix(distrain %>% select(y17:y26)), label = distrain$x1)
+dtest <- xgb.DMatrix(as.matrix(distest %>% select(y17:y26)), label = distest$x1)
+params <- list(objective = "reg:squarederror", eval_metric = "rmse", max_depth = 6, eta = 0.05, subsample = 0.8, colsample_bytree = 0.8)
+fit_xgb <- xgb.train(params = params, data = dtrain, nrounds = 300, watchlist = list(train = dtrain, eval = dtest), early_stopping_rounds = 10)
+
+# SHAP Analysis with shapviz
+sv <- shapviz(fit_xgb, X_pred = as.matrix(distest %>% select(y17:y26)))
+
+# Extract and aggregate SHAP values by countries
+shap_values <- as.data.frame(sv$S)
+shap_values$Countries <- distest$Countries  # Add country information
+shap_country <- shap_values %>%
+  group_by(Countries) %>%
+  summarize(across(everything(), mean, na.rm = TRUE))
+
+# Create summary statements for each country
+summary_statements <- shap_country %>%
+  rowwise() %>%
+  mutate(Summary = paste(Countries, round(mean(c_across(starts_with("y"))), 2))) %>%
+  select(Countries, Summary)
+
+# Print summary statements
+print(summary_statements$Summary)
+
+
+# Ins
+library(writexl)
+
+# Create summary statements for each country
+summary_statements <- shap_country %>%
+  rowwise() %>%
+  mutate(Summary = paste( round(mean(c_across(starts_with("y"))), 2))) 
+
+# Print summary statements
+print(summary_statements$Summary)
+
+
+# Ins
+library(writexl)
+write.table(summary_statements, file = "11555541454555554summary_statements.csv", sep = ",", row.names = FALSE, col.names = TRUE)
+
+
+
+
+
+
+
+
+
+# Load required libraries
+library(readxl)
+library(dplyr)
+library(tidymodels)
+library(xgboost)
+library(missRanger)  # For missing value imputation
+library(shapviz)
+library(openxlsx)
+library(ggplot2)
+library(sf)  # For spatial data handling
+library(rnaturalearth)  # For map data
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Load the dataset
+file_path <- "C:/R/LABSTAT/TB.xlsx"  # Ensure this path is correct
+if (!file.exists(file_path)) {
+  stop("File not found. Please check the file path.")
+}
+
+mydata <- read_excel(file_path, sheet = "data")
+
+# Select relevant columns
+discharge <- mydata %>% select(Countries, Year, x1, y27:y31)  # Assuming Countries column exists
+
+# Log transform each variable (excluding Year)
+discharge <- discharge %>%
+  mutate(across(-c(Year, Countries), ~ log1p(.)))
+
+# Impute missing values
+discharge_imputed <- missRanger(discharge, pmm.k = 5, seed = 123)
+
+# Split the dataset into training (2000 to 2019) and testing (2020 to 2022) datasets
+distrain <- discharge_imputed %>% filter(Year >= 2000 & Year <= 2019)
+distest <- discharge_imputed %>% filter(Year >= 2020 & Year <= 2022)
+
+### XGBoost Model ###
+dtrain <- xgb.DMatrix(as.matrix(distrain %>% select(y27:y31)), label = distrain$x1)
+dtest <- xgb.DMatrix(as.matrix(distest %>% select(y27:y31)), label = distest$x1)
+params <- list(objective = "reg:squarederror", eval_metric = "rmse", max_depth = 6, eta = 0.05, subsample = 0.8, colsample_bytree = 0.8)
+fit_xgb <- xgb.train(params = params, data = dtrain, nrounds = 300, watchlist = list(train = dtrain, eval = dtest), early_stopping_rounds = 10)
+
+# SHAP Analysis with shapviz
+sv <- shapviz(fit_xgb, X_pred = as.matrix(distest %>% select(y27:y31)))
+
+# Extract and aggregate SHAP values by countries
+shap_values <- as.data.frame(sv$S)
+shap_values$Countries <- distest$Countries  # Add country information
+shap_country <- shap_values %>%
+  group_by(Countries) %>%
+  summarize(across(everything(), mean, na.rm = TRUE))
+
+# Categorize countries based on aggregated SHAP values
+shap_country$Category <- cut(rowMeans(shap_country[, -1]), breaks = 3, labels = c("Low", "Medium", "High"))
+
+# Load map data
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+# Merge SHAP categories with map data
+world_shap <- left_join(world, shap_country, by = c("name" = "Countries"))
+
+# Plot map with categorized SHAP values
+c4= ggplot(data = world_shap) +
+  geom_sf(aes(fill = Category)) +
+  scale_fill_manual(values = c("Low" = "green", "Medium" = "yellow", "High" = "red")) +
+  theme_minimal() +
+  labs(
+    title = "D",
+    fill = "Contributions"
+  ) +
+  theme(
+    plot.title = element_text(hjust = 0, face = "bold", size = 16),
+    legend.position = "right",
+    legend.title = element_text(face = "bold", size = 8),
+    legend.text = element_text(size = 8)
+  )
+
+c4
+
+
+
+
+# Load required libraries
+library(readxl)
+library(dplyr)
+library(tidymodels)
+library(xgboost)
+library(missRanger)  # For missing value imputation
+library(shapviz)
+library(openxlsx)
+library(ggplot2)
+library(sf)  # For spatial data handling
+library(rnaturalearth)  # For map data
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Load the dataset
+file_path <- "C:/R/LABSTAT/TB.xlsx"  # Ensure this path is correct
+if (!file.exists(file_path)) {
+  stop("File not found. Please check the file path.")
+}
+
+mydata <- read_excel(file_path, sheet = "data")
+
+# Select relevant columns
+discharge <- mydata %>% select(Countries, Year, x1, y27:y31)  # Assuming Countries column exists
+
+# Log transform each variable (excluding Year)
+discharge <- discharge %>%
+  mutate(across(-c(Year, Countries), ~ log1p(.)))
+
+# Impute missing values
+discharge_imputed <- missRanger(discharge, pmm.k = 5, seed = 123)
+
+# Split the dataset into training (2000 to 2019) and testing (2020 to 2022) datasets
+distrain <- discharge_imputed %>% filter(Year >= 2000 & Year <= 2019)
+distest <- discharge_imputed %>% filter(Year >= 2020 & Year <= 2022)
+
+### XGBoost Model ###
+dtrain <- xgb.DMatrix(as.matrix(distrain %>% select(y27:y31)), label = distrain$x1)
+dtest <- xgb.DMatrix(as.matrix(distest %>% select(y27:y31)), label = distest$x1)
+params <- list(objective = "reg:squarederror", eval_metric = "rmse", max_depth = 6, eta = 0.05, subsample = 0.8, colsample_bytree = 0.8)
+fit_xgb <- xgb.train(params = params, data = dtrain, nrounds = 300, watchlist = list(train = dtrain, eval = dtest), early_stopping_rounds = 10)
+
+# SHAP Analysis with shapviz
+sv <- shapviz(fit_xgb, X_pred = as.matrix(distest %>% select(y27:y31)))
+
+# Extract and aggregate SHAP values by countries
+shap_values <- as.data.frame(sv$S)
+shap_values$Countries <- distest$Countries  # Add country information
+shap_country <- shap_values %>%
+  group_by(Countries) %>%
+  summarize(across(everything(), mean, na.rm = TRUE))
+
+# Create summary statements for each country
+summary_statements <- shap_country %>%
+  rowwise() %>%
+  mutate(Summary = paste(Countries, round(mean(c_across(starts_with("y"))), 2))) %>%
+  select(Countries, Summary)
+
+# Print summary statements
+print(summary_statements$Summary)
+
+
+# Ins
+library(writexl)
+
+# Create summary statements for each country
+summary_statements <- shap_country %>%
+  rowwise() %>%
+  mutate(Summary = paste( round(mean(c_across(starts_with("y"))), 2))) 
+
+# Print summary statements
+print(summary_statements$Summary)
+
+
+# Ins
+library(writexl)
+write.table(summary_statements, file = "115555414454555554summary_statements.csv", sep = ",", row.names = FALSE, col.names = TRUE)
+
+
+
+
+library(gridExtra)
+
+# Save the combined plot
+png("C:/R/LABSTAT/c1combined_shap_plots.png", width = 10, height = 5, units = "in", res = 300)
+grid.arrange(c1, c2, c3, c4, ncol = 2)  # Arrange plots in 2 columns
+dev.off()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Load required libraries
+library(readxl)
+library(dplyr)
+library(xgboost)
+library(missRanger)  # For missing value imputation
+library(DALEX)
+library(shapper)
+library(ggplot2)
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Load the dataset
+file_path <- "C:/R/LABSTAT/TB.xlsx"  # Ensure this path is correct
+if (!file.exists(file_path)) {
+  stop("File not found. Please check the file path.")
+}
+
+mydata <- read_excel(file_path, sheet = "data")
+
+# Select relevant columns
+discharge <- mydata %>% select(Year, x1, y1:y31)
+
+# Log transform each variable (excluding Year)
+discharge <- discharge %>%
+  mutate(across(-Year, ~ log1p(.)))
+
+# Impute missing values
+discharge_imputed <- missRanger(discharge, pmm.k = 5, seed = 123)
+
+# Split the dataset into training (2000 to 2019) and testing (2020 to 2022) datasets
+distrain <- discharge_imputed %>% filter(Year >= 2000 & Year <= 2019)
+distest <- discharge_imputed %>% filter(Year >= 2020 & Year <= 2022)
+
+### XGBoost Model ###
+dtrain <- xgb.DMatrix(as.matrix(distrain %>% select(y1:y31)), label = distrain$x1)
+dtest <- xgb.DMatrix(as.matrix(distest %>% select(y1:y31)), label = distest$x1)
+params <- list(objective = "reg:squarederror", eval_metric = "rmse", max_depth = 6, eta = 0.05, subsample = 0.8, colsample_bytree = 0.8)
+fit_xgb <- xgb.train(params = params, data = dtrain, nrounds = 300, watchlist = list(train = dtrain, eval = dtest), early_stopping_rounds = 10)
+
+### Explain Model Predictions Using XAI (DALEX and shapper) ###
+
+# Ensure the predict_function is defined correctly for the explainer
+predict_function <- function(model, newdata) {
+  predict(model, newdata = as.matrix(newdata))
+}
+
+# Create DALEX explainer with the correct predict_function
+explainer <- explain(
+  model = fit_xgb,
+  data = as.data.frame(distrain %>% select(y1:y31)),
+  y = distrain$x1,
+  predict_function = predict_function,
+  label = "XGBoost Model"
+)
+# Calculate variable importance
+variable_importance <- model_parts(explainer, loss_function = loss_root_mean_square)
+# Compute SHAP values using shapper
+shap_values <- predict_parts(
+  explainer,
+  new_observation = as.matrix(distest %>% select(y1:y31)),
+  type = "shap"
+)
+
+
+
+# ---- 1. Plot Variable Importance ----
+plot(variable_importance) + ggtitle("Variable Importance - XGBoost Model")+
+  theme_minimal() +
+  labs(title = "Variable Importance - XGBoost Model", x = "Variable", y = "Dropout Loss") +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 14, face = "bold"),
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    legend.position = "none"
+  )
+
+# ---- 2. Plot SHAP Summary ----
+plot(shap_values, plot_type = "violin") + ggtitle("SHAP Summary Plot - XGBoost Model")+
+
+  labs(title = "Variable Importance - XGBoost Model", x = "Variable", y = "Dropout Loss") +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 14, face = "bold"),
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    legend.position = "none"
+  )
+
+
+
+
+
+
+
+
+
+
+
+
+
+### --------------Feature Important XAI -----------
+
+
+
+
+
+# Load required libraries
+library(readxl)
+library(dplyr)
+library(xgboost)
+library(missRanger)  # For missing value imputation
+library(DALEX)
+library(shapper)
+library(ggplot2)
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Load the dataset
+file_path <- "C:/R/LABSTAT/TB.xlsx"  # Ensure this path is correct
+if (!file.exists(file_path)) {
+  stop("File not found. Please check the file path.")
+}
+
+mydata <- read_excel(file_path, sheet = "data")
+
+# Select relevant columns
+discharge <- mydata %>% select(Year, x1, y1:y12)
+
+# Log transform each variable (excluding Year)
+discharge <- discharge %>%
+  mutate(across(-Year, ~ log1p(.)))
+
+# Impute missing values
+discharge_imputed <- missRanger(discharge, pmm.k = 5, seed = 123)
+
+# Split the dataset into training (2000 to 2019) and testing (2020 to 2022) datasets
+distrain <- discharge_imputed %>% filter(Year >= 2000 & Year <= 2019)
+distest <- discharge_imputed %>% filter(Year >= 2020 & Year <= 2022)
+
+### XGBoost Model ###
+dtrain <- xgb.DMatrix(as.matrix(distrain %>% select(y1:y12)), label = distrain$x1)
+dtest <- xgb.DMatrix(as.matrix(distest %>% select(y1:y12)), label = distest$x1)
+params <- list(objective = "reg:squarederror", eval_metric = "rmse", max_depth = 6, eta = 0.05, subsample = 0.8, colsample_bytree = 0.8)
+fit_xgb <- xgb.train(params = params, data = dtrain, nrounds = 300, watchlist = list(train = dtrain, eval = dtest), early_stopping_rounds = 10)
+
+### Explain Model Predictions Using XAI (DALEX and shapper) ###
+
+# Ensure the predict_function is defined correctly for the explainer
+predict_function <- function(model, newdata) {
+  predict(model, newdata = as.matrix(newdata))
+}
+
+# Create DALEX explainer with the correct predict_function
+explainer <- explain(
+  model = fit_xgb,
+  data = as.data.frame(distrain %>% select(y1:y12)),
+  y = distrain$x1,
+  predict_function = predict_function,
+  label = "XGBoost"
+)
+# Calculate variable importance
+variable_importance <- model_parts(explainer, loss_function = loss_root_mean_square)
+# Compute SHAP values using shapper
+shap_values <- predict_parts(
+  explainer,
+  new_observation = as.matrix(distest %>% select(y1:y12)),
+  type = "shap"
+)
+
+
+
+
+# ---- 1. Plot Variable Importance ----
+F11= plot(variable_importance)+
+  theme_minimal() +
+  labs(title = "A", x = "", y = "RMSE loss after permutation") +
+  theme(
+    plot.title = element_text(hjust = 0, size = 14, face = "bold"),
+    axis.title = element_text(size = 12, face = "bold"),
+    axis.text = element_text(size = 12, face = "bold"),
+    legend.position = "none"
+  )
+
+# ---- 2. Plot SHAP Summary ----
+F21=plot(shap_values, plot_type = "violin")+
+  theme_minimal() +
+  labs(title = "", x = "", y = "Contribution") +
+  theme(
+    plot.title = element_text(hjust = -0.1, size = 14, face = "bold"),
+    axis.title = element_text(size = 12, face = "bold"),
+    axis.text = element_text(size = 12, face = "bold"),
+    legend.position = "none"
+  )
+
+
+
+# Load required library
+library(gridExtra)
+
+# Combine plots using grid.arrange
+F31= grid.arrange(F11, F21, ncol = 1)  # Change 'nrow' or 'ncol' as needed
+# Load required libraries
+library(ggplot2)
+library(gridExtra)
+library(grid)
+
+# Combine plots using grid.arrange
+F31 <- arrangeGrob(F11, F21, ncol = 1)  # Arrange plots in one column
+
+# Add a border using a rectangular grob
+bordered_F31 <- gTree(children = gList(
+  rectGrob(gp = gpar(col = "black", lwd = 2)),  # Black border with thickness 2
+  F31  # Combined plot
+))
+
+
+
+
+
+
+
+# Load required libraries
+library(readxl)
+library(dplyr)
+library(xgboost)
+library(missRanger)  # For missing value imputation
+library(DALEX)
+library(shapper)
+library(ggplot2)
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Load the dataset
+file_path <- "C:/R/LABSTAT/TB.xlsx"  # Ensure this path is correct
+if (!file.exists(file_path)) {
+  stop("File not found. Please check the file path.")
+}
+
+mydata <- read_excel(file_path, sheet = "data")
+
+# Select relevant columns
+discharge <- mydata %>% select(Year, x1, y13:y16)
+
+# Log transform each variable (excluding Year)
+discharge <- discharge %>%
+  mutate(across(-Year, ~ log1p(.)))
+
+# Impute missing values
+discharge_imputed <- missRanger(discharge, pmm.k = 5, seed = 123)
+
+# Split the dataset into training (2000 to 2019) and testing (2020 to 2022) datasets
+distrain <- discharge_imputed %>% filter(Year >= 2000 & Year <= 2019)
+distest <- discharge_imputed %>% filter(Year >= 2020 & Year <= 2022)
+
+### XGBoost Model ###
+dtrain <- xgb.DMatrix(as.matrix(distrain %>% select(y13:y16)), label = distrain$x1)
+dtest <- xgb.DMatrix(as.matrix(distest %>% select(y13:y16)), label = distest$x1)
+params <- list(objective = "reg:squarederror", eval_metric = "rmse", max_depth = 6, eta = 0.05, subsample = 0.8, colsample_bytree = 0.8)
+fit_xgb <- xgb.train(params = params, data = dtrain, nrounds = 300, watchlist = list(train = dtrain, eval = dtest), early_stopping_rounds = 10)
+
+### Explain Model Predictions Using XAI (DALEX and shapper) ###
+
+# Ensure the predict_function is defined correctly for the explainer
+predict_function <- function(model, newdata) {
+  predict(model, newdata = as.matrix(newdata))
+}
+
+# Create DALEX explainer with the correct predict_function
+explainer <- explain(
+  model = fit_xgb,
+  data = as.data.frame(distrain %>% select(y13:y16)),
+  y = distrain$x1,
+  predict_function = predict_function,
+  label = "XGBoost"
+)
+# Calculate variable importance
+variable_importance <- model_parts(explainer, loss_function = loss_root_mean_square)
+# Compute SHAP values using shapper
+shap_values <- predict_parts(
+  explainer,
+  new_observation = as.matrix(distest %>% select(y13:y16)),
+  type = "shap"
+)
+
+
+
+# ---- 1. Plot Variable Importance ----
+F12= plot(variable_importance)+
+  theme_minimal() +
+  labs(title = "B", x = "", y = "RMSE loss after permutation") +
+  theme(
+    plot.title = element_text(hjust = 0, size = 14, face = "bold"),
+    axis.title = element_text(size = 12, face = "bold"),
+    axis.text = element_text(size = 12, face = "bold"),
+    legend.position = "none"
+  )
+
+# ---- 2. Plot SHAP Summary ----
+F22=plot(shap_values, plot_type = "violin")+
+  theme_minimal() +
+  labs(title = "", x = "", y = "Contribution") +
+  theme(
+    plot.title = element_text(hjust = -0.1, size = 14, face = "bold"),
+    axis.title = element_text(size = 12, face = "bold"),
+    axis.text = element_text(size = 12, face = "bold"),
+    legend.position = "none"
+  )
+
+
+# Load required library
+library(gridExtra)
+
+# Combine plots using grid.arrange
+F32= grid.arrange(F12, F22, ncol = 1)  # Change 'nrow' or 'ncol' as needed
+
+# Load required libraries
+library(ggplot2)
+library(gridExtra)
+library(grid)
+
+# Combine plots using grid.arrange
+F32 <- arrangeGrob(F12, F22, ncol = 1)  # Arrange plots in one column
+
+# Add a border using a rectangular grob
+bordered_F32 <- gTree(children = gList(
+  rectGrob(gp = gpar(col = "black", lwd = 2)),  # Black border with thickness 2
+  F32  # Combined plot
+))
+
+
+
+
+
+
+
+
+# Load required libraries
+library(readxl)
+library(dplyr)
+library(xgboost)
+library(missRanger)  # For missing value imputation
+library(DALEX)
+library(shapper)
+library(ggplot2)
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Load the dataset
+file_path <- "C:/R/LABSTAT/TB.xlsx"  # Ensure this path is correct
+if (!file.exists(file_path)) {
+  stop("File not found. Please check the file path.")
+}
+
+mydata <- read_excel(file_path, sheet = "data")
+
+# Select relevant columns
+discharge <- mydata %>% select(Year, x1, y17:y26)
+
+# Log transform each variable (excluding Year)
+discharge <- discharge %>%
+  mutate(across(-Year, ~ log1p(.)))
+
+# Impute missing values
+discharge_imputed <- missRanger(discharge, pmm.k = 5, seed = 123)
+
+# Split the dataset into training (2000 to 2019) and testing (2020 to 2022) datasets
+distrain <- discharge_imputed %>% filter(Year >= 2000 & Year <= 2019)
+distest <- discharge_imputed %>% filter(Year >= 2020 & Year <= 2022)
+
+### XGBoost Model ###
+dtrain <- xgb.DMatrix(as.matrix(distrain %>% select(y17:y26)), label = distrain$x1)
+dtest <- xgb.DMatrix(as.matrix(distest %>% select(y17:y26)), label = distest$x1)
+params <- list(objective = "reg:squarederror", eval_metric = "rmse", max_depth = 6, eta = 0.05, subsample = 0.8, colsample_bytree = 0.8)
+fit_xgb <- xgb.train(params = params, data = dtrain, nrounds = 300, watchlist = list(train = dtrain, eval = dtest), early_stopping_rounds = 10)
+
+### Explain Model Predictions Using XAI (DALEX and shapper) ###
+
+# Ensure the predict_function is defined correctly for the explainer
+predict_function <- function(model, newdata) {
+  predict(model, newdata = as.matrix(newdata))
+}
+
+# Create DALEX explainer with the correct predict_function
+explainer <- explain(
+  model = fit_xgb,
+  data = as.data.frame(distrain %>% select(y17:y26)),
+  y = distrain$x1,
+  predict_function = predict_function,
+  label = "XGBoost"
+)
+# Calculate variable importance
+variable_importance <- model_parts(explainer, loss_function = loss_root_mean_square)
+# Compute SHAP values using shapper
+shap_values <- predict_parts(
+  explainer,
+  new_observation = as.matrix(distest %>% select(y17:y26)),
+  type = "shap"
+)
+
+
+
+# ---- 1. Plot Variable Importance ----
+F13= plot(variable_importance)+
+  theme_minimal() +
+  labs(title = "C", x = "", y = "RMSE loss after permutation") +
+  theme(
+    plot.title = element_text(hjust = 0, size = 14, face = "bold"),
+    axis.title = element_text(size = 12, face = "bold"),
+    axis.text = element_text(size = 12, face = "bold"),
+    legend.position = "none"
+  )
+
+# ---- 2. Plot SHAP Summary ----
+F23=plot(shap_values, plot_type = "violin")+
+  theme_minimal() +
+  labs(title = "", x = "", y = "Contribution") +
+  theme(
+    plot.title = element_text(hjust = -0.1, size = 14, face = "bold"),
+    axis.title = element_text(size = 12, face = "bold"),
+    axis.text = element_text(size = 12, face = "bold"),
+    legend.position = "none"
+  )
+
+
+# Load required library
+library(gridExtra)
+
+# Combine plots using grid.arrange
+F33= grid.arrange(F13, F23, ncol = 1)  # Change 'nrow' or 'ncol' as needed
+# Load required libraries
+library(ggplot2)
+library(gridExtra)
+library(grid)
+
+# Combine plots using grid.arrange
+F33 <- arrangeGrob(F13, F23, ncol = 1)  # Arrange plots in one column
+
+# Add a border using a rectangular grob
+bordered_F33 <- gTree(children = gList(
+  rectGrob(gp = gpar(col = "black", lwd = 2)),  # Black border with thickness 2
+  F33  # Combined plot
+))
+
+
+
+
+
+
+# Load required libraries
+library(readxl)
+library(dplyr)
+library(xgboost)
+library(missRanger)  # For missing value imputation
+library(DALEX)
+library(shapper)
+library(ggplot2)
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Load the dataset
+file_path <- "C:/R/LABSTAT/TB.xlsx"  # Ensure this path is correct
+if (!file.exists(file_path)) {
+  stop("File not found. Please check the file path.")
+}
+
+mydata <- read_excel(file_path, sheet = "data")
+
+# Select relevant columns
+discharge <- mydata %>% select(Year, x1, y27:y31)
+
+# Log transform each variable (excluding Year)
+discharge <- discharge %>%
+  mutate(across(-Year, ~ log1p(.)))
+
+# Impute missing values
+discharge_imputed <- missRanger(discharge, pmm.k = 5, seed = 123)
+
+# Split the dataset into training (2000 to 2019) and testing (2020 to 2022) datasets
+distrain <- discharge_imputed %>% filter(Year >= 2000 & Year <= 2019)
+distest <- discharge_imputed %>% filter(Year >= 2020 & Year <= 2022)
+
+### XGBoost Model ###
+dtrain <- xgb.DMatrix(as.matrix(distrain %>% select( y27:y31)), label = distrain$x1)
+dtest <- xgb.DMatrix(as.matrix(distest %>% select( y27:y31)), label = distest$x1)
+params <- list(objective = "reg:squarederror", eval_metric = "rmse", max_depth = 6, eta = 0.05, subsample = 0.8, colsample_bytree = 0.8)
+fit_xgb <- xgb.train(params = params, data = dtrain, nrounds = 300, watchlist = list(train = dtrain, eval = dtest), early_stopping_rounds = 10)
+
+### Explain Model Predictions Using XAI (DALEX and shapper) ###
+
+# Ensure the predict_function is defined correctly for the explainer
+predict_function <- function(model, newdata) {
+  predict(model, newdata = as.matrix(newdata))
+}
+
+# Create DALEX explainer with the correct predict_function
+explainer <- explain(
+  model = fit_xgb,
+  data = as.data.frame(distrain %>% select( y27:y31)),
+  y = distrain$x1,
+  predict_function = predict_function,
+  label = "XGBoost"
+)
+# Calculate variable importance
+variable_importance <- model_parts(explainer, loss_function = loss_root_mean_square)
+# Compute SHAP values using shapper
+shap_values <- predict_parts(
+  explainer,
+  new_observation = as.matrix(distest %>% select( y27:y31)),
+  type = "shap"
+)
+
+
+
+# ---- 1. Plot Variable Importance ----
+F14= plot(variable_importance)+
+  theme_minimal() +
+  labs(title = "D", x = "", y = "RMSE loss after permutation") +
+  theme(
+    plot.title = element_text(hjust = 0, size = 14, face = "bold"),
+    axis.title = element_text(size = 12, face = "bold"),
+    axis.text = element_text(size = 12, face = "bold"),
+    legend.position = "none"
+  )
+
+# ---- 2. Plot SHAP Summary ----
+F24=plot(shap_values, plot_type = "violin")+
+  theme_minimal() +
+  labs(title = "", x = "", y = "Contribution") +
+  theme(
+    plot.title = element_text(hjust = -0.1, size = 14, face = "bold"),
+    axis.title = element_text(size = 12, face = "bold"),
+    axis.text = element_text(size = 12, face = "bold"),
+    legend.position = "none"
+  )
+
+
+# Load required library
+library(gridExtra)
+
+# Combine plots using grid.arrange
+F34= grid.arrange(F14, F24, ncol = 1)  # Change 'nrow' or 'ncol' as needed
+
+
+# Load required libraries
+library(ggplot2)
+library(gridExtra)
+library(grid)
+
+# Combine plots using grid.arrange
+F34 <- arrangeGrob(F14, F24, ncol = 1)  # Arrange plots in one column
+
+# Add a border using a rectangular grob
+bordered_F34 <- gTree(children = gList(
+  rectGrob(gp = gpar(col = "black", lwd = 2)),  # Black border with thickness 2
+  F34  # Combined plot
+))
+
+
+
+
+# Load required library
+library(gridExtra)
+
+# Combine plots using grid.arrange
+F35= grid.arrange(bordered_F31, bordered_F32, bordered_F33, bordered_F34, ncol = 4)  # Change 'nrow' or 'ncol' as needed
+
+
+
+# Load required libraries
+library(ggplot2)
+library(gridExtra)
+library(grid)
+
+# Create a combined plot
+F35= grid.arrange(bordered_F31, bordered_F32, bordered_F33, bordered_F34, ncol = 4)
+
+# Save the combined plot
+ggsave("C:/R/LABSTAT/5454548154combined_plot.png", plot = F35, width = 14, height = 7, dpi = 300)
+
+
+
+
+# Load necessary libraries
+library(readxl)
+library(dplyr)
+library(xgboost)
+library(missRanger)
+
+# Load the dataset
+file_path <- "C:/R/LABSTAT/TB.xlsx"
+mydata <- read_excel(file_path, sheet = "data")
+
+# Select relevant columns
+discharge <- mydata %>% select(Countries, Year, x1, y1:y31)  # Assuming Countries column exists
+
+# Impute missing values
+discharge_imputed <- missRanger(discharge, pmm.k = 5, seed = 123)
+
+# Split the dataset into training (2000 to 2019) and testing (2020 to 2022) datasets
+distrain <- discharge_imputed %>% filter(Year >= 2000 & Year <= 2019)
+distest <- discharge_imputed %>% filter(Year >= 2020 & Year <= 2022)
+
+### XGBoost Model ###
+dtrain <- xgb.DMatrix(as.matrix(distrain %>% select(y1:y31)), label = distrain$x1)
+dtest <- xgb.DMatrix(as.matrix(distest %>% select(y1:y31)), label = distest$x1)
+params <- list(objective = "reg:squarederror", eval_metric = "rmse", max_depth = 6, eta = 0.05, subsample = 0.8, colsample_bytree = 0.8)
+fit_xgb <- xgb.train(params = params, data = dtrain, nrounds = 300, watchlist = list(train = dtrain, eval = dtest), early_stopping_rounds = 10)
+
+# Create a dataset for future years (2026 to 2030)
+future_years <- expand.grid(Countries = unique(discharge$Countries), Year = 2026:2030)
+future_data <- future_years %>%
+  left_join(discharge %>% select(-x1, -Year), by = "Countries")
+
+# Impute missing values for future data
+future_data_imputed <- missRanger(future_data, pmm.k = 5, seed = 123)
+
+# Predict TB incidence for future years
+future_matrix <- xgb.DMatrix(as.matrix(future_data_imputed %>% select(y1:y31)))
+future_preds <- predict(fit_xgb, future_matrix)
+
+# Combine predictions with country names and future years
+future_results <- future_data_imputed %>%
+  select(Countries, Year) %>%
+  mutate(Predicted_TB_Incidence = future_preds)
+
+# Find the highest predicted TB incidence value for each country across all years
+highest_predictions <- future_results %>%
+  group_by(Countries) %>%
+  summarize(Max_Predicted_TB_Incidence = max(Predicted_TB_Incidence))
+
+# Select the top 10 unique countries based on the highest predicted TB incidence values
+top_countries <- highest_predictions %>%
+  arrange(desc(Max_Predicted_TB_Incidence)) %>%
+  head(10)
+
+# Display the top 10 unique countries and their highest predicted TB incidence values
+cat("\nTop 10 unique countries based on the highest predicted TB incidence values from 2026 to 2030:\n")
+print(top_countries)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Load necessary libraries
+library(readxl)
+library(dplyr)
+library(xgboost)
+library(missRanger)
+library(DALEX)
+library(ggplot2)
+library(sf)
+library(rnaturalearth)
+
+# Load the dataset
+file_path <- "C:/R/LABSTAT/TB.xlsx"
+mydata <- read_excel(file_path, sheet = "data")
+
+# Select relevant columns
+discharge <- mydata %>% select(Countries, Year, x1, y1:y31)  # Assuming Countries column exists
+
+# Impute missing values
+discharge_imputed <- missRanger(discharge, pmm.k = 5, seed = 123)
+
+# Split the dataset into training (2000 to 2019) and testing (2020 to 2022) datasets
+distrain <- discharge_imputed %>% filter(Year >= 2000 & Year <= 2019)
+distest <- discharge_imputed %>% filter(Year >= 2020 & Year <= 2022)
+
+### XGBoost Model ###
+dtrain <- xgb.DMatrix(as.matrix(distrain %>% select(y1:y31)), label = distrain$x1)
+dtest <- xgb.DMatrix(as.matrix(distest %>% select(y1:y31)), label = distest$x1)
+params <- list(objective = "reg:squarederror", eval_metric = "rmse", max_depth = 6, eta = 0.05, subsample = 0.8, colsample_bytree = 0.8)
+fit_xgb <- xgb.train(params = params, data = dtrain, nrounds = 300, watchlist = list(train = dtrain, eval = dtest), early_stopping_rounds = 10)
+
+### Explain Model Predictions Using XAI (DALEX) ###
+
+# Ensure the predict_function is defined correctly for the explainer
+predict_function <- function(model, newdata) {
+  predict(model, newdata = as.matrix(newdata))
+}
+
+# Create DALEX explainer with the correct predict_function
+explainer <- DALEX::explain(
+  model = fit_xgb,  # Your trained XGBoost model
+  data = as.data.frame(distrain %>% select(y1:y31)),  # Feature data (y1 to y31)
+  y = distrain$x1,  # Target variable (x1)
+  predict_function = predict_function,  # Custom predict function
+  label = "XGBoost Model"
+)
+
+# Calculate SHAP values for the entire test set
+shap_values1 <- predict_parts(explainer, new_observation = as.matrix(distest %>% select(y1:y31)), type = "shap")
+
+# Add observation index to shap_values
+shap_values <- shap_values1 %>%
+  mutate(observation = row_number())
+
+# Summarize SHAP values to get the mean SHAP value for each country
+shap_summary <- shap_values %>%
+  group_by(observation) %>%
+  summarise(mean_shap = mean(contribution)) %>%
+  left_join(distest %>% mutate(observation = row_number()) %>% select(observation, Countries), by = "observation")
+
+# Combine predictions with country names and actual values from the test set
+preds <- predict(fit_xgb, dtest)
+results <- distest %>%
+  select(Countries, Year, Actual_TB_Incidence = x1) %>%
+  mutate(Predicted_TB_Incidence = preds) %>%
+  group_by(Countries) %>%
+  summarise(
+    Mean_Predicted_TB_Incidence = mean(Predicted_TB_Incidence),
+    Mean_Actual_TB_Incidence = mean(Actual_TB_Incidence)
+  )
+
+# Sort countries by predicted TB incidence in descending order
+sorted_results <- results %>% arrange(desc(Mean_Predicted_TB_Incidence))
+
+# Display the top countries with the highest predicted TB incidence (highest risk)
+top_countries <- head(sorted_results, 10)
+print(top_countries)
+
+# Calculate and print the correlation between predicted and actual values
+correlation <- cor(results$Mean_Predicted_TB_Incidence, results$Mean_Actual_TB_Incidence)
+print(paste("Correlation between predicted and actual TB incidence: ", correlation))
+
+# Load world map data
+world_map <- ne_countries(scale = "medium", returnclass = "sf")
+
+# Merge the predicted TB incidence with the world map based on country names
+merged_data <- world_map %>%
+  left_join(results, by = c("name" = "Countries"))
+
+# Plot the spatial distribution of predicted TB incidence
+ggplot(merged_data) +
+  geom_sf(aes(fill = Mean_Predicted_TB_Incidence), color = "white", size = 0.1) +
+  scale_fill_viridis_c() +
+  theme_minimal() +
+  labs(title = "Predicted TB Incidence by Country (2020-2022)",
+       fill = "Predicted TB Incidence") +
+  theme(axis.text = element_blank(), axis.title = element_blank())
+
+
+
+
+
+# Load necessary libraries
+library(readxl)
+library(dplyr)
+library(xgboost)
+library(missRanger)
+library(DALEX)
+library(ggplot2)
+library(sf)
+library(rnaturalearth)
+
+# Load the dataset
+file_path <- "C:/R/LABSTAT/TB.xlsx"
+mydata <- read_excel(file_path, sheet = "data")
+
+# Select relevant columns
+discharge <- mydata %>% select(Countries, Year, x1, y1:y31)  # Assuming Countries column exists
+
+# Impute missing values
+discharge_imputed <- missRanger(discharge, pmm.k = 5, seed = 123)
+
+# Split the dataset into training (2000 to 2019) and testing (2020 to 2022) datasets
+distrain <- discharge_imputed %>% filter(Year >= 2000 & Year <= 2019)
+distest <- discharge_imputed %>% filter(Year >= 2020 & Year <= 2022)
+
+### XGBoost Model ###
+dtrain <- xgb.DMatrix(as.matrix(distrain %>% select(y1:y31)), label = distrain$x1)
+dtest <- xgb.DMatrix(as.matrix(distest %>% select(y1:y31)), label = distest$x1)
+params <- list(objective = "reg:squarederror", eval_metric = "rmse", max_depth = 6, eta = 0.05, subsample = 0.8, colsample_bytree = 0.8)
+fit_xgb <- xgb.train(params = params, data = dtrain, nrounds = 300, watchlist = list(train = dtrain, eval = dtest), early_stopping_rounds = 10)
+
+### Prepare the dataset for 2025 ###
+data_2025 <- discharge_imputed %>% filter(Year == 2022)  # Use the most recent data as a proxy for 2025
+data_2025 <- data_2025 %>% mutate(Year = 2025)  # Update the year to 2025
+
+d2025 <- xgb.DMatrix(as.matrix(data_2025 %>% select(y1:y31)), label = data_2025$x1)
+
+# Make predictions for 2025 using the trained model
+predictions_2025 <- predict(fit_xgb, d2025)
+results_2025 <- data_2025 %>%
+  select(Countries) %>%
+  mutate(Predicted_TB_Incidence_2025 = predictions_2025)
+
+# Sort countries by predicted TB incidence in descending order for 2025
+sorted_results_2025 <- results_2025 %>% arrange(desc(Predicted_TB_Incidence_2025))
+
+# Display the top countries with the highest predicted TB incidence for 2025 (highest risk)
+top_countries_2025 <- head(sorted_results_2025, 10)
+print(top_countries_2025)
+
+# Load world map data
+world_map <- ne_countries(scale = "medium", returnclass = "sf")
+
+# Merge the predicted TB incidence for 2025 with the world map based on country names
+merged_data_2025 <- world_map %>%
+  left_join(results_2025, by = c("name" = "Countries"))
+
+# Plot the spatial distribution of predicted TB incidence for 2025
+ggplot(merged_data_2025) +
+  geom_sf(aes(fill = Predicted_TB_Incidence_2025), color = "white", size = 0.1) +
+  scale_fill_viridis_c() +
+  theme_minimal() +
+  labs(title = "Predicted TB Incidence by Country (2025)",
+       fill = "Predicted TB Incidence") +
+  theme(axis.text = element_blank(), axis.title = element_blank())
+
+
+# Load necessary libraries
+library(readxl)
+library(dplyr)
+library(xgboost)
+library(missRanger)
+library(DALEX)
+library(ggplot2)
+library(sf)
+library(rnaturalearth)
+
+# Load the dataset
+file_path <- "C:/R/LABSTAT/TB.xlsx"
+mydata <- read_excel(file_path, sheet = "data")
+
+# Select relevant columns
+discharge <- mydata %>% select(Countries, Year, x1, y1:y31)  # Assuming Countries column exists
+
+# Impute missing values
+discharge_imputed <- missRanger(discharge, pmm.k = 5, seed = 123)
+
+# Split the dataset into training (2000 to 2019) and testing (2020 to 2022) datasets
+distrain <- discharge_imputed %>% filter(Year >= 2000 & Year <= 2019)
+distest <- discharge_imputed %>% filter(Year >= 2020 & Year <= 2022)
+
+### XGBoost Model ###
+dtrain <- xgb.DMatrix(as.matrix(distrain %>% select(y1:y31)), label = distrain$x1)
+dtest <- xgb.DMatrix(as.matrix(distest %>% select(y1:y31)), label = distest$x1)
+params <- list(objective = "reg:squarederror", eval_metric = "rmse", max_depth = 6, eta = 0.05, subsample = 0.8, colsample_bytree = 0.8)
+fit_xgb <- xgb.train(params = params, data = dtrain, nrounds = 300, watchlist = list(train = dtrain, eval = dtest), early_stopping_rounds = 10)
+
+# Create a dataset for future years (2026 to 2030)
+future_years <- expand.grid(Countries = unique(discharge$Countries), Year = 2023:2030)
+future_data <- future_years %>%
+  left_join(discharge %>% select(-x1, -Year), by = "Countries")
+
+# Impute missing values for future data
+future_data_imputed <- missRanger(future_data, pmm.k = 5, seed = 123)
+
+# Predict TB incidence for future years
+future_matrix <- xgb.DMatrix(as.matrix(future_data_imputed %>% select(y1:y31)))
+future_preds <- predict(fit_xgb, future_matrix)
+
+# Combine predictions with country names and future years
+future_results <- future_data_imputed %>%
+  select(Countries, Year) %>%
+  mutate(Predicted_TB_Incidence = future_preds)
+
+# Load world map data
+world_map <- ne_countries(scale = "medium", returnclass = "sf")
+
+
+# For 2026
+plot_data_2023 <- future_results %>% filter(Year == 2023)
+world_map_2023 <- world_map %>%
+  left_join(plot_data_2026, by = c("name" = "Countries"))
+
+p11= ggplot() +
+  geom_sf(data = world_map, fill = NA, color = "black", size = 0.1) +
+  geom_sf(data = world_map_2023, aes(fill = Predicted_TB_Incidence), color = "black", size = 0.1) +
+  scale_fill_gradient(low = "lightyellow", high = "red", na.value = "gray") +
+  theme_minimal() +
+  labs(title = "2023",
+       fill = "Predicted TB incidence") +
+  theme(axis.text = element_blank(), axis.title = element_blank(),
+        legend.position = "none")
+
+# For 2026
+plot_data_2024 <- future_results %>% filter(Year == 2024)
+world_map_2024 <- world_map %>%
+  left_join(plot_data_2024, by = c("name" = "Countries"))
+
+p12= ggplot() +
+  geom_sf(data = world_map, fill = NA, color = "black", size = 0.1) +
+  geom_sf(data = world_map_2024, aes(fill = Predicted_TB_Incidence), color = "black", size = 0.1) +
+  scale_fill_gradient(low = "lightyellow", high = "red", na.value = "gray") +
+  theme_minimal() +
+  labs(title = "2024",
+       fill = "Predicted TB incidence") +
+  theme(axis.text = element_blank(), axis.title = element_blank(),
+        legend.position = "none")
+
+# For 2026
+ plot_data_2025 <- future_results %>% filter(Year == 2025)
+world_map_2025 <- world_map %>%
+  left_join(plot_data_2025, by = c("name" = "Countries"))
+
+p13= ggplot() +
+  geom_sf(data = world_map, fill = NA, color = "black", size = 0.1) +
+  geom_sf(data = world_map_2025, aes(fill = Predicted_TB_Incidence), color = "black", size = 0.1) +
+  scale_fill_gradient(low = "lightyellow", high = "red", na.value = "gray") +
+  theme_minimal() +
+  labs(title = "2025",
+       fill = "Predicted TB incidence") +
+  theme(axis.text = element_blank(), axis.title = element_blank(),
+        legend.position = "none")
+ggsave("Predicted_TB_Incidence_2026.png")
+# For 2026
+plot_data_2026 <- future_results %>% filter(Year == 2026)
+world_map_2026 <- world_map %>%
+  left_join(plot_data_2026, by = c("name" = "Countries"))
+
+p1= ggplot() +
+  geom_sf(data = world_map, fill = NA, color = "black", size = 0.1) +
+  geom_sf(data = world_map_2026, aes(fill = Predicted_TB_Incidence), color = "black", size = 0.1) +
+  scale_fill_gradient(low = "lightyellow", high = "red", na.value = "gray") +
+  theme_minimal() +
+  labs(title = "2026",
+       fill = "Predicted TB incidence") +
+  theme(axis.text = element_blank(), axis.title = element_blank(),
+        legend.position = "none")
+# For 2027
+plot_data_2027 <- future_results %>% filter(Year == 2027)
+world_map_2027 <- world_map %>%
+  left_join(plot_data_2027, by = c("name" = "Countries"))
+
+p2=ggplot() +
+  geom_sf(data = world_map, fill = NA, color = "black", size = 0.1) +
+  geom_sf(data = world_map_2027, aes(fill = Predicted_TB_Incidence), color = "black", size = 0.1) +
+  scale_fill_gradient(low = "lightyellow", high = "red", na.value = "gray") +
+  theme_minimal() +
+  labs(title = "2027",
+       fill = "Predicted TB incidence") +
+  theme(axis.text = element_blank(), axis.title = element_blank(), 
+        legend.position = "none")
+#ggsave("Predicted_TB_Incidence_2027.png")
+
+# For 2028
+plot_data_2028 <- future_results %>% filter(Year == 2028)
+world_map_2028 <- world_map %>%
+  left_join(plot_data_2028, by = c("name" = "Countries"))
+
+p3= ggplot() +
+  geom_sf(data = world_map, fill = NA, color = "black", size = 0.1) +
+  geom_sf(data = world_map_2028, aes(fill = Predicted_TB_Incidence), color = "black", size = 0.1) +
+  scale_fill_gradient(low = "lightyellow", high = "red", na.value = "gray") +
+  theme_minimal() +
+  labs(title = "2028",
+       fill = "Predicted TB incidence") +
+  theme(axis.text = element_blank(), axis.title = element_blank(),
+        legend.position = "none")
+#ggsave("Predicted_TB_Incidence_2028.png")
+
+# For 2029
+plot_data_2029 <- future_results %>% filter(Year == 2029)
+world_map_2029 <- world_map %>%
+  left_join(plot_data_2029, by = c("name" = "Countries"))
+
+p4=ggplot() +
+  geom_sf(data = world_map, fill = NA, color = "black", size = 0.1) +
+  geom_sf(data = world_map_2029, aes(fill = Predicted_TB_Incidence), color = "black", size = 0.1) +
+  scale_fill_gradient(low = "lightyellow", high = "red", na.value = "gray") +
+  theme_minimal() +
+  labs(title = "2029",
+       fill = "Predicted TB incidence") +
+  theme(axis.text = element_blank(), axis.title = element_blank(),
+        legend.position = "none")
+#ggsave("Predicted_TB_Incidence_2029.png")
+
+# For 2030
+plot_data_2030 <- future_results %>% filter(Year == 2030)
+world_map_2030 <- world_map %>%
+  left_join(plot_data_2030, by = c("name" = "Countries"))
+
+p5=ggplot() +
+  geom_sf(data = world_map, fill = NA, color = "black", size = 0.1) +
+  geom_sf(data = world_map_2030, aes(fill = Predicted_TB_Incidence), color = "black", size = 0.1) +
+  scale_fill_gradient(low = "lightyellow", high = "red", na.value = "gray") +
+  theme_minimal() +
+  labs(title = "2030",
+       fill = "Predicted TB incidence") +
+  theme(axis.text = element_blank(), axis.title = element_blank())
+#ggsave("Predicted_TB_Incidence_2030.png")
+
+# Load required libraries
+library(ggplot2)
+library(gridExtra)
+library(grid)
+
+# Create a combined plot
+F35= grid.arrange(p11, p12, p13, p1, p2, p3, p4, p5, ncol = 3)
+
+# Save the combined plot
+ggsave("C:/R/LABSTAT/5454554545454548154combined_plot.png", plot = F35, width = 14, height = 10, dpi = 300)
+
+
+
+
+
+
+# Load necessary libraries
+library(readxl)
+library(dplyr)
+library(xgboost)
+library(missRanger)
+
+# Load the dataset
+file_path <- "C:/R/LABSTAT/TB.xlsx"
+mydata <- read_excel(file_path, sheet = "data")
+
+# Select relevant columns
+discharge <- mydata %>% select(Countries, Year, x1, y1:y31)  # Assuming Countries column exists
+
+# Impute missing values
+discharge_imputed <- missRanger(discharge, pmm.k = 5, seed = 123)
+
+# Split the dataset into training (2000 to 2019) and testing (2020 to 2022) datasets
+distrain <- discharge_imputed %>% filter(Year >= 2000 & Year <= 2019)
+distest <- discharge_imputed %>% filter(Year >= 2020 & Year <= 2022)
+
+### XGBoost Model ###
+dtrain <- xgb.DMatrix(as.matrix(distrain %>% select(y1:y31)), label = distrain$x1)
+dtest <- xgb.DMatrix(as.matrix(distest %>% select(y1:y31)), label = distest$x1)
+params <- list(objective = "reg:squarederror", eval_metric = "rmse", max_depth = 6, eta = 0.05, subsample = 0.8, colsample_bytree = 0.8)
+fit_xgb <- xgb.train(params = params, data = dtrain, nrounds = 300, watchlist = list(train = dtrain, eval = dtest), early_stopping_rounds = 10)
+
+# Create a dataset for future years (2026 to 2030)
+future_years <- expand.grid(Countries = unique(discharge$Countries), Year = 2026:2030)
+future_data <- future_years %>%
+  left_join(discharge %>% select(-x1, -Year), by = "Countries")
+
+# Impute missing values for future data
+future_data_imputed <- missRanger(future_data, pmm.k = 5, seed = 123)
+
+# Predict TB incidence for future years
+future_matrix <- xgb.DMatrix(as.matrix(future_data_imputed %>% select(y1:y31)))
+future_preds <- predict(fit_xgb, future_matrix)
+
+# Combine predictions with country names and future years
+future_results <- future_data_imputed %>%
+  select(Countries, Year) %>%
+  mutate(Predicted_TB_Incidence = future_preds)
+
+# Find the highest predicted TB incidence value and the corresponding year for each country
+highest_predictions <- future_results %>%
+  group_by(Countries) %>%
+  summarize(Max_Predicted_TB_Incidence = max(Predicted_TB_Incidence), Year = Year[which.max(Predicted_TB_Incidence)])
+
+# Select the top 10 unique countries based on the highest predicted TB incidence values
+top_countries <- highest_predictions %>%
+  arrange(desc(Max_Predicted_TB_Incidence)) %>%
+  head(10)
+
+# Display the top 10 unique countries, their highest predicted TB incidence values, and the corresponding year
+cat("\nTop 10 unique countries based on the highest predicted TB incidence values from 2026 to 2030:\n")
+print(top_countries)
+
+
+
+
+
+
+
+
+
+# Load necessary libraries
+library(readxl)
+library(dplyr)
+library(xgboost)
+library(missRanger)
+library(ggplot2)
+library(sf)
+library(rnaturalearth)
+library(openxlsx)
+
+# Load the dataset
+file_path <- "C:/R/LABSTAT/TB.xlsx"
+mydata <- read_excel(file_path, sheet = "data")
+
+# Select relevant columns
+discharge <- mydata %>% select(Countries, Year, x1, y1:y31)  # Assuming Countries column exists
+
+# Impute missing values
+discharge_imputed <- missRanger(discharge, pmm.k = 5, seed = 123)
+
+# Split the dataset into training (2000 to 2019) and testing (2020 to 2022) datasets
+distrain <- discharge_imputed %>% filter(Year >= 2000 & Year <= 2019)
+distest <- discharge_imputed %>% filter(Year >= 2020 & Year <= 2022)
+
+### XGBoost Model ###
+dtrain <- xgb.DMatrix(as.matrix(distrain %>% select(y1:y31)), label = distrain$x1)
+dtest <- xgb.DMatrix(as.matrix(distest %>% select(y1:y31)), label = distest$x1)
+params <- list(objective = "reg:squarederror", eval_metric = "rmse", max_depth = 6, eta = 0.05, subsample = 0.8, colsample_bytree = 0.8)
+fit_xgb <- xgb.train(params = params, data = dtrain, nrounds = 300, watchlist = list(train = dtrain, eval = dtest), early_stopping_rounds = 10)
+
+# Create a dataset for future years (2026 to 2030)
+future_years <- expand.grid(Countries = unique(discharge$Countries), Year = 2026:2030)
+future_data <- future_years %>%
+  left_join(discharge %>% select(-x1, -Year), by = "Countries")
+
+# Impute missing values for future data
+future_data_imputed <- missRanger(future_data, pmm.k = 5, seed = 123)
+
+# Predict TB incidence for future years
+future_matrix <- xgb.DMatrix(as.matrix(future_data_imputed %>% select(y1:y31)))
+future_preds <- predict(fit_xgb, future_matrix)
+
+# Combine predictions with country names and future years
+future_results <- future_data_imputed %>%
+  select(Countries, Year) %>%
+  mutate(Predicted_TB_Incidence = future_preds)
+
+# Calculate the average TB incidence for each country and each year
+average_tb_incidence <- future_results %>%
+  group_by(Countries, Year) %>%
+  summarize(Average_TB_Incidence = mean(Predicted_TB_Incidence))
+
+# Calculate the percentage change in TB incidence for each country from 2026 to 2030
+percentage_change <- average_tb_incidence %>%
+  group_by(Countries) %>%
+  summarize(Percentage_Change = ((last(Average_TB_Incidence) - first(Average_TB_Incidence)) / first(Average_TB_Incidence)) * 100)
+
+# Merge the percentage change with trend analysis results
+trend_analysis <- average_tb_incidence %>%
+  group_by(Countries) %>%
+  do(trend = lm(Average_TB_Incidence ~ Year, data = .)) %>%
+  summarize(Countries, Intercept = coef(trend)["(Intercept)"], Year_Coeff = coef(trend)["Year"])
+
+trend_analysis <- trend_analysis %>%
+  mutate(Trend = ifelse(Year_Coeff > 0, "Increase", ifelse(Year_Coeff < 0, "Decrease", "No Change"))) %>%
+  left_join(percentage_change, by = "Countries")
+
+# Display the trend analysis results with percentage change
+cat("\nTrend analysis of TB incidence for each country from 2026 to 2030:\n")
+print(trend_analysis)
+
+# Load world map data
+world_map <- ne_countries(scale = "medium", returnclass = "sf")
+
+# Merge the trend analysis results with the world map data
+merged_data <- world_map %>%
+  left_join(trend_analysis, by = c("name" = "Countries"))
+
+# Plot the trend analysis results on the map
+plot <- ggplot(merged_data) +
+  geom_sf(aes(fill = Trend), color = "black", size = 0.1) +
+  scale_fill_manual(values = c("Increase" = "red", "Decrease" = "green", "No Change" = "gray")) +
+  theme_minimal() +
+  labs(title = "C",
+       fill = "Trend (2023-2030)")
+
+# Save the plot
+ggsave("Trend_Anal565ysis_TB_Incidence_Map.png", plot = plot, width = 9, height = 4, dpi = 300)
+
+# Save the trend analysis results to an Excel file
+write.xlsx(trend_analysis, "554545Trend_Analysis_TB_Incidence.xlsx", row.names = FALSE)
+
+
+
+
+
+
+
+
+
+# Load necessary libraries
+library(readxl)
+library(dplyr)
+library(xgboost)
+library(missRanger)
+library(DALEX)
+library(ggplot2)
+library(sf)
+library(rnaturalearth)
+
+# Load the dataset
+file_path <- "C:/R/LABSTAT/TB.xlsx"
+mydata <- read_excel(file_path, sheet = "data")
+
+# Select relevant columns
+discharge <- mydata %>% select(Countries, Year, x1, y1:y31)  # Assuming Countries column exists
+
+# Impute missing values
+discharge_imputed <- missRanger(discharge, pmm.k = 5, seed = 123)
+
+# Split the dataset into training (2000 to 2019) and testing (2020 to 2022) datasets
+distrain <- discharge_imputed %>% filter(Year >= 2000 & Year <= 2019)
+distest <- discharge_imputed %>% filter(Year >= 2020 & Year <= 2022)
+
+### XGBoost Model ###
+dtrain <- xgb.DMatrix(as.matrix(distrain %>% select(y1:y31)), label = distrain$x1)
+dtest <- xgb.DMatrix(as.matrix(distest %>% select(y1:y31)), label = distest$x1)
+params <- list(objective = "reg:squarederror", eval_metric = "rmse", max_depth = 6, eta = 0.05, subsample = 0.8, colsample_bytree = 0.8)
+fit_xgb <- xgb.train(params = params, data = dtrain, nrounds = 300, watchlist = list(train = dtrain, eval = dtest), early_stopping_rounds = 10)
+
+### Explain Model Predictions Using XAI (DALEX) ###
+
+# Ensure the predict_function is defined correctly for the explainer
+predict_function <- function(model, newdata) {
+  predict(model, newdata = as.matrix(newdata))
+}
+
+# Create DALEX explainer with the correct predict_function
+explainer <- DALEX::explain(
+  model = fit_xgb,  # Your trained XGBoost model
+  data = as.data.frame(distrain %>% select(y1:y31)),  # Feature data (y1 to y31)
+  y = distrain$x1,  # Target variable (x1)
+  predict_function = predict_function,  # Custom predict function
+  label = "XGBoost Model"
+)
+
+# Calculate SHAP values for the entire test set
+shap_values1 <- predict_parts(explainer, new_observation = as.matrix(distest %>% select(y1:y31)), type = "shap")
+
+# Add observation index to shap_values
+shap_values <- shap_values1 %>%
+  mutate(observation = row_number())
+
+# Summarize SHAP values to get the mean SHAP value for each country
+shap_summary <- shap_values %>%
+  group_by(observation) %>%
+  summarise(mean_shap = mean(contribution)) %>%
+  left_join(distest %>% mutate(observation = row_number()) %>% select(observation, Countries), by = "observation")
+
+# Combine predictions with country names and actual values from the test set
+preds <- predict(fit_xgb, dtest)
+results <- distest %>%
+  select(Countries, Year, Actual_TB_Incidence = x1) %>%
+  mutate(Predicted_TB_Incidence = preds) %>%
+  group_by(Countries) %>%
+  summarise(
+    Mean_Predicted_TB_Incidence = mean(Predicted_TB_Incidence),
+    Mean_Actual_TB_Incidence = mean(Actual_TB_Incidence)
+  )
+
+# Sort countries by predicted TB incidence in descending order
+sorted_results <- results %>% arrange(desc(Mean_Predicted_TB_Incidence))
+
+# Display the top countries with the highest predicted TB incidence (highest risk)
+top_countries <- head(sorted_results, 10)
+print(top_countries)
+
+# Calculate and print the correlation between predicted and actual values
+correlation <- cor(results$Mean_Predicted_TB_Incidence, results$Mean_Actual_TB_Incidence)
+print(paste("Correlation between predicted and actual TB incidence: ", correlation))
+
+# Load world map data
+world_map <- ne_countries(scale = "medium", returnclass = "sf")
+
+# Merge the predicted TB incidence with the world map based on country names
+merged_data <- world_map %>%
+  left_join(results, by = c("name" = "Countries"))
+
+# Plot the spatial distribution of predicted TB incidence
+ggplot(merged_data) +
+  geom_sf(aes(fill = Mean_Predicted_TB_Incidence), color = "white", size = 0.1) +
+  scale_fill_viridis_c() +
+  theme_minimal() +
+  labs(title = "Predicted TB Incidence by Country (2020-2022)",
+       fill = "Predicted TB Incidence") +
+  theme(axis.text = element_blank(), axis.title = element_blank())
+
+
+
+
+
+
+
+
+
+
+
+# Load necessary libraries
+library(readxl)
+library(dplyr)
+library(xgboost)
+library(missRanger)
+library(DALEX)
+library(ggplot2)
+library(sf)
+library(rnaturalearth)
+library(patchwork)  # For side-by-side maps
+
+# Load world map data
+world_map <- ne_countries(scale = "medium", returnclass = "sf")
+
+# Merge actual and predicted TB incidence with the world map
+merged_data <- world_map %>%
+  left_join(results, by = c("name" = "Countries"))
+
+library(patchwork)  # For combining the two maps
+
+# Define custom color palette
+custom_colors <- c("skyblue", "yellow","red" )
+
+# Actual TB Incidence Map
+actual_map <- ggplot(merged_data) +
+  geom_sf(aes(fill = Mean_Actual_TB_Incidence), color = "black", size = 0.1) +
+  scale_fill_gradientn(colors = custom_colors) +
+  theme_minimal() +
+  labs(title = "A. Actual", fill = "Actual TB Incidence") +
+  theme(axis.text = element_blank(), axis.title = element_blank(),legend.position = "none")
+
+# Predicted TB Incidence Map
+predicted_map <- ggplot(merged_data) +
+  geom_sf(aes(fill = Mean_Predicted_TB_Incidence), color = "black", size = 0.1) +
+  scale_fill_gradientn(colors = custom_colors) +
+  theme_minimal() +
+  labs(title = "B. Predicted", fill = "Mean TB incidence (2020-2022)") +
+  theme(axis.text = element_blank(), axis.title = element_blank(), legend.position = "bottom")
+z=actual_map + 
+  plot_annotation(
+    title = "",
+    caption = "r² = 0.72 | Correlation (r) = 0.85",
+    theme = theme(plot.title = element_text(size = 14, face = "bold"),
+                  plot.caption = element_text(size = 12, hjust = 0))
+  )
+# Combine the two maps in a 1-row, 2-column layout
+combined_maps <- z + predicted_map + plot_layout(ncol = 2)
+
+# Display combined maps
+print(combined_maps)
+
+ggsave("4444444487Trend_Analysis_TB_Incidence_Map.png", plot = combined_maps, width = 10, height = 4, dpi = 300)
+
+# --- Model Performance Metrics --- #
+
+# Calculate Mean Absolute Error (MAE)
+mae <- mean(abs(results$Mean_Predicted_TB_Incidence - results$Mean_Actual_TB_Incidence), na.rm = TRUE)
+
+# Calculate Root Mean Squared Error (RMSE)
+rmse <- sqrt(mean((results$Mean_Predicted_TB_Incidence - results$Mean_Actual_TB_Incidence)^2, na.rm = TRUE))
+
+# Print metrics
+print(paste("Mean Absolute Error (MAE):", mae))
+print(paste("Root Mean Squared Error (RMSE):", rmse))
+print(paste("Correlation between predicted and actual TB incidence:", correlation))
+# Compute R-squared (R²)
+ss_total <- sum((results$Mean_Actual_TB_Incidence - mean(results$Mean_Actual_TB_Incidence, na.rm = TRUE))^2, na.rm = TRUE)
+ss_residual <- sum((results$Mean_Actual_TB_Incidence - results$Mean_Predicted_TB_Incidence)^2, na.rm = TRUE)
+
+r_squared <- 1 - (ss_residual / ss_total)
+
+# Print R-squared
+print(paste("R-squared:", r_squared))
