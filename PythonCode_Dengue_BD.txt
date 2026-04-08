@@ -1,0 +1,2724 @@
+# ==============================
+# XGBoost Binary Classification with Specific Thresholds + All Metrics + Save
+# ==============================
+
+import pandas as pd
+import numpy as np
+from xgboost import XGBClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import (
+    accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, confusion_matrix, classification_report
+)
+
+# -------------------------------
+# Config
+# -------------------------------
+DATA_PATH = r"J:\Research\Research\denguebangladesh\data\ABSDengueDataBD.xlsx"
+SHEET_NAME = "data11"
+RANDOM_STATE = 42
+OUTPUT_PATH = r"J:\Research\Research\denguebangladesh\XGB_BinaryMetrics_SpecificThresholds.xlsx"
+
+# -------------------------------
+# Load dataset
+# -------------------------------
+data = pd.read_excel(DATA_PATH, sheet_name=SHEET_NAME)
+data.columns = data.columns.str.strip()
+
+# -------------------------------
+# Features: Drop metadata + DENV1-4
+# -------------------------------
+drop_cols = ['District','Latitude','Longitude','Year','Yearly_cases','DENV1','DENV2','DENV3','DENV4']
+X = data.drop(columns=[c for c in drop_cols if c in data.columns], errors='ignore')
+y_cases = data['Yearly_cases']
+
+# -------------------------------
+# Create binary target using median
+# -------------------------------
+median_val = y_cases.median()
+y_binary = (y_cases > median_val).astype(int)
+
+# -------------------------------
+# Stratified train/test split
+# -------------------------------
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y_binary, test_size=0.2, random_state=RANDOM_STATE, stratify=y_binary
+)
+
+# -------------------------------
+# Impute missing values + Scale
+# -------------------------------
+imputer = SimpleImputer(strategy='median')
+X_train = pd.DataFrame(imputer.fit_transform(X_train), columns=X_train.columns)
+X_test  = pd.DataFrame(imputer.transform(X_test), columns=X_test.columns)
+
+scaler = StandardScaler()
+X_train = pd.DataFrame(scaler.fit_transform(X_train), columns=X_train.columns)
+X_test  = pd.DataFrame(scaler.transform(X_test), columns=X_test.columns)
+
+# -------------------------------
+# Train XGBClassifier
+# -------------------------------
+xgb_model = XGBClassifier(
+    n_estimators=500,
+    max_depth=6,
+    learning_rate=0.01,
+    use_label_encoder=False,
+    eval_metric='logloss',
+    random_state=RANDOM_STATE
+)
+xgb_model.fit(X_train, y_train)
+
+# -------------------------------
+# Predict probabilities
+# -------------------------------
+y_train_prob = xgb_model.predict_proba(X_train)[:,1]
+y_test_prob  = xgb_model.predict_proba(X_test)[:,1]
+
+# -------------------------------
+# Specific thresholds
+# -------------------------------
+thresholds = [0.1, 0.3, 0.5]
+
+# -------------------------------
+# Metrics function
+# -------------------------------
+def all_metrics(y_true, y_prob, threshold):
+    y_pred = (y_prob > threshold).astype(int)
+    return {
+        'Threshold': threshold,
+        'Accuracy': accuracy_score(y_true, y_pred),
+        'Precision': precision_score(y_true, y_pred),
+        'Recall': recall_score(y_true, y_pred),
+        'F1': f1_score(y_true, y_pred),
+        'ROC-AUC': roc_auc_score(y_true, y_prob),
+        'Confusion_Matrix': confusion_matrix(y_true, y_pred),
+        'Classification_Report': classification_report(y_true, y_pred, output_dict=True)
+    }
+
+# -------------------------------
+# Compute metrics for all thresholds
+# -------------------------------
+train_metrics_all = [all_metrics(y_train, y_train_prob, thr) for thr in thresholds]
+test_metrics_all  = [all_metrics(y_test, y_test_prob, thr) for thr in thresholds]
+
+# -------------------------------
+# Save metrics and predictions to Excel
+# -------------------------------
+with pd.ExcelWriter(OUTPUT_PATH) as writer:
+    for thr in thresholds:
+        y_train_pred_thr = (y_train_prob > thr).astype(int)
+        y_test_pred_thr  = (y_test_prob > thr).astype(int)
+        
+        pd.DataFrame({
+            'Actual': y_train,
+            'Predicted': y_train_pred_thr,
+            'Probability': y_train_prob
+        }).to_excel(writer, sheet_name=f'Train_Thr_{thr}', index=False)
+        
+        pd.DataFrame({
+            'Actual': y_test,
+            'Predicted': y_test_pred_thr,
+            'Probability': y_test_prob
+        }).to_excel(writer, sheet_name=f'Test_Thr_{thr}', index=False)
+    
+    # Metrics summary
+    metrics_summary = pd.DataFrame({
+        'Threshold': thresholds,
+        'Train_Accuracy': [m['Accuracy'] for m in train_metrics_all],
+        'Train_Precision': [m['Precision'] for m in train_metrics_all],
+        'Train_Recall': [m['Recall'] for m in train_metrics_all],
+        'Train_F1': [m['F1'] for m in train_metrics_all],
+        'Train_ROC-AUC': [m['ROC-AUC'] for m in train_metrics_all],
+        'Test_Accuracy': [m['Accuracy'] for m in test_metrics_all],
+        'Test_Precision': [m['Precision'] for m in test_metrics_all],
+        'Test_Recall': [m['Recall'] for m in test_metrics_all],
+        'Test_F1': [m['F1'] for m in test_metrics_all],
+        'Test_ROC-AUC': [m['ROC-AUC'] for m in test_metrics_all],
+    })
+    metrics_summary.to_excel(writer, sheet_name='Summary_Metrics', index=False)
+
+print("Metrics for specific thresholds saved to:", OUTPUT_PATH)
+
+
+
+
+# ==============================
+# SVM Binary Classification with Specific Thresholds + All Metrics + Save
+# ==============================
+
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVC
+from sklearn.metrics import (
+    accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, confusion_matrix, classification_report
+)
+
+# -------------------------------
+# Config
+# -------------------------------
+DATA_PATH = r"J:\Research\Research\denguebangladesh\data\ABSDengueDataBD.xlsx"
+SHEET_NAME = "data11"
+RANDOM_STATE = 42
+OUTPUT_PATH = r"J:\Research\Research\denguebangladesh\SVM_BinaryMetrics_SpecificThresholds.xlsx"
+
+# -------------------------------
+# Load dataset
+# -------------------------------
+data = pd.read_excel(DATA_PATH, sheet_name=SHEET_NAME)
+data.columns = data.columns.str.strip()  # remove trailing spaces
+
+# -------------------------------
+# Features: Drop metadata + DENV1-4
+# -------------------------------
+drop_cols = ['District','Latitude','Longitude','Year','Yearly_cases','DENV1','DENV2','DENV3','DENV4']
+X = data.drop(columns=[c for c in drop_cols if c in data.columns], errors='ignore')
+y_cases = data['Yearly_cases']
+
+# -------------------------------
+# Create binary target using median
+# -------------------------------
+median_val = y_cases.median()
+y_binary = (y_cases > median_val).astype(int)
+
+# -------------------------------
+# Stratified train/test split
+# -------------------------------
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y_binary, test_size=0.2, random_state=RANDOM_STATE, stratify=y_binary
+)
+
+# -------------------------------
+# Impute missing values + Scale
+# -------------------------------
+imputer = SimpleImputer(strategy='median')
+X_train = pd.DataFrame(imputer.fit_transform(X_train), columns=X_train.columns)
+X_test  = pd.DataFrame(imputer.transform(X_test), columns=X_test.columns)
+
+scaler = StandardScaler()
+X_train = pd.DataFrame(scaler.fit_transform(X_train), columns=X_train.columns)
+X_test  = pd.DataFrame(scaler.transform(X_test), columns=X_test.columns)
+
+# -------------------------------
+# Train SVM classifier (with probability estimates)
+# -------------------------------
+svm_model = SVC(
+    kernel='rbf',
+    probability=True,
+    random_state=RANDOM_STATE
+)
+svm_model.fit(X_train, y_train)
+
+# -------------------------------
+# Predict probabilities
+# -------------------------------
+y_train_prob = svm_model.predict_proba(X_train)[:,1]
+y_test_prob  = svm_model.predict_proba(X_test)[:,1]
+
+# -------------------------------
+# Specific thresholds
+# -------------------------------
+thresholds = [0.1, 0.3, 0.5]
+
+# -------------------------------
+# Metrics function
+# -------------------------------
+def all_metrics(y_true, y_prob, threshold):
+    y_pred = (y_prob > threshold).astype(int)
+    return {
+        'Threshold': threshold,
+        'Accuracy': accuracy_score(y_true, y_pred),
+        'Precision': precision_score(y_true, y_pred),
+        'Recall': recall_score(y_true, y_pred),
+        'F1': f1_score(y_true, y_pred),
+        'ROC-AUC': roc_auc_score(y_true, y_prob),
+        'Confusion_Matrix': confusion_matrix(y_true, y_pred),
+        'Classification_Report': classification_report(y_true, y_pred, output_dict=True)
+    }
+
+# -------------------------------
+# Compute metrics for all thresholds
+# -------------------------------
+train_metrics_all = [all_metrics(y_train, y_train_prob, thr) for thr in thresholds]
+test_metrics_all  = [all_metrics(y_test, y_test_prob, thr) for thr in thresholds]
+
+# -------------------------------
+# Save metrics and predictions to Excel
+# -------------------------------
+with pd.ExcelWriter(OUTPUT_PATH) as writer:
+    # Train & Test predictions for each threshold
+    for thr in thresholds:
+        y_train_pred_thr = (y_train_prob > thr).astype(int)
+        y_test_pred_thr  = (y_test_prob > thr).astype(int)
+        
+        pd.DataFrame({
+            'Actual': y_train,
+            'Predicted': y_train_pred_thr,
+            'Probability': y_train_prob
+        }).to_excel(writer, sheet_name=f'Train_Thr_{thr}', index=False)
+        
+        pd.DataFrame({
+            'Actual': y_test,
+            'Predicted': y_test_pred_thr,
+            'Probability': y_test_prob
+        }).to_excel(writer, sheet_name=f'Test_Thr_{thr}', index=False)
+    
+    # Metrics summary
+    metrics_summary = pd.DataFrame({
+        'Threshold': thresholds,
+        'Train_Accuracy': [m['Accuracy'] for m in train_metrics_all],
+        'Train_Precision': [m['Precision'] for m in train_metrics_all],
+        'Train_Recall': [m['Recall'] for m in train_metrics_all],
+        'Train_F1': [m['F1'] for m in train_metrics_all],
+        'Train_ROC-AUC': [m['ROC-AUC'] for m in train_metrics_all],
+        'Test_Accuracy': [m['Accuracy'] for m in test_metrics_all],
+        'Test_Precision': [m['Precision'] for m in test_metrics_all],
+        'Test_Recall': [m['Recall'] for m in test_metrics_all],
+        'Test_F1': [m['F1'] for m in test_metrics_all],
+        'Test_ROC-AUC': [m['ROC-AUC'] for m in test_metrics_all],
+    })
+    metrics_summary.to_excel(writer, sheet_name='Summary_Metrics', index=False)
+
+print("Metrics for specific thresholds saved to:", OUTPUT_PATH)
+
+
+
+# ==============================
+# LSTM Binary Classification with Specific Thresholds + All Metrics + Save
+# ==============================
+
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer
+from sklearn.model_selection import train_test_split
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense, Dropout
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, confusion_matrix, classification_report
+
+# -------------------------------
+# Config
+# -------------------------------
+DATA_PATH = r"J:\Research\Research\denguebangladesh\data\ABSDengueDataBD.xlsx"
+SHEET_NAME = "data11"
+RANDOM_STATE = 42
+OUTPUT_PATH = r"J:\Research\Research\denguebangladesh\LSTM_BinaryMetrics_SpecificThresholds.xlsx"
+
+# -------------------------------
+# Load dataset
+# -------------------------------
+data = pd.read_excel(DATA_PATH, sheet_name=SHEET_NAME)
+data.columns = data.columns.str.strip()
+
+# -------------------------------
+# Features: Drop metadata + DENV1-4
+# -------------------------------
+drop_cols = ['District','Latitude','Longitude','Year','Yearly_cases','DENV1','DENV2','DENV3','DENV4']
+X = data.drop(columns=[c for c in drop_cols if c in data.columns], errors='ignore')
+y_cases = data['Yearly_cases']
+
+# -------------------------------
+# Binary target: high vs low
+# -------------------------------
+median_val = y_cases.median()
+y_binary = (y_cases > median_val).astype(int)
+
+# -------------------------------
+# Impute missing values + scale
+# -------------------------------
+imputer = SimpleImputer(strategy='median')
+X = pd.DataFrame(imputer.fit_transform(X), columns=X.columns)
+
+scaler = StandardScaler()
+X = pd.DataFrame(scaler.fit_transform(X), columns=X.columns)
+
+# -------------------------------
+# Train/test split
+# -------------------------------
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y_binary, test_size=0.2, random_state=RANDOM_STATE, stratify=y_binary
+)
+
+# -------------------------------
+# Reshape for LSTM (samples, timesteps=1, features)
+# -------------------------------
+X_train_lstm = np.expand_dims(X_train.values, axis=1)
+X_test_lstm  = np.expand_dims(X_test.values, axis=1)
+
+# -------------------------------
+# LSTM Binary Classification Model
+# -------------------------------
+model = Sequential()
+model.add(LSTM(64, input_shape=(X_train_lstm.shape[1], X_train_lstm.shape[2]), return_sequences=False))
+model.add(Dropout(0.3))
+model.add(Dense(1, activation='sigmoid'))
+
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+
+# -------------------------------
+# Train model
+# -------------------------------
+history = model.fit(
+    X_train_lstm, y_train,
+    epochs=100,
+    batch_size=16,
+    validation_split=0.2,
+    verbose=1
+)
+
+# -------------------------------
+# Predict probabilities
+# -------------------------------
+y_train_prob = model.predict(X_train_lstm).flatten()
+y_test_prob  = model.predict(X_test_lstm).flatten()
+
+# -------------------------------
+# Specific thresholds
+# -------------------------------
+thresholds = [0.1, 0.3, 0.5]
+
+# -------------------------------
+# Metrics function
+# -------------------------------
+def all_metrics(y_true, y_prob, threshold):
+    y_pred = (y_prob > threshold).astype(int)
+    return {
+        'Threshold': threshold,
+        'Accuracy': accuracy_score(y_true, y_pred),
+        'Precision': precision_score(y_true, y_pred),
+        'Recall': recall_score(y_true, y_pred),
+        'F1': f1_score(y_true, y_pred),
+        'ROC-AUC': roc_auc_score(y_true, y_prob),
+        'Confusion_Matrix': confusion_matrix(y_true, y_pred),
+        'Classification_Report': classification_report(y_true, y_pred, output_dict=True)
+    }
+
+# -------------------------------
+# Compute metrics for all thresholds
+# -------------------------------
+train_metrics_all = [all_metrics(y_train, y_train_prob, thr) for thr in thresholds]
+test_metrics_all  = [all_metrics(y_test, y_test_prob, thr) for thr in thresholds]
+
+# -------------------------------
+# Save metrics and predictions to Excel
+# -------------------------------
+with pd.ExcelWriter(OUTPUT_PATH) as writer:
+    # Train & Test predictions for each threshold
+    for thr in thresholds:
+        y_train_pred_thr = (y_train_prob > thr).astype(int)
+        y_test_pred_thr  = (y_test_prob > thr).astype(int)
+        
+        pd.DataFrame({
+            'Actual': y_train,
+            'Predicted': y_train_pred_thr,
+            'Probability': y_train_prob
+        }).to_excel(writer, sheet_name=f'Train_Thr_{thr}', index=False)
+        
+        pd.DataFrame({
+            'Actual': y_test,
+            'Predicted': y_test_pred_thr,
+            'Probability': y_test_prob
+        }).to_excel(writer, sheet_name=f'Test_Thr_{thr}', index=False)
+    
+    # Metrics summary
+    metrics_summary = pd.DataFrame({
+        'Threshold': thresholds,
+        'Train_Accuracy': [m['Accuracy'] for m in train_metrics_all],
+        'Train_Precision': [m['Precision'] for m in train_metrics_all],
+        'Train_Recall': [m['Recall'] for m in train_metrics_all],
+        'Train_F1': [m['F1'] for m in train_metrics_all],
+        'Train_ROC-AUC': [m['ROC-AUC'] for m in train_metrics_all],
+        'Test_Accuracy': [m['Accuracy'] for m in test_metrics_all],
+        'Test_Precision': [m['Precision'] for m in test_metrics_all],
+        'Test_Recall': [m['Recall'] for m in test_metrics_all],
+        'Test_F1': [m['F1'] for m in test_metrics_all],
+        'Test_ROC-AUC': [m['ROC-AUC'] for m in test_metrics_all],
+    })
+    metrics_summary.to_excel(writer, sheet_name='Summary_Metrics', index=False)
+
+print("Metrics for specific thresholds saved to:", OUTPUT_PATH)
+
+
+
+# ==============================
+# MLP Binary Classification with Specific Thresholds + All Metrics + Save
+# ==============================
+
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer
+from sklearn.model_selection import train_test_split
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Dropout
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, confusion_matrix, classification_report
+
+# -------------------------------
+# Config
+# -------------------------------
+DATA_PATH = r"J:\Research\Research\denguebangladesh\data\ABSDengueDataBD.xlsx"
+SHEET_NAME = "data11"
+RANDOM_STATE = 42
+OUTPUT_PATH = r"J:\Research\Research\denguebangladesh\MLP_BinaryMetrics_SpecificThresholds.xlsx"
+
+# -------------------------------
+# Load dataset
+# -------------------------------
+data = pd.read_excel(DATA_PATH, sheet_name=SHEET_NAME)
+data.columns = data.columns.str.strip()
+
+# -------------------------------
+# Features: Drop metadata + DENV1-4
+# -------------------------------
+drop_cols = ['District','Latitude','Longitude','Year','Yearly_cases','DENV1','DENV2','DENV3','DENV4']
+X = data.drop(columns=[c for c in drop_cols if c in data.columns], errors='ignore')
+y_cases = data['Yearly_cases']
+
+# -------------------------------
+# Binary target: high vs low
+# -------------------------------
+median_val = y_cases.median()
+y_binary = (y_cases > median_val).astype(int)
+
+# -------------------------------
+# Impute missing values + scale
+# -------------------------------
+imputer = SimpleImputer(strategy='median')
+X = pd.DataFrame(imputer.fit_transform(X), columns=X.columns)
+
+scaler = StandardScaler()
+X = pd.DataFrame(scaler.fit_transform(X), columns=X.columns)
+
+# -------------------------------
+# Train/test split
+# -------------------------------
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y_binary, test_size=0.2, random_state=RANDOM_STATE, stratify=y_binary
+)
+
+# -------------------------------
+# MLP Model
+# -------------------------------
+model = Sequential()
+model.add(Dense(128, input_dim=X_train.shape[1], activation='relu'))
+model.add(Dropout(0.3))
+model.add(Dense(64, activation='relu'))
+model.add(Dropout(0.2))
+model.add(Dense(1, activation='sigmoid'))
+
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+
+# -------------------------------
+# Train model
+# -------------------------------
+history = model.fit(
+    X_train, y_train,
+    epochs=100,
+    batch_size=16,
+    validation_split=0.2,
+    verbose=1
+)
+
+# -------------------------------
+# Predict probabilities
+# -------------------------------
+y_train_prob = model.predict(X_train).flatten()
+y_test_prob  = model.predict(X_test).flatten()
+
+# -------------------------------
+# Specific thresholds
+# -------------------------------
+thresholds = [0.1, 0.3, 0.5]
+
+# -------------------------------
+# Metrics function
+# -------------------------------
+def all_metrics(y_true, y_prob, threshold):
+    y_pred = (y_prob > threshold).astype(int)
+    return {
+        'Threshold': threshold,
+        'Accuracy': accuracy_score(y_true, y_pred),
+        'Precision': precision_score(y_true, y_pred),
+        'Recall': recall_score(y_true, y_pred),
+        'F1': f1_score(y_true, y_pred),
+        'ROC-AUC': roc_auc_score(y_true, y_prob),
+        'Confusion_Matrix': confusion_matrix(y_true, y_pred),
+        'Classification_Report': classification_report(y_true, y_pred, output_dict=True)
+    }
+
+# -------------------------------
+# Compute metrics for all thresholds
+# -------------------------------
+train_metrics_all = [all_metrics(y_train, y_train_prob, thr) for thr in thresholds]
+test_metrics_all  = [all_metrics(y_test, y_test_prob, thr) for thr in thresholds]
+
+# -------------------------------
+# Save metrics and predictions to Excel
+# -------------------------------
+with pd.ExcelWriter(OUTPUT_PATH) as writer:
+    # Train & Test predictions for each threshold
+    for thr in thresholds:
+        y_train_pred_thr = (y_train_prob > thr).astype(int)
+        y_test_pred_thr  = (y_test_prob > thr).astype(int)
+        
+        pd.DataFrame({
+            'Actual': y_train,
+            'Predicted': y_train_pred_thr,
+            'Probability': y_train_prob
+        }).to_excel(writer, sheet_name=f'Train_Thr_{thr}', index=False)
+        
+        pd.DataFrame({
+            'Actual': y_test,
+            'Predicted': y_test_pred_thr,
+            'Probability': y_test_prob
+        }).to_excel(writer, sheet_name=f'Test_Thr_{thr}', index=False)
+    
+    # Metrics summary
+    metrics_summary = pd.DataFrame({
+        'Threshold': thresholds,
+        'Train_Accuracy': [m['Accuracy'] for m in train_metrics_all],
+        'Train_Precision': [m['Precision'] for m in train_metrics_all],
+        'Train_Recall': [m['Recall'] for m in train_metrics_all],
+        'Train_F1': [m['F1'] for m in train_metrics_all],
+        'Train_ROC-AUC': [m['ROC-AUC'] for m in train_metrics_all],
+        'Test_Accuracy': [m['Accuracy'] for m in test_metrics_all],
+        'Test_Precision': [m['Precision'] for m in test_metrics_all],
+        'Test_Recall': [m['Recall'] for m in test_metrics_all],
+        'Test_F1': [m['F1'] for m in test_metrics_all],
+        'Test_ROC-AUC': [m['ROC-AUC'] for m in test_metrics_all],
+    })
+    metrics_summary.to_excel(writer, sheet_name='Summary_Metrics', index=False)
+
+print("Metrics for specific thresholds saved to:", OUTPUT_PATH)
+
+
+
+# ==============================
+# ConvLSTM1D Binary Classification with Specific Thresholds + All Metrics + Save
+# ==============================
+
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer
+from sklearn.model_selection import train_test_split
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import ConvLSTM2D, Flatten, Dense, Dropout
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, confusion_matrix, classification_report
+
+# -------------------------------
+# Config
+# -------------------------------
+DATA_PATH = r"J:\Research\Research\denguebangladesh\data\ABSDengueDataBD.xlsx"
+SHEET_NAME = "data11"
+RANDOM_STATE = 42
+OUTPUT_PATH = r"J:\Research\Research\denguebangladesh\ConvLSTM_BinaryMetrics_SpecificThresholds.xlsx"
+
+# -------------------------------
+# Load dataset
+# -------------------------------
+data = pd.read_excel(DATA_PATH, sheet_name=SHEET_NAME)
+data.columns = data.columns.str.strip()
+
+# -------------------------------
+# Features: Drop metadata + DENV1-4
+# -------------------------------
+drop_cols = ['District','Latitude','Longitude','Year','Yearly_cases','DENV1','DENV2','DENV3','DENV4']
+X = data.drop(columns=[c for c in drop_cols if c in data.columns], errors='ignore')
+y_cases = data['Yearly_cases']
+
+# -------------------------------
+# Binary target: high vs low
+# -------------------------------
+median_val = y_cases.median()
+y_binary = (y_cases > median_val).astype(int)
+
+# -------------------------------
+# Impute missing values + scale
+# -------------------------------
+imputer = SimpleImputer(strategy='median')
+X = pd.DataFrame(imputer.fit_transform(X), columns=X.columns)
+
+scaler = StandardScaler()
+X = pd.DataFrame(scaler.fit_transform(X), columns=X.columns)
+
+# -------------------------------
+# Train/test split
+# -------------------------------
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y_binary, test_size=0.2, random_state=RANDOM_STATE, stratify=y_binary
+)
+
+# -------------------------------
+# Reshape for ConvLSTM2D
+# -------------------------------
+X_train_cnn = X_train.values.reshape((X_train.shape[0], 1, X_train.shape[1], 1, 1))
+X_test_cnn  = X_test.values.reshape((X_test.shape[0], 1, X_test.shape[1], 1, 1))
+
+# -------------------------------
+# ConvLSTM1D Binary Classification Model
+# -------------------------------
+model = Sequential()
+model.add(ConvLSTM2D(filters=32, kernel_size=(1,1), activation='relu',
+                     input_shape=(1, X_train.shape[1], 1, 1), return_sequences=False))
+model.add(Dropout(0.3))
+model.add(Flatten())
+model.add(Dense(64, activation='relu'))
+model.add(Dropout(0.2))
+model.add(Dense(1, activation='sigmoid'))
+
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+
+# -------------------------------
+# Train model
+# -------------------------------
+history = model.fit(
+    X_train_cnn, y_train,
+    epochs=100,
+    batch_size=16,
+    validation_split=0.2,
+    verbose=1
+)
+
+# -------------------------------
+# Predict probabilities
+# -------------------------------
+y_train_prob = model.predict(X_train_cnn).flatten()
+y_test_prob  = model.predict(X_test_cnn).flatten()
+
+# -------------------------------
+# Specific thresholds
+# -------------------------------
+thresholds = [0.1, 0.3, 0.5]
+
+# -------------------------------
+# Metrics function
+# -------------------------------
+def all_metrics(y_true, y_prob, threshold):
+    y_pred = (y_prob > threshold).astype(int)
+    return {
+        'Threshold': threshold,
+        'Accuracy': accuracy_score(y_true, y_pred),
+        'Precision': precision_score(y_true, y_pred),
+        'Recall': recall_score(y_true, y_pred),
+        'F1': f1_score(y_true, y_pred),
+        'ROC-AUC': roc_auc_score(y_true, y_prob),
+        'Confusion_Matrix': confusion_matrix(y_true, y_pred),
+        'Classification_Report': classification_report(y_true, y_pred, output_dict=True)
+    }
+
+# -------------------------------
+# Compute metrics for all thresholds
+# -------------------------------
+train_metrics_all = [all_metrics(y_train, y_train_prob, thr) for thr in thresholds]
+test_metrics_all  = [all_metrics(y_test, y_test_prob, thr) for thr in thresholds]
+
+# -------------------------------
+# Save metrics and predictions to Excel
+# -------------------------------
+with pd.ExcelWriter(OUTPUT_PATH) as writer:
+    # Train & Test predictions for each threshold
+    for thr in thresholds:
+        y_train_pred_thr = (y_train_prob > thr).astype(int)
+        y_test_pred_thr  = (y_test_prob > thr).astype(int)
+        
+        pd.DataFrame({
+            'Actual': y_train,
+            'Predicted': y_train_pred_thr,
+            'Probability': y_train_prob
+        }).to_excel(writer, sheet_name=f'Train_Thr_{thr}', index=False)
+        
+        pd.DataFrame({
+            'Actual': y_test,
+            'Predicted': y_test_pred_thr,
+            'Probability': y_test_prob
+        }).to_excel(writer, sheet_name=f'Test_Thr_{thr}', index=False)
+    
+    # Metrics summary
+    metrics_summary = pd.DataFrame({
+        'Threshold': thresholds,
+        'Train_Accuracy': [m['Accuracy'] for m in train_metrics_all],
+        'Train_Precision': [m['Precision'] for m in train_metrics_all],
+        'Train_Recall': [m['Recall'] for m in train_metrics_all],
+        'Train_F1': [m['F1'] for m in train_metrics_all],
+        'Train_ROC-AUC': [m['ROC-AUC'] for m in train_metrics_all],
+        'Test_Accuracy': [m['Accuracy'] for m in test_metrics_all],
+        'Test_Precision': [m['Precision'] for m in test_metrics_all],
+        'Test_Recall': [m['Recall'] for m in test_metrics_all],
+        'Test_F1': [m['F1'] for m in test_metrics_all],
+        'Test_ROC-AUC': [m['ROC-AUC'] for m in test_metrics_all],
+    })
+    metrics_summary.to_excel(writer, sheet_name='Summary_Metrics', index=False)
+
+print("Metrics for specific thresholds saved to:", OUTPUT_PATH)
+
+
+
+
+
+# ==============================
+# GLM (Logistic Regression) with Elastic Net + Specific Thresholds + All Metrics + Save
+# ==============================
+
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, confusion_matrix, classification_report
+
+# -------------------------------
+# Config
+# -------------------------------
+DATA_PATH = r"J:\Research\Research\denguebangladesh\data\ABSDengueDataBD.xlsx"
+SHEET_NAME = "data11"
+RANDOM_STATE = 42
+OUTPUT_PATH = r"J:\Research\Research\denguebangladesh\GLM_ElasticNet_SpecificThresholds.xlsx"
+
+# -------------------------------
+# Load dataset
+# -------------------------------
+data = pd.read_excel(DATA_PATH, sheet_name=SHEET_NAME)
+data.columns = data.columns.str.strip()
+
+# -------------------------------
+# Features: Drop metadata + DENV1-4
+# -------------------------------
+drop_cols = ['District','Latitude','Longitude','Year','Yearly_cases','DENV1','DENV2','DENV3','DENV4']
+X = data.drop(columns=[c for c in drop_cols if c in data.columns], errors='ignore')
+y_cases = data['Yearly_cases']
+
+# -------------------------------
+# Binary target: high vs low
+# -------------------------------
+median_val = y_cases.median()
+y_binary = (y_cases > median_val).astype(int)
+
+# -------------------------------
+# Impute missing values + scale
+# -------------------------------
+imputer = SimpleImputer(strategy='median')
+X = pd.DataFrame(imputer.fit_transform(X), columns=X.columns)
+
+scaler = StandardScaler()
+X = pd.DataFrame(scaler.fit_transform(X), columns=X.columns)
+
+# -------------------------------
+# Train/test split
+# -------------------------------
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y_binary, test_size=0.2, random_state=RANDOM_STATE, stratify=y_binary
+)
+
+# -------------------------------
+# GLM (Logistic Regression) with Elastic Net
+# -------------------------------
+glm_model = LogisticRegression(
+    penalty='elasticnet',
+    l1_ratio=0.5,  # mix ratio between L1 and L2
+    C=1.0,         # inverse of regularization strength
+    solver='saga', # saga supports elasticnet
+    max_iter=5000,
+    random_state=RANDOM_STATE
+)
+
+glm_model.fit(X_train, y_train)
+
+# -------------------------------
+# Predict probabilities
+# -------------------------------
+y_train_prob = glm_model.predict_proba(X_train)[:,1]
+y_test_prob  = glm_model.predict_proba(X_test)[:,1]
+
+# -------------------------------
+# Specific thresholds
+# -------------------------------
+thresholds = [0.1, 0.3, 0.5]
+
+# -------------------------------
+# Metrics function
+# -------------------------------
+def all_metrics(y_true, y_prob, threshold):
+    y_pred = (y_prob > threshold).astype(int)
+    return {
+        'Threshold': threshold,
+        'Accuracy': accuracy_score(y_true, y_pred),
+        'Precision': precision_score(y_true, y_pred),
+        'Recall': recall_score(y_true, y_pred),
+        'F1': f1_score(y_true, y_pred),
+        'ROC-AUC': roc_auc_score(y_true, y_prob),
+        'Confusion_Matrix': confusion_matrix(y_true, y_pred),
+        'Classification_Report': classification_report(y_true, y_pred, output_dict=True)
+    }
+
+# -------------------------------
+# Compute metrics for all thresholds
+# -------------------------------
+train_metrics_all = [all_metrics(y_train, y_train_prob, thr) for thr in thresholds]
+test_metrics_all  = [all_metrics(y_test, y_test_prob, thr) for thr in thresholds]
+
+# -------------------------------
+# Save metrics and predictions to Excel
+# -------------------------------
+with pd.ExcelWriter(OUTPUT_PATH) as writer:
+    # Train predictions + probabilities
+    for thr in thresholds:
+        y_train_pred_thr = (y_train_prob > thr).astype(int)
+        pd.DataFrame({
+            'Actual': y_train,
+            'Predicted': y_train_pred_thr,
+            'Probability': y_train_prob
+        }).to_excel(writer, sheet_name=f'Train_Thr_{thr}', index=False)
+        
+        y_test_pred_thr = (y_test_prob > thr).astype(int)
+        pd.DataFrame({
+            'Actual': y_test,
+            'Predicted': y_test_pred_thr,
+            'Probability': y_test_prob
+        }).to_excel(writer, sheet_name=f'Test_Thr_{thr}', index=False)
+    
+    # Metrics summary
+    metrics_summary = pd.DataFrame({
+        'Threshold': thresholds,
+        'Train_Accuracy': [m['Accuracy'] for m in train_metrics_all],
+        'Train_Precision': [m['Precision'] for m in train_metrics_all],
+        'Train_Recall': [m['Recall'] for m in train_metrics_all],
+        'Train_F1': [m['F1'] for m in train_metrics_all],
+        'Train_ROC-AUC': [m['ROC-AUC'] for m in train_metrics_all],
+        'Test_Accuracy': [m['Accuracy'] for m in test_metrics_all],
+        'Test_Precision': [m['Precision'] for m in test_metrics_all],
+        'Test_Recall': [m['Recall'] for m in test_metrics_all],
+        'Test_F1': [m['F1'] for m in test_metrics_all],
+        'Test_ROC-AUC': [m['ROC-AUC'] for m in test_metrics_all],
+    })
+    metrics_summary.to_excel(writer, sheet_name='Summary_Metrics', index=False)
+
+print("Metrics for specific thresholds saved to:", OUTPUT_PATH)
+
+
+
+
+# ============================================
+# MLP + KernelSHAP: District-wise & Overall Top 10 Features
+# ============================================
+
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Dropout
+import shap
+
+# -------------------------------
+# Load dataset
+# -------------------------------
+DATA_PATH = r"J:\Research\Research\denguebangladesh\data\ABSDengueDataBD.xlsx"
+SHEET_NAME = "data11"
+
+data = pd.read_excel(DATA_PATH, sheet_name=SHEET_NAME)
+data.columns = data.columns.str.strip()
+
+# -------------------------------
+# Train = 2017–23, Test = 2024
+# -------------------------------
+train_data = data[data['Year'] <= 2023].copy()
+test_data  = data[data['Year'] == 2024].copy()
+
+# -------------------------------
+# Features
+# -------------------------------
+drop_cols = ['Latitude','Longitude','Year','Yearly_cases','DENV1','DENV2','DENV3','DENV4']
+
+X_train = train_data.drop(columns=[c for c in drop_cols if c in train_data.columns])
+X_test  = test_data.drop(columns=[c for c in drop_cols if c in test_data.columns])
+
+# Keep District separately
+district_train = X_train['District']
+district_test  = X_test['District']
+
+X_train = X_train.drop(columns=['District'])
+X_test  = X_test.drop(columns=['District'])
+
+y_train_cases = train_data['Yearly_cases']
+y_test_cases  = test_data['Yearly_cases']
+
+# -------------------------------
+# Binary Target: High vs Low
+# -------------------------------
+median_val = y_train_cases.median()
+y_train = (y_train_cases > median_val).astype(int)
+y_test  = (y_test_cases  > median_val).astype(int)
+
+# -------------------------------
+# Impute + Scale
+# -------------------------------
+imputer = SimpleImputer(strategy='median')
+X_train = pd.DataFrame(imputer.fit_transform(X_train), columns=X_train.columns)
+X_test  = pd.DataFrame(imputer.transform(X_test), columns=X_test.columns)
+
+scaler = StandardScaler()
+X_train = pd.DataFrame(scaler.fit_transform(X_train), columns=X_train.columns)
+X_test  = pd.DataFrame(scaler.transform(X_test), columns=X_test.columns)
+
+# -------------------------------
+# Build & Train MLP
+# -------------------------------
+model = Sequential([
+    Dense(128, activation='relu', input_dim=X_train.shape[1]),
+    Dropout(0.3),
+    Dense(64, activation='relu'),
+    Dropout(0.2),
+    Dense(1, activation='sigmoid')
+])
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+model.fit(X_train, y_train, epochs=50, batch_size=16, verbose=1)
+
+# -------------------------------
+# SHAP Explainer
+# -------------------------------
+X_sample_train = shap.sample(X_train, 100, random_state=42)
+X_sample_test  = shap.sample(X_test, 100, random_state=42)
+
+def predict_fn(data):
+    return model.predict(data, verbose=0).reshape(-1)
+
+explainer = shap.KernelExplainer(predict_fn, X_sample_train)
+shap_values = explainer.shap_values(X_test)
+
+shap_array = np.array(shap_values)
+if shap_array.ndim == 3:
+    shap_array = shap_array[0]
+elif shap_array.ndim == 1:
+    shap_array = shap_array.reshape(1, -1)
+
+shap_array = shap_array[:, :X_train.shape[1]]  # fix length
+
+# -------------------------------
+# 1. District-wise Top 10 SHAP
+# -------------------------------
+district_list = district_test.unique()
+district_top10_list = []
+
+for dist in district_list:
+    idx = district_test[district_test == dist].index
+    shap_mean = np.abs(shap_array[idx, :]).mean(axis=0)
+    df = pd.DataFrame({
+        "Feature": X_train.columns,
+        "SHAP_Value": shap_mean
+    }).sort_values(by="SHAP_Value", ascending=False).head(10)
+    df["District"] = dist
+    district_top10_list.append(df)
+
+district_top10_df = pd.concat(district_top10_list)
+district_top10_df = district_top10_df[["District","Feature","SHAP_Value"]]
+
+# -------------------------------
+# 2. Overall Top 10 SHAP
+# -------------------------------
+shap_mean_overall = np.abs(shap_array).mean(axis=0)
+overall_top10_df = pd.DataFrame({
+    "Feature": X_train.columns,
+    "SHAP_Value": shap_mean_overall
+}).sort_values(by="SHAP_Value", ascending=False).head(10)
+
+# -------------------------------
+# Save to Excel
+# -------------------------------
+output_path = r"J:\Research\Research\denguebangladesh\data\Top10_SHAP.xlsx"
+with pd.ExcelWriter(output_path) as writer:
+    district_top10_df.to_excel(writer, sheet_name="District_Wise_Top10", index=False)
+    overall_top10_df.to_excel(writer, sheet_name="Overall_Top10", index=False)
+
+print(f"✅ Saved district-wise and overall top 10 SHAP to: {output_path}")
+
+
+
+
+
+# Convert shap_values to DataFrame
+shap_df = pd.DataFrame(shap_values, columns=X_train.columns)
+shap_df['District'] = district_test.values  # assign districts
+
+# -------------------------------
+# District-wise top 10 features
+# -------------------------------
+district_top10_list = []
+
+for district, group in shap_df.groupby('District'):
+    # Mean absolute SHAP per feature for this district
+    mean_shap = group.drop(columns='District').abs().mean().sort_values(ascending=False).head(10)
+    
+    temp_df = pd.DataFrame({
+        'District': district,
+        'Feature': mean_shap.index,
+        'Mean_SHAP': mean_shap.values
+    })
+    
+    district_top10_list.append(temp_df)
+
+district_top10_df = pd.concat(district_top10_list, axis=0)
+
+# -------------------------------
+# Overall top 10 features
+# -------------------------------
+overall_top10 = shap_df.drop(columns='District').abs().mean().sort_values(ascending=False).head(10)
+overall_top10_df = pd.DataFrame({
+    'Feature': overall_top10.index,
+    'Mean_SHAP': overall_top10.values
+})
+
+# -------------------------------
+# Save to Excel
+# -------------------------------
+with pd.ExcelWriter(r"J:\Research\Research\denguebangladesh\SHAP_Top10.xlsx") as writer:
+    district_top10_df.to_excel(writer, sheet_name="Districtwise_Top10", index=False)
+    overall_top10_df.to_excel(writer, sheet_name="Overall_Top10", index=False)
+
+print("✅ SHAP Top 10 features saved successfully!")
+
+
+
+
+import pandas as pd
+import numpy as np
+
+# -------------------------------
+# Define feature categories
+# -------------------------------
+categories = {
+    "Climate & Environmental": ["X11", "X12", "X13", "X14", "X15", "X16"],
+    "Socio-Demographic & Economic": ["X17", "X18", "X19", "X110", "X111", "X112", "X113"],
+    "Healthcare System": ["X114", "X115", "X116", "X117", "X118"],
+    "Land Use & Land Cover": ["X119", "X120", "X121"]
+}
+
+# -------------------------------
+# SHAP values as DataFrame
+# -------------------------------
+shap_df = pd.DataFrame(shap_values, columns=X_train.columns)
+shap_df['District'] = district_test.values
+
+# -------------------------------
+# District-wise Top 10 features
+# -------------------------------
+district_top10_list = []
+district_category_list = []
+
+for district, group in shap_df.groupby('District'):
+    # Top 10 features
+    mean_shap = group.drop(columns='District').abs().mean().sort_values(ascending=False).head(10)
+    temp_top = pd.DataFrame({
+        'District': district,
+        'Feature': mean_shap.index,
+        'Mean_SHAP': mean_shap.values
+    })
+    district_top10_list.append(temp_top)
+    
+    # Category-wise contribution
+    cat_values = {}
+    for cat, features in categories.items():
+        valid_features = [f for f in features if f in group.columns]
+        cat_sum = group[valid_features].abs().mean().sum()
+        cat_values[cat] = cat_sum
+    cat_df = pd.DataFrame({
+        'District': district,
+        'Category': list(cat_values.keys()),
+        'SHAP_Sum': list(cat_values.values())
+    })
+    cat_df['Contribution_%'] = (cat_df['SHAP_Sum'] / cat_df['SHAP_Sum'].sum()) * 100
+    district_category_list.append(cat_df)
+
+district_top10_df = pd.concat(district_top10_list, axis=0)
+district_category_df = pd.concat(district_category_list, axis=0)
+
+# -------------------------------
+# Overall Top 10 features
+# -------------------------------
+overall_mean = shap_df.drop(columns='District').abs().mean()
+overall_top10 = overall_mean.sort_values(ascending=False).head(10)
+overall_top10_df = pd.DataFrame({
+    'Feature': overall_top10.index,
+    'Mean_SHAP': overall_top10.values
+})
+
+# -------------------------------
+# Overall Category-wise contribution
+# -------------------------------
+overall_cat_values = {}
+for cat, features in categories.items():
+    valid_features = [f for f in features if f in shap_df.columns]
+    overall_cat_values[cat] = shap_df[valid_features].abs().mean().sum()
+
+overall_category_df = pd.DataFrame({
+    'Category': list(overall_cat_values.keys()),
+    'SHAP_Sum': list(overall_cat_values.values())
+})
+overall_category_df['Contribution_%'] = (overall_category_df['SHAP_Sum'] / overall_category_df['SHAP_Sum'].sum()) * 100
+
+# -------------------------------
+# Save all to Excel
+# -------------------------------
+with pd.ExcelWriter(r"J:\Research\Research\denguebangladesh\SHAP_Top10_Category.xlsx") as writer:
+    district_top10_df.to_excel(writer, sheet_name="Districtwise_Top10", index=False)
+    overall_top10_df.to_excel(writer, sheet_name="Overall_Top10", index=False)
+    district_category_df.to_excel(writer, sheet_name="Districtwise_Category", index=False)
+    overall_category_df.to_excel(writer, sheet_name="Overall_Category", index=False)
+
+print("✅ SHAP Top10 and Category-wise contributions saved successfully!")
+
+
+
+
+import pandas as pd
+import numpy as np
+from tqdm import tqdm
+
+# -------------------------------
+# Top 10 features
+# -------------------------------
+top10_features = ["X19","X17","X117","X120","X118","X111","X116","X11","X119","X14"]
+
+# -------------------------------
+# Define scenario percentages
+# -------------------------------
+percents = np.arange(-50, 51, 10)  # -50%, -40%, ..., 0%, ..., +50%
+
+# -------------------------------
+# Initialize results DataFrame
+# -------------------------------
+scenario_results = []
+
+# -------------------------------
+# Loop through features and percentage changes
+# -------------------------------
+X_test_copy = X_test.copy()  # keep original test data
+
+for feature in tqdm(top10_features, desc="Scenario Analysis"):
+    for p in percents:
+        # Create modified test set
+        X_mod = X_test_copy.copy()
+        X_mod[feature] = X_mod[feature] * (1 + p/100)
+        
+        # Predict probability
+        y_pred_prob = model.predict(X_mod, verbose=0).mean()  # mean probability across all districts
+        scenario_results.append({
+            "Feature": feature,
+            "Change_%": p,
+            "Predicted_Probability": y_pred_prob
+        })
+
+# -------------------------------
+# Convert to DataFrame
+# -------------------------------
+scenario_df = pd.DataFrame(scenario_results)
+
+# -------------------------------
+# Save to Excel
+# -------------------------------
+scenario_df.to_excel(r"J:\Research\Research\denguebangladesh\Top10_Feature_Scenario.xlsx", index=False)
+
+print("✅ Scenario analysis saved successfully!")
+
+
+
+
+import pandas as pd
+import numpy as np
+from tqdm import tqdm
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# -------------------------------
+# Top 10 features
+# -------------------------------
+top10_features = ["X19","X17","X117","X120","X118","X111","X116","X11","X119","X14"]
+
+# -------------------------------
+# Scenario percentages (-50% to +50% in 10% steps)
+# -------------------------------
+percents = np.arange(-50, 51, 10)
+
+# -------------------------------
+# Initialize results list
+# -------------------------------
+scenario_results = []
+
+# -------------------------------
+# Loop through features and percentages
+# -------------------------------
+X_test_copy = X_test.copy()  # original test data
+
+for feature in tqdm(top10_features, desc="Scenario Analysis"):
+    for p in percents:
+        X_mod = X_test_copy.copy()
+        X_mod[feature] = X_mod[feature] * (1 + p/100)
+        
+        # Predict probability (average over test set)
+        y_pred_prob = model.predict(X_mod, verbose=0).mean()
+        
+        scenario_results.append({
+            "Feature": feature,
+            "Change_%": p,
+            "Predicted_Probability": y_pred_prob
+        })
+
+# -------------------------------
+# Convert to DataFrame
+# -------------------------------
+scenario_df = pd.DataFrame(scenario_results)
+
+# -------------------------------
+# Save to Excel
+# -------------------------------
+#scenario_df.to_excel(r"J:\Research\Research\denguebangladesh\Top10_Feature_Scenario.xlsx", index=False)
+print("✅ Scenario analysis saved successfully!")
+
+# -------------------------------
+# Plot scenario analysis
+# -------------------------------
+plt.figure(figsize=(12, 8))
+sns.set(style="whitegrid")
+
+for feature in top10_features:
+    df = scenario_df[scenario_df['Feature'] == feature]
+    plt.plot(df['Change_%'], df['Predicted_Probability'], marker='o', label=feature)
+
+plt.xlabel("Feature Change (%)")
+plt.ylabel("Predicted Probability of High Dengue Cases")
+plt.title("Scenario Analysis: Top 10 Feature Sensitivity")
+plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+plt.xticks(percents)
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+
+
+
+import pandas as pd
+import numpy as np
+from sklearn.impute import SimpleImputer
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
+import xgboost as xgb
+
+# -------------------------------
+# Load dataset
+# -------------------------------
+DATA_PATH = r"J:\Research\Research\denguebangladesh\data\ABSDengueDataBD.xlsx"
+SHEET_NAME = "data22"
+data = pd.read_excel(DATA_PATH, sheet_name=SHEET_NAME)
+data.columns = data.columns.str.strip()
+
+# -------------------------------
+# Train/Test split
+# -------------------------------
+train_data = data[data['Year'] <= 2023].copy()
+test_data  = data[data['Year'] == 2024].copy()
+
+drop_cols = ['District','Latitude','Longitude','Month','Month1','Year','Monthly_cases']
+X_train = train_data.drop(columns=[c for c in drop_cols if c in train_data.columns])
+X_test  = test_data.drop(columns=[c for c in drop_cols if c in test_data.columns])
+
+y_train_cases = train_data['Monthly_cases']
+y_test_cases  = test_data['Monthly_cases']
+
+# Binary target using median
+median_val = y_train_cases.median()
+y_train = (y_train_cases > median_val).astype(int)
+y_test  = (y_test_cases > median_val).astype(int)
+
+# -------------------------------
+# Impute + Scale
+# -------------------------------
+imputer = SimpleImputer(strategy='median')
+X_train = pd.DataFrame(imputer.fit_transform(X_train), columns=X_train.columns)
+X_test  = pd.DataFrame(imputer.transform(X_test), columns=X_test.columns)
+
+scaler = StandardScaler()
+X_train = pd.DataFrame(scaler.fit_transform(X_train), columns=X_train.columns)
+X_test  = pd.DataFrame(scaler.transform(X_test), columns=X_test.columns)
+
+# -------------------------------
+# XGBoost Classifier
+# -------------------------------
+model = xgb.XGBClassifier(
+    n_estimators=200,
+    max_depth=4,
+    learning_rate=0.01,
+    subsample=0.6,
+    colsample_bytree=0.6,
+    min_child_weight=1,
+    gamma=0,
+    use_label_encoder=False,
+    eval_metric='logloss',
+    random_state=42
+)
+model.fit(X_train, y_train)
+
+# -------------------------------
+# Function to compute metrics at different thresholds
+# -------------------------------
+def evaluate_metrics(y_true, y_prob, thresholds=[0.1, 0.3, 0.5]):
+    results = []
+    for thresh in thresholds:
+        y_pred = (y_prob >= thresh).astype(int)
+        results.append({
+            "Threshold": thresh,
+            "Accuracy": accuracy_score(y_true, y_pred),
+            "Precision": precision_score(y_true, y_pred),
+            "Recall": recall_score(y_true, y_pred),
+            "F1": f1_score(y_true, y_pred),
+            "ROC_AUC": roc_auc_score(y_true, y_prob)
+        })
+    return pd.DataFrame(results)
+
+# -------------------------------
+# Predictions
+# -------------------------------
+train_prob = model.predict_proba(X_train)[:,1]
+test_prob  = model.predict_proba(X_test)[:,1]
+
+# Compute metrics
+train_metrics = evaluate_metrics(y_train, train_prob)
+test_metrics  = evaluate_metrics(y_test, test_prob)
+
+# -------------------------------
+# Save metrics to Excel
+# -------------------------------
+OUTPUT_PATH = r"J:\Research\Research\denguebangladesh\XGB_Classification_Metrics.xlsx"
+with pd.ExcelWriter(OUTPUT_PATH) as writer:
+    train_metrics.to_excel(writer, sheet_name='Train_Metrics', index=False)
+    test_metrics.to_excel(writer, sheet_name='Test_Metrics', index=False)
+
+
+
+
+
+# ===============================================
+# GLM (Logistic Regression) with Elastic Net
+# ===============================================
+
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer
+from sklearn.linear_model import LogisticRegressionCV
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
+
+# -------------------------------
+# Load dataset
+# -------------------------------
+DATA_PATH = r"J:\Research\Research\denguebangladesh\data\ABSDengueDataBD.xlsx"
+SHEET_NAME = "data22"
+
+data = pd.read_excel(DATA_PATH, sheet_name=SHEET_NAME)
+data.columns = data.columns.str.strip()
+
+# -------------------------------
+# Train = Jan 2022–Dec 2023, Test = Jan–Dec 2024
+# -------------------------------
+train_data = data[data['Year'].isin([2022, 2023])].copy()
+test_data  = data[data['Year'] == 2024].copy()
+
+# -------------------------------
+# Features
+# -------------------------------
+drop_cols = ['District','Latitude','Longitude','Month','Month1','Year','Monthly_cases']
+
+X_train = train_data.drop(columns=[c for c in drop_cols if c in train_data.columns])
+X_test  = test_data.drop(columns=[c for c in drop_cols if c in test_data.columns])
+
+y_train_cases = train_data['Monthly_cases']
+y_test_cases  = test_data['Monthly_cases']
+
+# -------------------------------
+# Binary Target: High vs Low (median threshold)
+# -------------------------------
+median_val = y_train_cases.median()
+y_train = (y_train_cases > median_val).astype(int)
+y_test  = (y_test_cases  > median_val).astype(int)
+
+# -------------------------------
+# Impute + Scale
+# -------------------------------
+imputer = SimpleImputer(strategy='median')
+X_train = pd.DataFrame(imputer.fit_transform(X_train), columns=X_train.columns)
+X_test  = pd.DataFrame(imputer.transform(X_test), columns=X_test.columns)
+
+scaler = StandardScaler()
+X_train = pd.DataFrame(scaler.fit_transform(X_train), columns=X_train.columns)
+X_test  = pd.DataFrame(scaler.transform(X_test), columns=X_test.columns)
+
+# -------------------------------
+# Logistic Regression with Elastic Net (5-fold CV)
+# -------------------------------
+glm_model = LogisticRegressionCV(
+    Cs=10,
+    cv=5,
+    penalty='elasticnet',
+    solver='saga',
+    l1_ratios=[0.5],  # Elastic Net mixing: 0.5 = equal L1/L2
+    scoring='accuracy',
+    max_iter=5000,
+    n_jobs=-1,
+    random_state=42
+)
+glm_model.fit(X_train, y_train)
+
+# -------------------------------
+# Predict probabilities
+# -------------------------------
+y_train_prob = glm_model.predict_proba(X_train)[:, 1]
+y_test_prob  = glm_model.predict_proba(X_test)[:, 1]
+
+# -------------------------------
+# Compute metrics for multiple thresholds
+# -------------------------------
+thresholds = [0.1, 0.3, 0.5]
+
+def compute_metrics(y_true, y_prob, thresholds):
+    results = []
+    for t in thresholds:
+        y_pred = (y_prob >= t).astype(int)
+        results.append({
+            "Threshold": t,
+            "Accuracy": accuracy_score(y_true, y_pred),
+            "Precision": precision_score(y_true, y_pred, zero_division=0),
+            "Recall": recall_score(y_true, y_pred, zero_division=0),
+            "F1": f1_score(y_true, y_pred, zero_division=0),
+            "ROC_AUC": roc_auc_score(y_true, y_prob)
+        })
+    return pd.DataFrame(results)
+
+train_metrics = compute_metrics(y_train, y_train_prob, thresholds)
+test_metrics  = compute_metrics(y_test, y_test_prob, thresholds)
+
+print("\nTrain Metrics:\n", train_metrics)
+print("\nTest Metrics:\n", test_metrics)
+
+# -------------------------------
+# Save metrics to Excel
+# -------------------------------
+OUTPUT_PATH = r"J:\Research\Research\denguebangladesh\GLM_ElasticNet_Metrics.xlsx"
+with pd.ExcelWriter(OUTPUT_PATH) as writer:
+    train_metrics.to_excel(writer, sheet_name='Train_Metrics', index=False)
+    test_metrics.to_excel(writer, sheet_name='Test_Metrics', index=False)
+
+
+
+# ===============================================
+# SVM Classification for Dengue Data
+# ===============================================
+
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer
+from sklearn.svm import SVC
+from sklearn.model_selection import GridSearchCV, StratifiedKFold
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
+
+# -------------------------------
+# Load dataset
+# -------------------------------
+DATA_PATH = r"J:\Research\Research\denguebangladesh\data\ABSDengueDataBD.xlsx"
+SHEET_NAME = "data22"
+
+data = pd.read_excel(DATA_PATH, sheet_name=SHEET_NAME)
+data.columns = data.columns.str.strip()
+
+# -------------------------------
+# Train = Jan 2022–Dec 2023, Test = Jan–Dec 2024
+# -------------------------------
+train_data = data[data['Year'].isin([2022, 2023])].copy()
+test_data  = data[data['Year'] == 2024].copy()
+
+# -------------------------------
+# Features
+# -------------------------------
+drop_cols = ['District','Latitude','Longitude','Month','Month1','Year','Monthly_cases']
+
+X_train = train_data.drop(columns=[c for c in drop_cols if c in train_data.columns])
+X_test  = test_data.drop(columns=[c for c in drop_cols if c in test_data.columns])
+
+y_train_cases = train_data['Monthly_cases']
+y_test_cases  = test_data['Monthly_cases']
+
+# -------------------------------
+# Binary Target: High vs Low (median threshold)
+# -------------------------------
+median_val = y_train_cases.median()
+y_train = (y_train_cases > median_val).astype(int)
+y_test  = (y_test_cases  > median_val).astype(int)
+
+# -------------------------------
+# Impute + Scale
+# -------------------------------
+imputer = SimpleImputer(strategy='median')
+X_train = pd.DataFrame(imputer.fit_transform(X_train), columns=X_train.columns)
+X_test  = pd.DataFrame(imputer.transform(X_test), columns=X_test.columns)
+
+scaler = StandardScaler()
+X_train = pd.DataFrame(scaler.fit_transform(X_train), columns=X_train.columns)
+X_test  = pd.DataFrame(scaler.transform(X_test), columns=X_test.columns)
+
+# -------------------------------
+# SVM with 5-fold CV for hyperparameter tuning
+# -------------------------------
+param_grid = {
+    'C': [0.1, 1, 10],
+    'kernel': ['rbf', 'linear'],
+    'gamma': ['scale', 'auto']
+}
+
+cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+
+svm_model = GridSearchCV(
+    estimator=SVC(probability=True, random_state=42),
+    param_grid=param_grid,
+    scoring='accuracy',
+    cv=cv,
+    n_jobs=-1,
+    verbose=1
+)
+
+svm_model.fit(X_train, y_train)
+print("Best Params:", svm_model.best_params_)
+
+# -------------------------------
+# Predict probabilities
+# -------------------------------
+y_train_prob = svm_model.predict_proba(X_train)[:, 1]
+y_test_prob  = svm_model.predict_proba(X_test)[:, 1]
+
+# -------------------------------
+# Compute metrics for multiple thresholds
+# -------------------------------
+thresholds = [0.1, 0.3, 0.5]
+
+def compute_metrics(y_true, y_prob, thresholds):
+    results = []
+    for t in thresholds:
+        y_pred = (y_prob >= t).astype(int)
+        results.append({
+            "Threshold": t,
+            "Accuracy": accuracy_score(y_true, y_pred),
+            "Precision": precision_score(y_true, y_pred, zero_division=0),
+            "Recall": recall_score(y_true, y_pred, zero_division=0),
+            "F1": f1_score(y_true, y_pred, zero_division=0),
+            "ROC_AUC": roc_auc_score(y_true, y_prob)
+        })
+    return pd.DataFrame(results)
+
+train_metrics = compute_metrics(y_train, y_train_prob, thresholds)
+test_metrics  = compute_metrics(y_test, y_test_prob, thresholds)
+
+print("\nTrain Metrics:\n", train_metrics)
+print("\nTest Metrics:\n", test_metrics)
+
+# -------------------------------
+# Save metrics to Excel
+# -------------------------------
+OUTPUT_PATH = r"J:\Research\Research\denguebangladesh\SVM_Classification_Metrics.xlsx"
+with pd.ExcelWriter(OUTPUT_PATH) as writer:
+    train_metrics.to_excel(writer, sheet_name='Train_Metrics', index=False)
+    test_metrics.to_excel(writer, sheet_name='Test_Metrics', index=False)
+
+
+
+
+# =========================================
+# LSTM Classification with ROC-AUC + Save Metrics
+# =========================================
+
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense, Dropout
+from tensorflow.keras.callbacks import EarlyStopping
+
+# -------------------------------
+# Load dataset
+# -------------------------------
+DATA_PATH = r"J:\Research\Research\denguebangladesh\data\ABSDengueDataBD.xlsx"
+SHEET_NAME = "data22"
+
+data = pd.read_excel(DATA_PATH, sheet_name=SHEET_NAME)
+data.columns = data.columns.str.strip()
+
+# -------------------------------
+# Train = Jan 2022–Dec 2023, Test = Jan–Dec 2024
+# -------------------------------
+train_data = data[data['Year'] <= 2023].copy()
+test_data  = data[data['Year'] == 2024].copy()
+
+drop_cols = ['District','Latitude','Longitude','Month','Month1','Year','Monthly_cases',
+             'DENV1','DENV2','DENV3','DENV4']  # Drop irrelevant columns
+
+X_train = train_data.drop(columns=[c for c in drop_cols if c in train_data.columns])
+X_test  = test_data.drop(columns=[c for c in drop_cols if c in test_data.columns])
+
+y_train_cases = train_data['Monthly_cases']
+y_test_cases  = test_data['Monthly_cases']
+
+# -------------------------------
+# Binary Target: High vs Low (median threshold)
+# -------------------------------
+median_val = y_train_cases.median()
+y_train = (y_train_cases > median_val).astype(int)
+y_test  = (y_test_cases  > median_val).astype(int)
+
+# -------------------------------
+# Impute + Scale
+# -------------------------------
+imputer = SimpleImputer(strategy='median')
+X_train = pd.DataFrame(imputer.fit_transform(X_train), columns=X_train.columns)
+X_test  = pd.DataFrame(imputer.transform(X_test), columns=X_test.columns)
+
+scaler = StandardScaler()
+X_train = pd.DataFrame(scaler.fit_transform(X_train), columns=X_train.columns)
+X_test  = pd.DataFrame(scaler.transform(X_test), columns=X_test.columns)
+
+# -------------------------------
+# Reshape for LSTM [samples, timesteps, features]
+# Here, timesteps=1 for monthly data
+# -------------------------------
+X_train_lstm = X_train.values.reshape((X_train.shape[0], 1, X_train.shape[1]))
+X_test_lstm  = X_test.values.reshape((X_test.shape[0], 1, X_test.shape[1]))
+
+# -------------------------------
+# Build LSTM model
+# -------------------------------
+model = Sequential([
+    LSTM(64, input_shape=(X_train_lstm.shape[1], X_train_lstm.shape[2]), activation='tanh', return_sequences=False),
+    Dropout(0.3),
+    Dense(32, activation='relu'),
+    Dropout(0.2),
+    Dense(1, activation='sigmoid')
+])
+
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+
+# -------------------------------
+# Train with early stopping
+# -------------------------------
+early_stop = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
+
+history = model.fit(
+    X_train_lstm, y_train,
+    epochs=50,
+    batch_size=16,
+    validation_split=0.1,
+    callbacks=[early_stop],
+    verbose=1
+)
+
+# -------------------------------
+# Predict probabilities
+# -------------------------------
+y_train_pred_prob = model.predict(X_train_lstm).reshape(-1)
+y_test_pred_prob  = model.predict(X_test_lstm).reshape(-1)
+
+# -------------------------------
+# Classification metrics for thresholds 0.1, 0.3, 0.5 + ROC-AUC
+# -------------------------------
+thresholds = [0.1, 0.3, 0.5]
+metrics_train = []
+metrics_test  = []
+
+for t in thresholds:
+    y_train_pred = (y_train_pred_prob > t).astype(int)
+    y_test_pred  = (y_test_pred_prob > t).astype(int)
+    
+    metrics_train.append({
+        'Threshold': t,
+        'Accuracy': accuracy_score(y_train, y_train_pred),
+        'Precision': precision_score(y_train, y_train_pred, zero_division=0),
+        'Recall': recall_score(y_train, y_train_pred, zero_division=0),
+        'F1': f1_score(y_train, y_train_pred, zero_division=0),
+        'ROC_AUC': roc_auc_score(y_train, y_train_pred_prob)
+    })
+    
+    metrics_test.append({
+        'Threshold': t,
+        'Accuracy': accuracy_score(y_test, y_test_pred),
+        'Precision': precision_score(y_test, y_test_pred, zero_division=0),
+        'Recall': recall_score(y_test, y_test_pred, zero_division=0),
+        'F1': f1_score(y_test, y_test_pred, zero_division=0),
+        'ROC_AUC': roc_auc_score(y_test, y_test_pred_prob)
+    })
+
+# -------------------------------
+# Save metrics to Excel
+# -------------------------------
+metrics_train_df = pd.DataFrame(metrics_train)
+metrics_test_df  = pd.DataFrame(metrics_test)
+
+OUTPUT_PATH = r"J:\Research\Research\denguebangladesh\LSTM_Classification_Metrics.xlsx"
+with pd.ExcelWriter(OUTPUT_PATH, engine='openpyxl') as writer:
+    metrics_train_df.to_excel(writer, sheet_name='Train_Metrics', index=False)
+    metrics_test_df.to_excel(writer, sheet_name='Test_Metrics', index=False)
+
+print("Metrics saved to:", OUTPUT_PATH)
+print("\nTrain Metrics:\n", metrics_train_df)
+print("\nTest Metrics:\n", metrics_test_df)
+
+
+
+
+# =========================================
+# ConvLSTM Classification with ROC-AUC + Save Metrics
+# =========================================
+
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import ConvLSTM2D, Flatten, Dense, Dropout
+from tensorflow.keras.callbacks import EarlyStopping
+
+# -------------------------------
+# Load dataset
+# -------------------------------
+DATA_PATH = r"J:\Research\Research\denguebangladesh\data\ABSDengueDataBD.xlsx"
+SHEET_NAME = "data22"
+
+data = pd.read_excel(DATA_PATH, sheet_name=SHEET_NAME)
+data.columns = data.columns.str.strip()
+
+# -------------------------------
+# Train = Jan 2022–Dec 2023, Test = Jan–Dec 2024
+# -------------------------------
+train_data = data[data['Year'] <= 2023].copy()
+test_data  = data[data['Year'] == 2024].copy()
+
+drop_cols = ['District','Latitude','Longitude','Month','Month1','Year','Monthly_cases',
+             'DENV1','DENV2','DENV3','DENV4']
+
+X_train = train_data.drop(columns=[c for c in drop_cols if c in train_data.columns])
+X_test  = test_data.drop(columns=[c for c in drop_cols if c in test_data.columns])
+
+y_train_cases = train_data['Monthly_cases']
+y_test_cases  = test_data['Monthly_cases']
+
+# -------------------------------
+# Binary Target: High vs Low
+# -------------------------------
+median_val = y_train_cases.median()
+y_train = (y_train_cases > median_val).astype(int)
+y_test  = (y_test_cases  > median_val).astype(int)
+
+# -------------------------------
+# Impute + Scale
+# -------------------------------
+imputer = SimpleImputer(strategy='median')
+X_train = pd.DataFrame(imputer.fit_transform(X_train), columns=X_train.columns)
+X_test  = pd.DataFrame(imputer.transform(X_test), columns=X_test.columns)
+
+scaler = StandardScaler()
+X_train = pd.DataFrame(scaler.fit_transform(X_train), columns=X_train.columns)
+X_test  = pd.DataFrame(scaler.transform(X_test), columns=X_test.columns)
+
+# -------------------------------
+# Reshape for ConvLSTM2D: [samples, timesteps, rows, cols, channels]
+# We use timesteps=1, rows=1, cols=features, channels=1
+# -------------------------------
+X_train_conv = X_train.values.reshape((X_train.shape[0], 1, 1, X_train.shape[1], 1))
+X_test_conv  = X_test.values.reshape((X_test.shape[0], 1, 1, X_test.shape[1], 1))
+
+# -------------------------------
+# Build ConvLSTM2D Model
+# -------------------------------
+model = Sequential([
+    ConvLSTM2D(filters=32, kernel_size=(1,3), activation='relu', input_shape=(1, 1, X_train.shape[1], 1)),
+    Dropout(0.3),
+    Flatten(),
+    Dense(32, activation='relu'),
+    Dropout(0.2),
+    Dense(1, activation='sigmoid')
+])
+
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+
+# -------------------------------
+# Train with early stopping
+# -------------------------------
+early_stop = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
+
+history = model.fit(
+    X_train_conv, y_train,
+    epochs=50,
+    batch_size=16,
+    validation_split=0.1,
+    callbacks=[early_stop],
+    verbose=1
+)
+
+# -------------------------------
+# Predict probabilities
+# -------------------------------
+y_train_prob = model.predict(X_train_conv).reshape(-1)
+y_test_prob  = model.predict(X_test_conv).reshape(-1)
+
+# -------------------------------
+# Classification metrics for thresholds 0.1, 0.3, 0.5 + ROC-AUC
+# -------------------------------
+thresholds = [0.1, 0.3, 0.5]
+metrics_train = []
+metrics_test  = []
+
+for t in thresholds:
+    y_train_pred = (y_train_prob > t).astype(int)
+    y_test_pred  = (y_test_prob > t).astype(int)
+    
+    metrics_train.append({
+        'Threshold': t,
+        'Accuracy': accuracy_score(y_train, y_train_pred),
+        'Precision': precision_score(y_train, y_train_pred, zero_division=0),
+        'Recall': recall_score(y_train, y_train_pred, zero_division=0),
+        'F1': f1_score(y_train, y_train_pred, zero_division=0),
+        'ROC_AUC': roc_auc_score(y_train, y_train_prob)
+    })
+    
+    metrics_test.append({
+        'Threshold': t,
+        'Accuracy': accuracy_score(y_test, y_test_pred),
+        'Precision': precision_score(y_test, y_test_pred, zero_division=0),
+        'Recall': recall_score(y_test, y_test_pred, zero_division=0),
+        'F1': f1_score(y_test, y_test_pred, zero_division=0),
+        'ROC_AUC': roc_auc_score(y_test, y_test_prob)
+    })
+
+# -------------------------------
+# Save metrics to Excel
+# -------------------------------
+metrics_train_df = pd.DataFrame(metrics_train)
+metrics_test_df  = pd.DataFrame(metrics_test)
+
+OUTPUT_PATH = r"J:\Research\Research\denguebangladesh\ConvLSTM_Classification_Metrics.xlsx"
+with pd.ExcelWriter(OUTPUT_PATH, engine='openpyxl') as writer:
+    metrics_train_df.to_excel(writer, sheet_name='Train_Metrics', index=False)
+    metrics_test_df.to_excel(writer, sheet_name='Test_Metrics', index=False)
+
+print("Metrics saved to:", OUTPUT_PATH)
+print("\nTrain Metrics:\n", metrics_train_df)
+print("\nTest Metrics:\n", metrics_test_df)
+
+
+
+
+# =========================================
+# MLP Classification with ROC-AUC + Save Metrics
+# =========================================
+
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Dropout
+from tensorflow.keras.callbacks import EarlyStopping
+
+# -------------------------------
+# Load dataset
+# -------------------------------
+DATA_PATH = r"J:\Research\Research\denguebangladesh\data\ABSDengueDataBD.xlsx"
+SHEET_NAME = "data22"
+
+data = pd.read_excel(DATA_PATH, sheet_name=SHEET_NAME)
+data.columns = data.columns.str.strip()
+
+# -------------------------------
+# Train = Jan 2022–Dec 2023, Test = Jan–Dec 2024
+# -------------------------------
+train_data = data[data['Year'] <= 2023].copy()
+test_data  = data[data['Year'] == 2024].copy()
+
+drop_cols = ['District','Latitude','Longitude','Month','Month1','Year','Monthly_cases',
+             'DENV1','DENV2','DENV3','DENV4']
+
+X_train = train_data.drop(columns=[c for c in drop_cols if c in train_data.columns])
+X_test  = test_data.drop(columns=[c for c in drop_cols if c in test_data.columns])
+
+y_train_cases = train_data['Monthly_cases']
+y_test_cases  = test_data['Monthly_cases']
+
+# -------------------------------
+# Binary Target: High vs Low
+# -------------------------------
+median_val = y_train_cases.median()
+y_train = (y_train_cases > median_val).astype(int)
+y_test  = (y_test_cases  > median_val).astype(int)
+
+# -------------------------------
+# Impute + Scale
+# -------------------------------
+imputer = SimpleImputer(strategy='median')
+X_train = pd.DataFrame(imputer.fit_transform(X_train), columns=X_train.columns)
+X_test  = pd.DataFrame(imputer.transform(X_test), columns=X_test.columns)
+
+scaler = StandardScaler()
+X_train = pd.DataFrame(scaler.fit_transform(X_train), columns=X_train.columns)
+X_test  = pd.DataFrame(scaler.transform(X_test), columns=X_test.columns)
+
+# -------------------------------
+# Build MLP Model
+# -------------------------------
+model = Sequential([
+    Dense(128, activation='relu', input_dim=X_train.shape[1]),
+    Dropout(0.3),
+    Dense(64, activation='relu'),
+    Dropout(0.2),
+    Dense(1, activation='sigmoid')
+])
+
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+
+# -------------------------------
+# Train with early stopping
+# -------------------------------
+early_stop = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
+
+history = model.fit(
+    X_train, y_train,
+    epochs=50,
+    batch_size=16,
+    validation_split=0.1,
+    callbacks=[early_stop],
+    verbose=1
+)
+
+# -------------------------------
+# Predict probabilities
+# -------------------------------
+y_train_prob = model.predict(X_train).reshape(-1)
+y_test_prob  = model.predict(X_test).reshape(-1)
+
+# -------------------------------
+# Classification metrics for thresholds 0.1, 0.3, 0.5 + ROC-AUC
+# -------------------------------
+thresholds = [0.1, 0.3, 0.5]
+metrics_train = []
+metrics_test  = []
+
+for t in thresholds:
+    y_train_pred = (y_train_prob > t).astype(int)
+    y_test_pred  = (y_test_prob > t).astype(int)
+    
+    metrics_train.append({
+        'Threshold': t,
+        'Accuracy': accuracy_score(y_train, y_train_pred),
+        'Precision': precision_score(y_train, y_train_pred, zero_division=0),
+        'Recall': recall_score(y_train, y_train_pred, zero_division=0),
+        'F1': f1_score(y_train, y_train_pred, zero_division=0),
+        'ROC_AUC': roc_auc_score(y_train, y_train_prob)
+    })
+    
+    metrics_test.append({
+        'Threshold': t,
+        'Accuracy': accuracy_score(y_test, y_test_pred),
+        'Precision': precision_score(y_test, y_test_pred, zero_division=0),
+        'Recall': recall_score(y_test, y_test_pred, zero_division=0),
+        'F1': f1_score(y_test, y_test_pred, zero_division=0),
+        'ROC_AUC': roc_auc_score(y_test, y_test_prob)
+    })
+
+# -------------------------------
+# Save metrics to Excel
+# -------------------------------
+metrics_train_df = pd.DataFrame(metrics_train)
+metrics_test_df  = pd.DataFrame(metrics_test)
+
+OUTPUT_PATH = r"J:\Research\Research\denguebangladesh\MLP_Classification_Metrics.xlsx"
+with pd.ExcelWriter(OUTPUT_PATH, engine='openpyxl') as writer:
+    metrics_train_df.to_excel(writer, sheet_name='Train_Metrics', index=False)
+    metrics_test_df.to_excel(writer, sheet_name='Test_Metrics', index=False)
+
+print("Metrics saved to:", OUTPUT_PATH)
+print("\nTrain Metrics:\n", metrics_train_df)
+print("\nTest Metrics:\n", metrics_test_df)
+
+
+
+
+import pandas as pd
+import numpy as np
+import shap
+from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import ConvLSTM2D, Flatten, Dense, Dropout
+from tensorflow.keras.callbacks import EarlyStopping
+
+# -------------------------------
+# Load dataset
+# -------------------------------
+DATA_PATH = r"J:\Research\Research\denguebangladesh\data\ABSDengueDataBD.xlsx"
+SHEET_NAME = "data22"
+data = pd.read_excel(DATA_PATH, sheet_name=SHEET_NAME)
+data.columns = data.columns.str.strip()
+
+# -------------------------------
+# Train/Test split
+# -------------------------------
+drop_cols = ['District','Latitude','Longitude','Month','Month1','Year','Monthly_cases',
+             'DENV1','DENV2','DENV3','DENV4']
+
+train_data = data[data['Year'] <= 2023].copy()
+test_data  = data[data['Year'] == 2024].copy()
+
+X_train = train_data.drop(columns=[c for c in drop_cols if c in train_data.columns])
+X_test  = test_data.drop(columns=[c for c in drop_cols if c in test_data.columns])
+
+y_train_cases = train_data['Monthly_cases']
+y_test_cases  = test_data['Monthly_cases']
+
+# Binary target
+median_val = y_train_cases.median()
+y_train = (y_train_cases > median_val).astype(int)
+y_test  = (y_test_cases > median_val).astype(int)
+
+# -------------------------------
+# Impute + Scale
+# -------------------------------
+imputer = SimpleImputer(strategy='median')
+X_train = pd.DataFrame(imputer.fit_transform(X_train), columns=X_train.columns)
+X_test  = pd.DataFrame(imputer.transform(X_test), columns=X_test.columns)
+
+scaler = StandardScaler()
+X_train = pd.DataFrame(scaler.fit_transform(X_train), columns=X_train.columns)
+X_test  = pd.DataFrame(scaler.transform(X_test), columns=X_test.columns)
+
+# -------------------------------
+# Reshape for ConvLSTM2D
+# -------------------------------
+X_train_conv = X_train.values.reshape((X_train.shape[0], 1, 1, X_train.shape[1], 1))
+X_test_conv  = X_test.values.reshape((X_test.shape[0], 1, 1, X_test.shape[1], 1))
+
+# -------------------------------
+# ConvLSTM2D model
+# -------------------------------
+model = Sequential([
+    ConvLSTM2D(filters=32, kernel_size=(1,3), activation='relu', input_shape=(1,1,X_train.shape[1],1)),
+    Dropout(0.3),
+    Flatten(),
+    Dense(32, activation='relu'),
+    Dropout(0.2),
+    Dense(1, activation='sigmoid')
+])
+
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+early_stop = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
+
+history = model.fit(
+    X_train_conv, y_train,
+    epochs=50,
+    batch_size=16,
+    validation_split=0.1,
+    callbacks=[early_stop],
+    verbose=1
+)
+
+# -------------------------------
+# SHAP with GradientExplainer (works for deep models)
+# -------------------------------
+# Use flattened 2D input for SHAP
+X_train_2d = X_train.values
+X_test_2d  = X_test.values
+
+explainer = shap.GradientExplainer(model, X_train_conv)  # keep original 5D for explainer
+shap_values = explainer.shap_values(X_test_conv)
+
+# Flatten SHAP values to 2D (samples, features)
+shap_values_2d = np.array(shap_values).reshape(X_test_2d.shape)
+
+# -------------------------------
+# Create DataFrame
+# -------------------------------
+shap_df = pd.DataFrame(shap_values_2d, columns=X_test.columns)
+shap_df['District'] = test_data['District'].values
+
+# -------------------------------
+# 1. District-wise Top 10 Features (%)
+# -------------------------------
+district_top10 = {}
+for district, group in shap_df.groupby('District'):
+    mean_abs_shap = group.drop(columns='District').abs().mean()
+    top10 = mean_abs_shap.sort_values(ascending=False).head(10)
+    top10_percent = 100 * top10 / top10.sum()
+    district_top10[district] = top10_percent
+
+district_top10_df = pd.DataFrame(district_top10).T.fillna(0)
+
+# -------------------------------
+# 2. Overall Top 10 Features (%)
+# -------------------------------
+overall_mean_abs = shap_df.drop(columns='District').abs().mean()
+overall_top10 = overall_mean_abs.sort_values(ascending=False).head(10)
+overall_top10_percent = 100 * overall_top10 / overall_top10.sum()
+overall_top10_df = pd.DataFrame(overall_top10_percent, columns=['Contribution (%)'])
+
+# -------------------------------
+# 3. Category-wise contributions
+# -------------------------------
+categories = {
+    "Climate & Environmental Factors": ['X21','X22','X23','X24','X25','X26'],
+    "Socio-Demographic & Economic Indicators": ['X27','X28','X29','X210','X211','X212','X213'],
+    "Healthcare System Capacity & Resources": ['X214','X215','X216','X217','X218'],
+    "Land Use and Land Cover Indicators": ['X219','X220','X221']
+}
+
+district_cat = {}
+for district, group in shap_df.groupby('District'):
+    cat_contrib = {}
+    for cat, feats in categories.items():
+        feats_in_group = [f for f in feats if f in group.columns]
+        cat_contrib[cat] = group[feats_in_group].abs().mean().sum()
+    total = sum(cat_contrib.values())
+    cat_percent = {k: 100*v/total for k,v in cat_contrib.items()}
+    district_cat[district] = cat_percent
+
+district_cat_df = pd.DataFrame(district_cat).T.fillna(0)
+
+# -------------------------------
+# Save Excel
+# -------------------------------
+OUTPUT_PATH = r"J:\Research\Research\denguebangladesh\ConvLSTM_TopFeatures.xlsx"
+with pd.ExcelWriter(OUTPUT_PATH, engine='openpyxl') as writer:
+    district_top10_df.to_excel(writer, sheet_name='District_Top10', index=True)
+    overall_top10_df.to_excel(writer, sheet_name='Overall_Top10', index=True)
+    district_cat_df.to_excel(writer, sheet_name='District_Category_Contribution', index=True)
+
+print("All SHAP results saved successfully:", OUTPUT_PATH)
+
+
+
+
+# -------------------------------
+# 3. Overall Category-wise contributions
+# -------------------------------
+categories = {
+    "Climate & Environmental Factors": ['X21','X22','X23','X24','X25','X26'],
+    "Socio-Demographic & Economic Indicators": ['X27','X28','X29','X210','X211','X212','X213'],
+    "Healthcare System Capacity & Resources": ['X214','X215','X216','X217','X218'],
+    "Land Use and Land Cover Indicators": ['X219','X220','X221']
+}
+
+# -------------------------------
+# 3a. Overall contributions (already exists)
+# -------------------------------
+cat_contrib = {}
+for cat, feats in categories.items():
+    feats_in_df = [f for f in feats if f in shap_df.columns]
+    cat_contrib[cat] = shap_df[feats_in_df].abs().mean().sum()
+
+total = sum(cat_contrib.values())
+cat_percent = {k: 100*v/total for k,v in cat_contrib.items()}
+cat_percent_df = pd.DataFrame.from_dict(cat_percent, orient='index', columns=['Contribution (%)'])
+
+# -------------------------------
+# 3b. District-wise category contributions
+# -------------------------------
+districts = shap_df['District'].unique()
+district_cat_list = []
+
+for d in districts:
+    temp = shap_df[shap_df['District']==d]
+    cat_vals = {}
+    for cat, feats in categories.items():
+        feats_in_df = [f for f in feats if f in temp.columns]
+        cat_vals[cat] = temp[feats_in_df].abs().mean().sum()
+    total_cat = sum(cat_vals.values())
+    # convert to %
+    cat_percent_d = {k: 100*v/total_cat for k,v in cat_vals.items()}
+    cat_percent_d['District'] = d
+    district_cat_list.append(cat_percent_d)
+
+district_cat_df = pd.DataFrame(district_cat_list)
+district_cat_df = district_cat_df[['District'] + list(categories.keys())]  # reorder columns
+
+# -------------------------------
+# Save Excel
+# -------------------------------
+OUTPUT_PATH = r"J:\Research\Research\denguebangladesh\21ConvLSTM_TopFeatures.xlsx"
+with pd.ExcelWriter(OUTPUT_PATH, engine='openpyxl') as writer:
+    district_top10_df.to_excel(writer, sheet_name='District_Top10', index=True)
+    overall_top10_df.to_excel(writer, sheet_name='Overall_Top10', index=True)
+    cat_percent_df.to_excel(writer, sheet_name='Category_Contribution', index=True)
+    district_cat_df.to_excel(writer, sheet_name='District_Category_Contribution', index=False)
+
+print("All SHAP results including district-wise category contributions saved successfully:", OUTPUT_PATH)
+
+
+
+
+# =========================================
+# ConvLSTM + Top 10 Feature Scenario Analysis
+# =========================================
+
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer  # <- corrected import
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import ConvLSTM2D, Flatten, Dense, Dropout
+
+# -------------------------------
+# Load dataset
+# -------------------------------
+DATA_PATH = r"J:\Research\Research\denguebangladesh\data\ABSDengueDataBD.xlsx"
+SHEET_NAME = "data22"
+data = pd.read_excel(DATA_PATH, sheet_name=SHEET_NAME)
+data.columns = data.columns.str.strip()
+
+# -------------------------------
+# Train = Jan 2022–Dec 2023, Test = Jan–Dec 2024
+# -------------------------------
+train_data = data[data['Year'] <= 2023].copy()
+test_data  = data[data['Year'] == 2024].copy()
+
+drop_cols = ['District','Latitude','Longitude','Month','Month1','Year','Monthly_cases',
+             'DENV1','DENV2','DENV3','DENV4']
+
+X_train = train_data.drop(columns=[c for c in drop_cols if c in train_data.columns])
+X_test  = test_data.drop(columns=[c for c in drop_cols if c in test_data.columns])
+
+y_train_cases = train_data['Monthly_cases']
+y_test_cases  = test_data['Monthly_cases']
+
+median_val = y_train_cases.median()
+y_train = (y_train_cases > median_val).astype(int)
+y_test  = (y_test_cases  > median_val).astype(int)
+
+# -------------------------------
+# Impute + Scale (mean for all features)
+# -------------------------------
+imputer = SimpleImputer(strategy='mean')
+X_train = pd.DataFrame(imputer.fit_transform(X_train), columns=X_train.columns)
+X_test  = pd.DataFrame(imputer.transform(X_test), columns=X_test.columns)
+
+scaler = StandardScaler()
+X_train = pd.DataFrame(scaler.fit_transform(X_train), columns=X_train.columns)
+X_test  = pd.DataFrame(scaler.transform(X_test), columns=X_test.columns)
+
+# -------------------------------
+# Reshape for ConvLSTM2D
+# -------------------------------
+X_train_conv = X_train.values.reshape((X_train.shape[0], 1, 1, X_train.shape[1], 1))
+X_test_conv  = X_test.values.reshape((X_test.shape[0], 1, 1, X_test.shape[1], 1))
+
+# -------------------------------
+# Build ConvLSTM2D Model
+# -------------------------------
+model = Sequential([
+    ConvLSTM2D(filters=32, kernel_size=(1,3), activation='relu', input_shape=(1,1,X_train.shape[1],1)),
+    Dropout(0.3),
+    Flatten(),
+    Dense(32, activation='relu'),
+    Dropout(0.2),
+    Dense(1, activation='sigmoid')
+])
+
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+
+# -------------------------------
+# Train model
+# -------------------------------
+history = model.fit(
+    X_train_conv, y_train,
+    epochs=50,
+    batch_size=16,
+    validation_split=0.1,
+    verbose=1
+)
+
+# -------------------------------
+# Predict probabilities
+# -------------------------------
+y_test_prob = model.predict(X_test_conv).reshape(-1)
+
+# -------------------------------
+# Top 10 Features for scenario analysis
+# -------------------------------
+top10_features = ['X24','X22','X216','X217','X213','X214','X25','X215','X212','X21']
+
+# -------------------------------
+# Scenario analysis: -50% to +50% by 10% increments
+# -------------------------------
+scenario_range = np.arange(-0.5, 0.51, 0.1)  # -50% to +50%
+scenario_results = []
+
+for feature in top10_features:
+    for change in scenario_range:
+        X_scenario = X_test.copy()
+        X_scenario[feature] = X_scenario[feature] * (1 + change)
+        X_scenario_conv = X_scenario.values.reshape((X_scenario.shape[0],1,1,X_scenario.shape[1],1))
+        
+        y_scenario_prob = model.predict(X_scenario_conv).reshape(-1)
+        y_scenario_pred = (y_scenario_prob > 0.5).astype(int)  # threshold = 0.5
+        
+        scenario_results.append({
+            'Feature': feature,
+            'Change': change,
+            'Mean_Prob': np.mean(y_scenario_prob),
+            'Mean_Pred': np.mean(y_scenario_pred)
+        })
+
+scenario_df = pd.DataFrame(scenario_results)
+
+# -------------------------------
+# Save scenario results
+# -------------------------------
+OUTPUT_PATH = r"J:\Research\Research\denguebangladesh\ConvLSTM_Top10_Scenario.xlsx"
+scenario_df.to_excel(OUTPUT_PATH, index=False)
+print("Scenario analysis saved to:", OUTPUT_PATH)
+
+
+
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import ConvLSTM2D, Flatten, Dense, Dropout
+
+# -------------------------------
+# Paths
+# -------------------------------
+DATA_PATH = r"J:\Research\Research\denguebangladesh\data\ABSDengueDataBD.xlsx"
+SHEET_NAME = "data22"
+OUTPUT_PATH = r"J:\Research\Research\denguebangladesh\EWS_2025.xlsx"
+
+# -------------------------------
+# Load historical data (2022-2024)
+# -------------------------------
+data = pd.read_excel(DATA_PATH, sheet_name=SHEET_NAME)
+
+# Features and target
+features = [col for col in data.columns if col.startswith('X')]
+target = 'Monthly_cases'
+
+# -------------------------------
+# Create binary target for classification
+# High risk if cases above median
+# -------------------------------
+threshold = data[target].median()
+data['Target'] = (data[target] > threshold).astype(int)
+
+# -------------------------------
+# Fill missing values & scale features
+# -------------------------------
+data[features] = data[features].fillna(data[features].mean())
+scaler = StandardScaler()
+data[features] = scaler.fit_transform(data[features])
+
+# -------------------------------
+# Prepare ConvLSTM input
+# -------------------------------
+X = data[features].values
+y = data['Target'].values
+X_conv = X.reshape(X.shape[0], 1, X.shape[1], 1, 1)  # (samples, timesteps, rows, cols, channels)
+
+# -------------------------------
+# Build ConvLSTM classification model
+# -------------------------------
+model = Sequential([
+    ConvLSTM2D(filters=16, kernel_size=(3,1), activation='relu', input_shape=(1, X.shape[1],1,1)),
+    Flatten(),
+    Dense(64, activation='relu'),
+    Dropout(0.2),
+    Dense(1, activation='sigmoid')  # classification
+])
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+
+# -------------------------------
+# Train model
+# -------------------------------
+model.fit(X_conv, y, epochs=20, batch_size=32)
+
+# -------------------------------
+# Prepare 2025 placeholder features
+# -------------------------------
+districts = data['District'].unique()
+months = list(range(1,13))
+placeholder_list = []
+
+for d in districts:
+    last_year_data = data[data['District']==d].sort_values('Year').iloc[-12:]
+    for i, m in enumerate(months):
+        row = last_year_data.iloc[i % 12][features].values
+        placeholder_list.append([d, m, *row])
+
+data_2025 = pd.DataFrame(placeholder_list, columns=['District','Month']+features)
+
+# Standardize using historical scaler
+data_2025[features] = scaler.transform(data_2025[features])
+
+# -------------------------------
+# Reshape 2025 data for ConvLSTM
+# -------------------------------
+X_2025_conv = data_2025[features].values.reshape(data_2025.shape[0], 1, len(features), 1, 1)
+
+# -------------------------------
+# Predict probabilities for 2025
+# -------------------------------
+probs = model.predict(X_2025_conv)
+data_2025['Prob_High_Dengue'] = probs
+data_2025['High_Alert'] = (probs >= 0.5).astype(int)
+
+# -------------------------------
+# Save Early Warning for 2025
+# -------------------------------
+data_2025.to_excel(OUTPUT_PATH, index=False)
+print("2025 Classification-based Early Warning saved to:", OUTPUT_PATH)
+
+# -------------------------------
+
+
+
+
+
+
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import ConvLSTM2D, Flatten, Dense, Dropout
+
+# -------------------------------
+# Paths
+# -------------------------------
+DATA_PATH = r"J:\Research\Research\denguebangladesh\data\ABSDengueDataBD.xlsx"
+SHEET_NAME = "data22"
+OUTPUT_PATH = r"J:\Research\Research\denguebangladesh\EWS_2025_2026.xlsx"
+
+# -------------------------------
+# Load historical data (2022-2024)
+# -------------------------------
+data = pd.read_excel(DATA_PATH, sheet_name=SHEET_NAME)
+
+# Features and target
+features = [col for col in data.columns if col.startswith('X')]
+target = 'Monthly_cases'
+
+# -------------------------------
+# Binary target: high risk if above median
+# -------------------------------
+threshold = data[target].median()
+data['Target'] = (data[target] > threshold).astype(int)
+
+# -------------------------------
+# Fill missing values & scale features
+# -------------------------------
+data[features] = data[features].fillna(data[features].mean())
+scaler = StandardScaler()
+data[features] = scaler.fit_transform(data[features])
+
+# -------------------------------
+# Prepare ConvLSTM input
+# -------------------------------
+X = data[features].values
+y = data['Target'].values
+X_conv = X.reshape(X.shape[0], 1, X.shape[1], 1, 1)
+
+# -------------------------------
+# Build ConvLSTM classification model
+# -------------------------------
+model = Sequential([
+    ConvLSTM2D(filters=16, kernel_size=(3,1), activation='relu', input_shape=(1, X.shape[1],1,1)),
+    Flatten(),
+    Dense(64, activation='relu'),
+    Dropout(0.2),
+    Dense(1, activation='sigmoid')
+])
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+
+# -------------------------------
+# Train model
+# -------------------------------
+model.fit(X_conv, y, epochs=20, batch_size=32)
+
+# -------------------------------
+# Function to generate placeholder features for next year
+# -------------------------------
+def generate_next_year_data(prev_data, year):
+    districts = prev_data['District'].unique()
+    months = list(range(1,13))
+    placeholder_list = []
+
+    for d in districts:
+        last_12 = prev_data[prev_data['District']==d].sort_values('Year').iloc[-12:]
+        for i, m in enumerate(months):
+            row = last_12.iloc[i % 12][features].values
+            placeholder_list.append([d, m, year, *row])
+
+    df = pd.DataFrame(placeholder_list, columns=['District','Month','Year']+features)
+    df[features] = scaler.transform(df[features])
+    return df
+
+# -------------------------------
+# Generate 2025 and 2026 data
+# -------------------------------
+data_2025 = generate_next_year_data(data, 2025)
+
+# Predict 2025 probabilities & high alert
+X_2025_conv = data_2025[features].values.reshape(data_2025.shape[0],1,len(features),1,1)
+data_2025['Prob_High_Dengue'] = model.predict(X_2025_conv)
+data_2025['High_Alert'] = (data_2025['Prob_High_Dengue'] >= 0.5).astype(int)
+
+# Use 2025 predicted probabilities to generate 2026 placeholders
+# Here we keep features the same as 2025 (or you can use some forecasted change)
+data_2026 = generate_next_year_data(data_2025, 2026)
+
+X_2026_conv = data_2026[features].values.reshape(data_2026.shape[0],1,len(features),1,1)
+data_2026['Prob_High_Dengue'] = model.predict(X_2026_conv)
+data_2026['High_Alert'] = (data_2026['Prob_High_Dengue'] >= 0.5).astype(int)
+
+# -------------------------------
+# Combine 2025 and 2026
+# -------------------------------
+ews_df = pd.concat([data_2025, data_2026])
+ews_df.to_excel(OUTPUT_PATH, index=False)
+print("Classification-based Early Warning for 2025 & 2026 saved to:", OUTPUT_PATH)
+
+
+
+
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import ConvLSTM2D, Flatten, Dense, Dropout
+
+# -----------------------------------------------------
+# 1. Load historical data (2022–2024)
+# -----------------------------------------------------
+data = pd.read_excel(r"J:\Research\Research\denguebangladesh\data\ABSDengueDataBD.xlsx",
+                     sheet_name="data22")
+
+features = [col for col in data.columns if col.startswith('X')]
+target = 'Monthly_cases'
+
+# Binary target (median-based)
+threshold = data[target].median()
+data['Target'] = (data[target] > threshold).astype(int)
+
+# Scale features
+scaler = StandardScaler()
+data[features] = scaler.fit_transform(data[features])
+
+# -----------------------------------------------------
+# 2. CREATE 12-MONTH SEQUENCES FOR EACH DISTRICT
+# -----------------------------------------------------
+X_list = []
+y_list = []
+district_list = []
+
+for district in data['District'].unique():
+    df = data[data['District']==district].sort_values(['Year','Month'])
+
+    for i in range(len(df)-12):
+        seq = df.iloc[i:i+12][features].values  # 12×F
+        X_list.append(seq)
+        y_list.append(df.iloc[i+12]['Target'])
+        district_list.append(district)
+
+X = np.array(X_list)   # N × 12 × F
+y = np.array(y_list)
+
+# reshape for ConvLSTM: (samples, timesteps, rows, cols, channels)
+X = X.reshape(X.shape[0], 12, X.shape[2], 1, 1)
+
+# -----------------------------------------------------
+# 3. BUILD ConvLSTM MODEL
+# -----------------------------------------------------
+model = Sequential([
+    ConvLSTM2D(filters=16, kernel_size=(3,1),
+               activation='relu',
+               input_shape=(12, X.shape[2],1,1)),
+    Flatten(),
+    Dense(64, activation='relu'),
+    Dropout(0.2),
+    Dense(1, activation='sigmoid')
+])
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+
+model.fit(X, y, epochs=20, batch_size=32)
+
+# -----------------------------------------------------
+# 4. FORECASTING 2025 MONTHLY (SEQUENTIAL)
+# -----------------------------------------------------
+forecast_2025 = []
+
+for district in data['District'].unique():
+
+    df = data[data['District']==district].sort_values(['Year','Month'])
+
+    last12 = df.iloc[-12:].copy()
+
+    for month in range(1,13):
+
+        seq = last12[features].values.reshape(1,12,len(features),1,1)
+
+        prob = model.predict(seq)[0][0]
+        alert = int(prob >= 0.5)
+
+        forecast_2025.append([district, month, 2025, prob, alert])
+
+        # update last12 (sliding window)
+        new_row = last12.iloc[-1:].copy()
+        new_row[features] = last12.iloc[-1:][features]   # keep features same
+        last12 = pd.concat([last12.iloc[1:], new_row])
+
+# convert to DF
+df2025 = pd.DataFrame(forecast_2025,
+                      columns=['District','Month','Year','Prob_High_Dengue','High_Alert'])
+
+# -----------------------------------------------------
+# 5. SAME PROCESS FOR 2026 USING 2025 RESULTS
+# -----------------------------------------------------
+forecast_2026 = []
+
+for district in df2025['District'].unique():
+
+    df_d = df2025[df2025['District']==district]
+
+    last12 = df_d[features].values[:12] if len(features)==12 else data[data['District']==district].iloc[-12:][features].values
+    last12 = pd.DataFrame(last12, columns=features)
+
+    for month in range(1,13):
+        seq = last12.values.reshape(1,12,len(features),1,1)
+
+        prob = model.predict(seq)[0][0]
+        alert = int(prob >= 0.5)
+
+        forecast_2026.append([district, month, 2026, prob, alert])
+
+        new_row = last12.iloc[-1:].copy()
+        last12 = pd.concat([last12.iloc[1:], new_row])
+
+df2026 = pd.DataFrame(forecast_2026,
+                      columns=['District','Month','Year','Prob_High_Dengue','High_Alert'])
+
+# -----------------------------------------------------
+# 6. SAVE FINAL EWS TO EXCEL
+# -----------------------------------------------------
+output = pd.concat([df2025, df2026])
+output.to_excel(r"J:\Research\Research\denguebangladesh\EWS_2025_2026.xlsx", index=False)
+
+print("DONE — EWS for 2025 and 2026 saved.")
+
+
+
+

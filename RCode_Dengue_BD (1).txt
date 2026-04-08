@@ -1,0 +1,5157 @@
+library(tidyverse)
+library(lubridate)
+library(zoo)
+library(readxl)
+library(writexl)
+
+# ===============================
+# Load dataset
+# ===============================
+file_path <- "J:/Research/Research/denguebangladesh/data/ABSDengueDataBD.xlsx"
+mydata <- read_excel(file_path, sheet = "data11")
+mydata
+
+
+library(dplyr)
+library(ggplot2)
+library(scales)
+
+# Summarize yearly data
+yearly_summary <- mydata %>%
+  group_by(Year) %>%
+  summarise(
+    total_cases = sum(Yearly_cases, na.rm = TRUE),
+    affected_districts = sum(Yearly_cases > 0, na.rm = TRUE)
+  )
+
+# Plot
+A = ggplot(yearly_summary, aes(x = factor(Year))) +
+  geom_bar(aes(y = total_cases), stat = "identity", fill = "darkred") +
+  
+  # Black line + points (thin)
+  geom_line(aes(y = affected_districts * max(total_cases)/max(affected_districts)),
+            group = 1, color = "black", size = 0.8) +
+  geom_point(aes(y = affected_districts * max(total_cases)/max(affected_districts)),
+             color = "black", size = 2) +
+  
+  scale_y_continuous(
+    name = "Total Cases",
+    labels = comma,
+    sec.axis = sec_axis(
+      ~ . * max(yearly_summary$affected_districts)/max(yearly_summary$total_cases),
+      name = "Affected districts",
+      labels = comma
+    )
+  ) +
+  
+  labs(
+    x = "Year",
+    title = "A"
+  ) +
+  
+  theme_minimal() +
+  theme(
+    text = element_text(face = "bold", color = "black"),
+    plot.title = element_text(face = "bold", color = "black", hjust = 0),  # left aligned
+    axis.text.x = element_text(angle = 45, hjust = 1, face = "bold", color = "black"),
+    axis.text.y = element_text(face = "bold", color = "black"),
+    axis.title.y.left = element_text(face = "bold", color = "black"),
+    axis.title.y.right = element_text(face = "bold", color = "black")
+  )
+A
+
+
+
+
+##############################################
+
+
+
+# -----------------------------
+# Load libraries
+# -----------------------------
+library(sf)
+library(dplyr)
+library(readxl)
+library(ggplot2)
+library(ggspatial)
+library(patchwork)
+library(scales)
+
+# -----------------------------
+# 1. Load shapefile
+# -----------------------------
+shapefile_path <- "C:/R/LABSTAT/bgd_adm_bbs_20201113_SHP"
+districts <- st_read(shapefile_path, layer = "bgd_admbnda_adm2_bbs_20201113")
+districts$ADM2_EN <- toupper(trimws(districts$ADM2_EN))
+
+# -----------------------------
+# 2. Load dengue dataset
+# -----------------------------
+file_path <- "J:/Research/Research/denguebangladesh/data/ABSDengueDataBD.xlsx"
+mydata <- read_excel(file_path, sheet = "data11")
+mydata$District <- toupper(trimws(mydata$District))
+
+# -----------------------------
+# 3. Prepare map data for each year
+# -----------------------------
+prepare_map <- function(year_sel) {
+  map_data <- districts %>%
+    left_join(mydata %>% filter(Year == year_sel) %>%
+                select(District, Yearly_cases, Latitude, Longitude, DENV1:DENV4),
+              by = c("ADM2_EN" = "District"))
+  map_data$Yearly_cases[is.na(map_data$Yearly_cases)] <- 0
+  map_data
+}
+
+map_2017 <- prepare_map(2017)
+map_2018 <- prepare_map(2018)
+map_2019 <- prepare_map(2019)
+map_2020 <- prepare_map(2020)
+map_2021 <- prepare_map(2021)
+map_2022 <- prepare_map(2022)
+map_2023 <- prepare_map(2023)
+map_2024 <- prepare_map(2024)
+
+# -----------------------------
+# 4. Create map function with DENV points (color only, jittered)
+create_map_with_DENV <- function(mapdata, yr, brks) {
+  ggplot(mapdata) +
+    # Polygon fill for yearly cases
+    geom_sf(aes(fill = Yearly_cases), color = "black", size = 0.15) +
+    
+    # Points for DENV1–4 if > 0 (color indicates type, jittered)
+    geom_point(data = subset(mapdata, DENV1 > 0), 
+               aes(x = Longitude, y = Latitude, color = "DENV1"),
+               size = 2, position = position_jitter(width = 0.2, height = 0.2)) +
+    geom_point(data = subset(mapdata, DENV2 > 0), 
+               aes(x = Longitude, y = Latitude, color = "DENV2"),
+               size = 2, position = position_jitter(width = 0.2, height = 0.2)) +
+    geom_point(data = subset(mapdata, DENV3 > 0), 
+               aes(x = Longitude, y = Latitude, color = "DENV3"),
+               size = 2, position = position_jitter(width = 0.2, height = 0.2)) +
+    geom_point(data = subset(mapdata, DENV4 > 0), 
+               aes(x = Longitude, y = Latitude, color = "DENV4"),
+               size = 2, position = position_jitter(width = 0.2, height = 0.2)) +
+    
+    # Fill scale for yearly cases
+    scale_fill_gradientn(
+      colours = c("white","steelblue", "skyblue", "orange", "red", "darkred"),
+      values = scales::rescale(brks),
+      breaks = brks,
+      labels = brks,
+      name = "Cases"
+    ) +
+    
+    # Color scale for DENV types
+    scale_color_manual(
+      name = "DENV",
+      values = c("DENV1" = "darkmagenta", "DENV2" = "darkgreen", 
+                 "DENV3" = "cyan", "DENV4" = "coral")
+    ) +
+    
+    # North arrow and scale
+    annotation_scale(location = "bl", width_hint = 0.3) +
+    annotation_north_arrow(location = "tr", which_north = "true",
+                           style = north_arrow_nautical()) +
+    
+    # Labels and theme
+    labs(title = yr, x = NULL, y = NULL) +
+    theme_minimal(base_size = 14) +
+    theme(
+      plot.title = element_text(face = "bold", hjust = 0.5),
+      legend.position = "right",
+      axis.text = element_blank(),    # remove tick labels
+      axis.title = element_blank(),   # remove axis names
+      axis.ticks = element_blank(),   # remove tick marks
+      panel.grid.major = element_line(color = "gray", linetype = "dashed"),
+      panel.border = element_rect(color = "black", fill = NA, size = 0.5),
+      text = element_text(face = "bold")
+    )
+}
+
+
+# -----------------------------
+# 5. Define breaks per year
+# -----------------------------
+brks_2021 <- c(0, 2500, 5000, 7500, 10000,12500, 15000, 17500, 20000, 22500)
+brks_2023 <- c(0, 15000, 30000, 45000, 60000,75000, 90000, 105000)
+brks_2024 <- c(0, 5000, 10000, 15000, 20000, 25000, 30000, 35000, 40000)
+
+# -----------------------------
+# 6. Create plots
+# -----------------------------
+p2017 <- create_map_with_DENV(map_2017, "2017", brks = pretty(range(map_2017$Yearly_cases), 5))
+p2018 <- create_map_with_DENV(map_2018, "2018", brks = pretty(range(map_2018$Yearly_cases), 5))
+p2019 <- create_map_with_DENV(map_2019, "2019", brks = pretty(range(map_2019$Yearly_cases), 5))
+p2020 <- create_map_with_DENV(map_2020, "2020", brks = pretty(range(map_2020$Yearly_cases), 5))
+p2021 <- create_map_with_DENV(map_2021, "2021", brks = brks_2021)
+p2022 <- create_map_with_DENV(map_2022, "2022", brks = pretty(range(map_2022$Yearly_cases), 6))
+p2023 <- create_map_with_DENV(map_2023, "2023", brks = brks_2023)
+p2024 <- create_map_with_DENV(map_2024, "2024", brks = brks_2024)
+
+# -----------------------------
+# 7. Combine plots (2 rows × 4 columns)
+# -----------------------------
+combined_plot <- (p2017 + p2018 + p2019 + p2020 +
+                    p2021 + p2022 + p2023 + p2024) +
+  plot_layout(ncol = 4) +
+  plot_annotation(title = "B") &
+  theme(plot.title = element_text(face = "bold", size = 20, hjust = 0))
+
+# -----------------------------
+# 8. Display and save
+# -----------------------------
+combined_plot
+
+ggsave("J:/Research/Research/denguebangladesh/Dengue_Bangladesh_2017_2024_with_DENV_types_jitter.png",
+       combined_plot,
+       width = 18, height = 15, dpi = 300)
+
+
+
+
+
+
+
+############################COLDHOT spot
+
+# ============================================================
+# 1. Load libraries
+# ============================================================
+library(sf)
+library(dplyr)
+library(readxl)
+library(spdep)
+library(ggplot2)
+library(patchwork)
+library(RColorBrewer)
+
+# ============================================================
+# 2. Load shapefile and dengue data
+# ============================================================
+shapefile_path <- "C:/R/LABSTAT/bgd_adm_bbs_20201113_SHP"
+districts <- st_read(shapefile_path, layer = "bgd_admbnda_adm2_bbs_20201113")
+districts$ADM2_EN <- toupper(trimws(districts$ADM2_EN))
+
+file_path <- "J:/Research/Research/denguebangladesh/data/ABSDengueDataBD.xlsx"
+mydata <- read_excel(file_path, sheet = "data11")
+mydata$District <- toupper(trimws(mydata$District))
+
+# ============================================================
+# 3. Fix district name mismatches (critical step!)
+# ============================================================
+mydata$District[mydata$District == "BARISHAL"]         <- "BARISAL"
+mydata$District[mydata$District == "BOGURA"]           <- "BOGRA"
+mydata$District[mydata$District == "CHAPAI NAWABGANJ"] <- "CHAPAINAWABGANJ"
+mydata$District[mydata$District == "CHATTOGRAM"]       <- "CHITTAGONG"
+mydata$District[mydata$District == "CUMILLA"]          <- "COMILLA"
+mydata$District[mydata$District == "JASHORE"]          <- "JESSORE"
+mydata$District[mydata$District == "KISHORGANJ"]       <- "KISHOREGANJ"
+mydata$District[mydata$District == "NETROKONA"]        <- "NETRAKONA"
+mydata$District[mydata$District == "JHALOKATHI"]       <- "JHALOKATHI"
+# MOULVIBAZAR already matches
+
+# Check again
+print(setdiff(mydata$District, districts$ADM2_EN))   # should be empty
+
+
+# ============================================================
+# 4. Compute Getis-Ord Gi* for a given year with CI categories
+# ============================================================
+compute_gistar_ci <- function(year_sel) {
+  
+  mapdata <- districts %>%
+    left_join(mydata %>% filter(Year == year_sel) %>% 
+                select(District, Yearly_cases),
+              by = c("ADM2_EN" = "District"))
+  
+  mapdata$Yearly_cases[is.na(mapdata$Yearly_cases)] <- 0
+  
+  nb <- poly2nb(mapdata, queen = TRUE)
+  lw <- nb2listw(nb, style = "W", zero.policy = TRUE)
+  
+  gi <- localG(mapdata$Yearly_cases, lw, zero.policy = TRUE)
+  mapdata$GiZ <- as.numeric(gi)
+  
+  # Classification by CI
+  mapdata$HotCold <- cut(
+    mapdata$GiZ,
+    breaks = c(-Inf, -2.576, -1.96, -1.645, 1.645, 1.96, 2.576, Inf),
+    labels = c(
+      "Cold spot - 99% CI",
+      "Cold spot - 95% CI",
+      "Cold spot - 90% CI",
+      "Not significant",
+      "Hot spot - 90% CI",
+      "Hot spot - 95% CI",
+      "Hot spot - 99% CI"
+    ),
+    include.lowest = TRUE
+  )
+  
+  return(mapdata)
+}
+
+# ============================================================
+# 5. Compute Gi* for all years (2017–2024)
+# ============================================================
+years <- 2017:2024
+maps_list <- lapply(years, compute_gistar_ci)
+names(maps_list) <- years
+
+
+# ============================================================
+# 6. Plot function for CI-based Hot/Cold Spot map
+# ============================================================
+plot_hotcold_ci <- function(mapdata, year_sel) {
+  
+  mapdata$HotCold <- factor(mapdata$HotCold, levels = c(
+    "Hot spot - 99% CI",
+    "Hot spot - 95% CI",
+    "Hot spot - 90% CI",
+    "Not significant",
+    "Cold spot - 90% CI",
+    "Cold spot - 95% CI",
+    "Cold spot - 99% CI"
+  ))
+  
+  ggplot(mapdata) +
+    geom_sf(aes(fill = HotCold), color = "black", size = 0.15) +
+    
+    scale_fill_manual(
+      values = c(
+        "Hot spot - 99% CI" = "#99000D",   # darkest red
+        "Hot spot - 95% CI" = "#CB181D",
+        "Hot spot - 90% CI" = "#FB6A4A",
+        "Not significant" = "grey85",
+        "Cold spot - 90% CI" = "#6BAED6",
+        "Cold spot - 95% CI" = "#4292C6",
+        "Cold spot - 99% CI" = "#08519C"   # darkest blue
+      ),
+      name = ""
+    ) +
+    
+    annotation_scale(location = "bl", width_hint = 0.3) +
+    annotation_north_arrow(location = "tr", which_north = "true",
+                           style = north_arrow_nautical()) +
+    
+    labs(title = paste(year_sel), x = NULL, y = NULL) +
+    theme_minimal(base_size = 14) +
+    theme(
+      plot.title = element_text(face = "bold", hjust = 0, size = 16),
+      legend.position = "right",
+      legend.key.size = unit(0.7, "cm"),
+      axis.text = element_blank(),
+      axis.title = element_blank(),
+      axis.ticks = element_blank(),
+      panel.grid = element_line(color = "gray90"),
+      panel.border = element_rect(color = "black", fill = NA, size = 0.7)
+    )
+}
+
+# ============================================================
+# 7. Create maps for all years
+# ============================================================
+plots <- lapply(years, function(yr) plot_hotcold_ci(maps_list[[as.character(yr)]], yr))
+
+# ============================================================
+# 8. Combine and save final plot
+# ============================================================
+combined_plot <- wrap_plots(plots, ncol = 4) +
+  plot_annotation(title = "A") &
+  theme(plot.title = element_text(face = "bold", size = 22, hjust = 0))
+
+combined_plot
+
+ggsave(
+  "J:/Research/Research/denguebangladesh/1Dengue_HotColdSpots_2017_2024_CI.png",
+  combined_plot,
+  width = 20, height = 15, dpi = 300
+)
+
+
+
+# ============================================================
+# 9. Save ALL YEARS (2017–2024) in ONE Excel sheet
+# ============================================================
+library(openxlsx)
+
+# Build a single combined data frame
+combined_df <- do.call(rbind, lapply(years, function(yr) {
+  df <- maps_list[[as.character(yr)]] %>%
+    st_drop_geometry() %>%
+    mutate(Year = yr) %>% 
+    select(Year, District = ADM2_EN, Yearly_cases, GiZ, HotCold)
+  return(df)
+}))
+
+# Define output path
+output_file <- "J:/Research/Research/denguebangladesh/GiStar_HotCold_2017_2024_ALLinONE.xlsx"
+
+# Save to Excel (one sheet)
+write.xlsx(combined_df, output_file, sheetName = "GiStar_2017_2024", overwrite = TRUE)
+
+
+
+
+
+####LISA
+
+# ============================================================
+# 1. Load libraries
+# ============================================================
+library(sf)
+library(dplyr)
+library(readxl)
+library(spdep)
+library(ggplot2)
+library(patchwork)
+library(openxlsx)
+library(RColorBrewer)
+
+# ============================================================
+# 2. Load shapefile and dengue data (same as Gi*)
+# ============================================================
+shapefile_path <- "C:/R/LABSTAT/bgd_adm_bbs_20201113_SHP"
+districts <- st_read(shapefile_path, layer = "bgd_admbnda_adm2_bbs_20201113")
+districts$ADM2_EN <- toupper(trimws(districts$ADM2_EN))
+
+file_path <- "J:/Research/Research/denguebangladesh/data/ABSDengueDataBD.xlsx"
+mydata <- read_excel(file_path, sheet = "data11")
+mydata$District <- toupper(trimws(mydata$District))
+
+# ============================================================
+# 3. Fix district name mismatches
+# ============================================================
+fix_names <- c(
+  "BARISHAL" = "BARISAL",
+  "BOGURA" = "BOGRA",
+  "CHAPAI NAWABGANJ" = "CHAPAINAWABGANJ",
+  "CHATTOGRAM" = "CHITTAGONG",
+  "CUMILLA" = "COMILLA",
+  "JASHORE" = "JESSORE",
+  "KISHORGANJ" = "KISHOREGANJ",
+  "NETROKONA" = "NETRAKONA"
+)
+mydata$District <- sapply(mydata$District, function(x) ifelse(x %in% names(fix_names), fix_names[x], x))
+
+# ============================================================
+# 4. Function to compute Local Moran's I (LISA)
+# ============================================================
+compute_lisa <- function(year_sel) {
+  
+  mapdata <- districts %>%
+    left_join(mydata %>% filter(Year == year_sel) %>% select(District, Yearly_cases),
+              by = c("ADM2_EN" = "District"))
+  
+  mapdata$Yearly_cases[is.na(mapdata$Yearly_cases)] <- 0
+  
+  nb <- poly2nb(mapdata, queen = TRUE)
+  lw <- nb2listw(nb, style = "W", zero.policy = TRUE)
+  
+  lisa <- localmoran(mapdata$Yearly_cases, lw, zero.policy = TRUE)
+  
+  # z-score of local Moran's I
+  mapdata$LisaZ <- (lisa[,1] - mean(lisa[,1])) / sd(lisa[,1])
+  
+  # Classify clusters using z-score thresholds
+  mapdata$LisaCat <- cut(
+    mapdata$LisaZ,
+    breaks = c(-Inf, -2.576, -1.96, -1.645, 1.645, 1.96, 2.576, Inf),
+    labels = c(
+      "Low-Low 99%", "Low-Low 95%", "Low-Low 90%",
+      "Not Significant",
+      "High-High 90%", "High-High 95%", "High-High 99%"
+    ),
+    include.lowest = TRUE
+  )
+  
+  return(mapdata)
+}
+
+# ============================================================
+# 5. Compute LISA for all years (2017–2024)
+# ============================================================
+years <- 2017:2024
+lisa_list <- lapply(years, compute_lisa)
+names(lisa_list) <- years
+
+# ============================================================
+# 6. Plot function for LISA map
+# ============================================================
+plot_lisa <- function(mapdata, year_sel) {
+  
+  mapdata$LisaCat <- factor(mapdata$LisaCat, levels = c(
+    "High-High 99%", "High-High 95%", "High-High 90%",
+    "Not Significant",
+    "Low-Low 90%", "Low-Low 95%", "Low-Low 99%"
+  ))
+  
+  ggplot(mapdata) +
+    geom_sf(aes(fill = LisaCat), color = "black", size = 0.15) +
+    scale_fill_manual(
+      values = c(
+        "High-High 99%" = "#99000D",
+        "High-High 95%" = "#CB181D",
+        "High-High 90%" = "#FB6A4A",
+        "Not Significant" = "grey85",
+        "Low-Low 90%" = "#6BAED6",
+        "Low-Low 95%" = "#4292C6",
+        "Low-Low 99%" = "#08519C"
+      ),
+      name = ""
+    ) +
+    annotation_scale(location = "bl", width_hint = 0.3) +
+    annotation_north_arrow(location = "tr", which_north = "true",
+                           style = north_arrow_nautical()) +
+    labs(title = paste("", year_sel), x = NULL, y = NULL) +
+    theme_minimal(base_size = 14) +
+    theme(
+      plot.title = element_text(face = "bold", hjust = 0, size = 16),
+      legend.position = "right",
+      axis.text = element_blank(),
+      axis.title = element_blank(),
+      axis.ticks = element_blank(),
+      panel.grid = element_line(color = "gray90"),
+      panel.border = element_rect(color = "black", fill = NA, size = 0.7)
+    )
+}
+
+# ============================================================
+# 7. Create LISA maps for all years
+# ============================================================
+plots <- lapply(years, function(yr) plot_lisa(lisa_list[[as.character(yr)]], yr))
+
+# ============================================================
+# 8. Combine and save final LISA plot
+# ============================================================
+combined_plot <- wrap_plots(plots, ncol = 4) +
+  plot_annotation(title = "B") &
+  theme(plot.title = element_text(face = "bold", size = 22, hjust = 0))
+
+combined_plot
+
+ggsave(
+  "J:/Research/Research/denguebangladesh/2Dengue_LISA_2017_2024_CI.png",
+  combined_plot,
+  width = 20, height = 15, dpi = 300
+)
+
+# ============================================================
+# 9. Save ALL YEARS (2017–2024) in ONE Excel sheet
+# ============================================================
+combined_df <- do.call(rbind, lapply(years, function(yr) {
+  df <- lisa_list[[as.character(yr)]] %>%
+    st_drop_geometry() %>%
+    mutate(Year = yr) %>%
+    select(Year, District = ADM2_EN, Yearly_cases, LisaZ, LisaCat)
+  return(df)
+}))
+
+output_file <- "J:/Research/Research/denguebangladesh/LISA_2017_2024_ALLinONE.xlsx"
+
+write.xlsx(combined_df, output_file, sheetName = "LISA_2017_2024", overwrite = TRUE)
+
+
+
+
+
+
+
+#### shap
+# ============================================================
+# LIBRARIES
+# ============================================================
+library(sf)
+library(dplyr)
+library(readxl)
+library(ggplot2)
+library(patchwork)
+library(ggspatial)
+
+# ============================================================
+# 1. Load SHAPEFILE
+# ============================================================
+shp_path <- "C:/R/LABSTAT/bgd_adm_bbs_20201113_SHP"
+districts <- st_read(shp_path, layer = "bgd_admbnda_adm2_bbs_20201113")
+districts$ADM2_EN <- toupper(trimws(districts$ADM2_EN))
+
+# ============================================================
+# 2. LOAD SHAP DATA
+# ============================================================
+file_path <- "J:/Research/Research/denguebangladesh/data/ABSDengueDataBD.xlsx"
+mydata <- read_excel(file_path, sheet = "SHAPDIST11")
+mydata$District <- toupper(trimws(mydata$District))
+
+mydata$District[mydata$District == "BARISHAL"] <- "BARISAL"
+mydata$District[mydata$District == "BOGURA"] <- "BOGRA"
+mydata$District[mydata$District == "CHAPAI NAWABGANJ"] <- "CHAPAINAWABGANJ"
+mydata$District[mydata$District == "CHATTOGRAM"] <- "CHITTAGONG"
+mydata$District[mydata$District == "CUMILLA"] <- "COMILLA"
+mydata$District[mydata$District == "JASHORE"] <- "JESSORE"
+mydata$District[mydata$District == "KISHORGANJ"] <- "KISHOREGANJ"
+mydata$District[mydata$District == "NETROKONA"] <- "NETRAKONA"
+mydata$District[mydata$District == "JHALOKATHI"] <- "JHALOKATHI"
+
+# ============================================================
+# 3. SELECT TOP FEATURES
+# ============================================================
+top_features <- c("X19","X116","X118","X120","X13","X14","X121","X111","X18","X12")
+
+# ============================================================
+# 4. MERGE
+# ============================================================
+merged <- districts %>%
+  left_join(mydata, by = c("ADM2_EN" = "District"))
+
+# ============================================================
+# 5. CREATE SEPARATE MAPS
+# ============================================================
+
+
+
+
+
+
+
+
+
+
+
+# --- MAP 1: X19 ---
+df1 <- merged %>% mutate(Mean_SHAP = ifelse(Feature == "X12", Mean_SHAP, NA))
+map1 <- ggplot(df1) +
+  geom_sf(aes(fill = Mean_SHAP), color="gray30", size=0.2) +
+  scale_fill_gradient(low="#ffffcc", high="#e60000", na.value="transparent") +
+  labs(title="X12") +
+  annotation_scale(location="bl", width_hint=0.25) +
+  annotation_north_arrow(location="tr", which_north="true",
+                         style = north_arrow_nautical()) +
+  theme_minimal(base_size=14) +
+  theme(plot.title = element_text(face="bold", hjust=0.5),
+        legend.position="right")
+
+# --- MAP 2: X17 ---
+df2 <- merged %>% mutate(Mean_SHAP = ifelse(Feature == "X11", Mean_SHAP, NA))
+map2 <- ggplot(df2) +
+  geom_sf(aes(fill = Mean_SHAP), color="gray30", size=0.2) +
+  scale_fill_gradient(low="#ffffcc", high="#e60000", na.value="transparent") +
+  labs(title="X11") +
+  annotation_scale(location="bl", width_hint=0.25) +
+  annotation_north_arrow(location="tr", which_north="true",
+                         style = north_arrow_nautical()) +
+  theme_minimal(base_size=14) +
+  theme(plot.title = element_text(face="bold", hjust=0.5),
+        legend.position="right")
+
+# --- MAP 3: X117 ---
+df3 <- merged %>% mutate(Mean_SHAP = ifelse(Feature == "X111", Mean_SHAP, NA))
+map3 <- ggplot(df3) +
+  geom_sf(aes(fill = Mean_SHAP), color="gray30", size=0.2) +
+  scale_fill_gradient(low="#ffffcc", high="#e60000", na.value="transparent") +
+  labs(title="X111") +
+  annotation_scale(location="bl", width_hint=0.25) +
+  annotation_north_arrow(location="tr", which_north="true",
+                         style = north_arrow_nautical()) +
+  theme_minimal(base_size=14) +
+  theme(plot.title = element_text(face="bold", hjust=0.5),
+        legend.position="right")
+
+# --- MAP 4: X120 ---
+df4 <- merged %>% mutate(Mean_SHAP = ifelse(Feature == "X120", Mean_SHAP, NA))
+map4 <- ggplot(df4) +
+  geom_sf(aes(fill = Mean_SHAP), color="gray30", size=0.2) +
+  scale_fill_gradient(low="#ffffcc", high="#e60000", na.value="transparent") +
+  labs(title="X120") +
+  annotation_scale(location="bl", width_hint=0.25) +
+  annotation_north_arrow(location="tr", which_north="true",
+                         style = north_arrow_nautical()) +
+  theme_minimal(base_size=14) +
+  theme(plot.title = element_text(face="bold", hjust=0.5),
+        legend.position="right")
+
+# --- MAP 5: X118 ---
+df5 <- merged %>% mutate(Mean_SHAP = ifelse(Feature == "X14", Mean_SHAP, NA))
+map5 <- ggplot(df5) +
+  geom_sf(aes(fill = Mean_SHAP), color="gray30", size=0.2) +
+  scale_fill_gradient(low="#ffffcc", high="#e60000", na.value="transparent") +
+  labs(title="X14") +
+  annotation_scale(location="bl", width_hint=0.25) +
+  annotation_north_arrow(location="tr", which_north="true",
+                         style = north_arrow_nautical()) +
+  theme_minimal(base_size=14) +
+  theme(plot.title = element_text(face="bold", hjust=0.5),
+        legend.position="right")
+
+# --- MAP 6: X111 ---
+df6 <- merged %>% mutate(Mean_SHAP = ifelse(Feature == "X13", Mean_SHAP, NA))
+map6 <- ggplot(df6) +
+  geom_sf(aes(fill = Mean_SHAP), color="gray30", size=0.2) +
+  scale_fill_gradient(low="#ffffcc", high="#e60000", na.value="transparent") +
+  labs(title="X13") +
+  annotation_scale(location="bl", width_hint=0.25) +
+  annotation_north_arrow(location="tr", which_north="true",
+                         style = north_arrow_nautical()) +
+  theme_minimal(base_size=14) +
+  theme(plot.title = element_text(face="bold", hjust=0.5),
+        legend.position="right")
+
+# --- MAP 7: X116 ---
+df7 <- merged %>% mutate(Mean_SHAP = ifelse(Feature == "X116", Mean_SHAP, NA))
+map7 <- ggplot(df7) +
+  geom_sf(aes(fill = Mean_SHAP), color="gray30", size=0.2) +
+  scale_fill_gradient(low="#ffffcc", high="#e60000", na.value="transparent") +
+  labs(title="X116") +
+  annotation_scale(location="bl", width_hint=0.25) +
+  annotation_north_arrow(location="tr", which_north="true",
+                         style = north_arrow_nautical()) +
+  theme_minimal(base_size=14) +
+  theme(plot.title = element_text(face="bold", hjust=0.5),
+        legend.position="right")
+
+# --- MAP 8: X11 ---
+df8 <- merged %>% mutate(Mean_SHAP = ifelse(Feature == "X112", Mean_SHAP, NA))
+map8 <- ggplot(df8) +
+  geom_sf(aes(fill = Mean_SHAP), color="gray30", size=0.2) +
+  scale_fill_gradient(low="#ffffcc", high="#e60000", na.value="transparent") +
+  labs(title="X112") +
+  annotation_scale(location="bl", width_hint=0.25) +
+  annotation_north_arrow(location="tr", which_north="true",
+                         style = north_arrow_nautical()) +
+  theme_minimal(base_size=14) +
+  theme(plot.title = element_text(face="bold", hjust=0.5),
+        legend.position="right")
+
+# --- MAP 9: X119 ---
+df9 <- merged %>% mutate(Mean_SHAP = ifelse(Feature == "X15", Mean_SHAP, NA))
+map9 <- ggplot(df9) +
+  geom_sf(aes(fill = Mean_SHAP), color="gray30", size=0.2) +
+  scale_fill_gradient(low="#ffffcc", high="#e60000", na.value="transparent") +
+  labs(title="X15") +
+  annotation_scale(location="bl", width_hint=0.25) +
+  annotation_north_arrow(location="tr", which_north="true",
+                         style = north_arrow_nautical()) +
+  theme_minimal(base_size=14) +
+  theme(plot.title = element_text(face="bold", hjust=0.5),
+        legend.position="right")
+
+# --- MAP 10: X14 ---
+df10 <- merged %>% mutate(Mean_SHAP = ifelse(Feature == "X16", Mean_SHAP, NA))
+map10 <- ggplot(df10) +
+  geom_sf(aes(fill = Mean_SHAP), color="gray30", size=0.2) +
+  scale_fill_gradient(low="#ffffcc", high="#e60000", na.value="transparent") +
+  labs(title="X16") +
+  annotation_scale(location="bl", width_hint=0.25) +
+  annotation_north_arrow(location="tr", which_north="true",
+                         style = north_arrow_nautical()) +
+  theme_minimal(base_size=14) +
+  theme(plot.title = element_text(face="bold", hjust=0.5),
+        legend.position="right")
+
+# ============================================================
+# 6. COMBINE ALL MAPS
+# ============================================================
+final_map <- wrap_plots(
+  list(map1, map2, map3, map4, map5, map6, map7, map8, map9, map10),
+  ncol = 5
+) + 
+  plot_annotation(title = "A") &
+  theme(plot.title = element_text(face="bold", size=22, hjust=0))
+
+# Show output
+#final_map
+
+# ============================================================
+# 7. SAVE OUTPUT
+# ============================================================
+ggsave("J:/Research/Research/denguebangladesh/000A11SHAP_10_Feature_Maps.png",
+       final_map, width = 20, height = 10, dpi = 300)
+
+
+
+
+
+# ============================================================
+# LIBRARIES
+# ============================================================
+library(sf)
+library(dplyr)
+library(readxl)
+library(ggplot2)
+library(patchwork)
+library(ggspatial)
+
+# ============================================================
+# 1. LOAD SHAPEFILE
+# ============================================================
+shp_path <- "C:/R/LABSTAT/bgd_adm_bbs_20201113_SHP"
+districts <- st_read(shp_path, layer = "bgd_admbnda_adm2_bbs_20201113")
+districts$ADM2_EN <- toupper(trimws(districts$ADM2_EN))
+
+# ============================================================
+# 2. LOAD CATEGORY SHAP DATA
+# ============================================================
+file_path <- "J:/Research/Research/denguebangladesh/data/ABSDengueDataBD.xlsx"
+mydata <- read_excel(file_path, sheet = "distcat11")
+
+mydata$District <- toupper(trimws(mydata$District))
+
+# Fix naming mismatches
+mydata$District[mydata$District == "BARISHAL"] <- "BARISAL"
+mydata$District[mydata$District == "BOGURA"] <- "BOGRA"
+mydata$District[mydata$District == "CHAPAI NAWABGANJ"] <- "CHAPAINAWABGANJ"
+mydata$District[mydata$District == "CHATTOGRAM"] <- "CHITTAGONG"
+mydata$District[mydata$District == "CUMILLA"] <- "COMILLA"
+mydata$District[mydata$District == "JASHORE"] <- "JESSORE"
+mydata$District[mydata$District == "KISHORGANJ"] <- "KISHOREGANJ"
+mydata$District[mydata$District == "NETROKONA"] <- "NETRAKONA"
+mydata$District[mydata$District == "JHALOKATHI"] <- "JHALOKATI"
+
+# ============================================================
+# 3. MERGE WITH SHAPEFILE
+# ============================================================
+merged <- districts %>%
+  left_join(mydata, by = c("ADM2_EN" = "District"))
+
+# ============================================================
+# 4. CREATE GLOBAL COLOR SCALE RANGE
+# ============================================================
+min_val <- min(merged$`Contribution_%`, na.rm = TRUE)
+max_val <- max(merged$`Contribution_%`, na.rm = TRUE)
+
+# ============================================================
+# 5. MAP 1: CLIMATE & ENVIRONMENTAL
+# ============================================================
+df1 <- merged %>% mutate(Contribution_F = ifelse(Category == "Climate & Environmental",
+                                                 `Contribution_%`, NA))
+
+map1 <- ggplot(df1) +
+  geom_sf(aes(fill = Contribution_F), color = "gray30", size = 0.2) +
+  scale_fill_gradient(limits = c(min_val, max_val), low = "skyblue",
+                      high = "#e60000", na.value = "transparent") +
+  labs(title = "B1. Climatic & environmental", fill = "% Contribution") +
+  annotation_scale(location="bl", width_hint=0.25) +
+  annotation_north_arrow(location="tr", which_north="true",
+                         style = north_arrow_nautical()) +
+  theme_minimal(base_size = 14) +
+  theme(plot.title = element_text(face="bold", hjust=0))
+
+# ============================================================
+# 6. MAP 2: SOCIO–DEMOGRAPHIC & ECONOMIC
+# ============================================================
+df2 <- merged %>% mutate(Contribution_F = ifelse(Category == "Socio-Demographic & Economic",
+                                                 `Contribution_%`, NA))
+
+map2 <- ggplot(df2) +
+  geom_sf(aes(fill = Contribution_F), color = "gray30", size = 0.2) +
+  scale_fill_gradient(limits = c(min_val, max_val), low = "skyblue",
+                      high = "#e60000", na.value = "transparent") +
+  labs(title = "B2. Socio-demographic & economic", fill = "% Contribution") +
+  annotation_scale(location="bl", width_hint=0.25) +
+  annotation_north_arrow(location="tr", which_north="true",
+                         style = north_arrow_nautical()) +
+  theme_minimal(base_size = 14) +
+  theme(plot.title = element_text(face="bold", hjust=0))
+
+# ============================================================
+# 7. MAP 3: HEALTHCARE SYSTEM
+# ============================================================
+df3 <- merged %>% mutate(Contribution_F = ifelse(Category == "Healthcare System",
+                                                 `Contribution_%`, NA))
+
+map3 <- ggplot(df3) +
+  geom_sf(aes(fill = Contribution_F), color = "gray30", size = 0.2) +
+  scale_fill_gradient(limits = c(min_val, max_val), low = "skyblue",
+                      high = "#e60000", na.value = "transparent") +
+  labs(title = "B3. Healthcare system", fill = "% Contribution") +
+  annotation_scale(location="bl", width_hint=0.25) +
+  annotation_north_arrow(location="tr", which_north="true",
+                         style = north_arrow_nautical()) +
+  theme_minimal(base_size = 14) +
+  theme(plot.title = element_text(face="bold", hjust=0))
+
+# ============================================================
+# 8. MAP 4: LAND USE & LAND COVER
+# ============================================================
+df4 <- merged %>% mutate(Contribution_F = ifelse(Category == "Land Use & Land Cover",
+                                                 `Contribution_%`, NA))
+
+map4 <- ggplot(df4) +
+  geom_sf(aes(fill = Contribution_F), color = "gray30", size = 0.2) +
+  scale_fill_gradient(limits = c(min_val, max_val), low = "skyblue",
+                      high = "#e60000", na.value = "transparent") +
+  labs(title = "B4. Land use & land cover", fill = "% Contribution") +
+  annotation_scale(location="bl", width_hint=0.25) +
+  annotation_north_arrow(location="tr", which_north="true",
+                         style = north_arrow_nautical()) +
+  theme_minimal(base_size = 14) +
+  theme(plot.title = element_text(face="bold", hjust=0))
+
+# ============================================================
+# 9. COMBINE ALL MAPS INTO 1 ROW, TITLE = "B"
+# ============================================================
+combined_map <- (
+  (map1 | map2 | map3 | map4) +
+    plot_annotation(title = "B")
+) &
+  theme(plot.title = element_text(face = "bold", size = 24, hjust = 0))
+
+#combined_map
+
+# ============================================================
+# 10. SAVE OUTPUT
+# ============================================================
+ggsave(
+  "J:/Research/Research/denguebangladesh/000B4_Category_SHAP_Maps.png",
+  combined_map,
+  width = 26,
+  height = 10,
+  dpi = 300
+)
+
+
+library(dplyr)
+library(openxlsx)
+library(sf)
+
+# ============================================================
+# 11. CREATE SEPARATE DATAFRAMES FOR EACH CATEGORY
+# ============================================================
+
+df1_val <- merged %>%
+  filter(Category == "Climate & Environmental") %>%
+  st_drop_geometry() %>%
+  select(ADM2_EN, Climate_Environmental = `Contribution_%`) 
+
+df2_val <- merged %>%
+  filter(Category == "Socio-Demographic & Economic") %>%
+  st_drop_geometry() %>%
+  select(ADM2_EN, Socio_Demographic = `Contribution_%`)
+
+df3_val <- merged %>%
+  filter(Category == "Healthcare System") %>%
+  st_drop_geometry() %>%
+  select(ADM2_EN, Healthcare = `Contribution_%`)
+
+df4_val <- merged %>%
+  filter(Category == "Land Use & Land Cover") %>%
+  st_drop_geometry() %>%
+  select(ADM2_EN, Land_Use = `Contribution_%`)
+
+# ============================================================
+# 12. MERGE ALL 4 DATAFRAMES (missing values = 0)
+# ============================================================
+
+all_districts <- merged %>%
+  st_drop_geometry() %>%
+  distinct(ADM2_EN)
+
+merged_vals <- all_districts %>%
+  left_join(df1_val, by = "ADM2_EN") %>%
+  left_join(df2_val, by = "ADM2_EN") %>%
+  left_join(df3_val, by = "ADM2_EN") %>%
+  left_join(df4_val, by = "ADM2_EN")
+
+# Replace NA with 0
+merged_vals[is.na(merged_vals)] <- 0
+
+# Rename for clarity
+merged_vals <- merged_vals %>%
+  rename(District = ADM2_EN)
+
+# ============================================================
+# 13. SAVE TO EXCEL (ONE SHEET)
+# ============================================================
+
+write.xlsx(
+  merged_vals,
+  file = "J:/Research/Research/denguebangladesh/4_Category_SHAP_Values.xlsx",
+  sheetName = "SHAP_All",
+  rowNames = FALSE
+)
+
+cat("Excel file saved successfully!\n")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+###DATA2 SHAP
+# ============================================================
+# LIBRARIES
+# ============================================================
+library(sf)
+library(dplyr)
+library(readxl)
+library(ggplot2)
+library(patchwork)
+library(ggspatial)
+
+# ============================================================
+# 1. LOAD SHAPEFILE
+# ============================================================
+shp_path <- "C:/R/LABSTAT/bgd_adm_bbs_20201113_SHP"
+districts <- st_read(shp_path, layer = "bgd_admbnda_adm2_bbs_20201113")
+districts$ADM2_EN <- toupper(trimws(districts$ADM2_EN))
+
+# ============================================================
+# 2. LOAD SHAP DATA
+# ============================================================
+file_path <- "J:/Research/Research/denguebangladesh/data/ABSDengueDataBD.xlsx"
+mydata <- read_excel(file_path, sheet = "22district10")
+mydata$Districts <- toupper(trimws(mydata$Districts))
+
+# Fix district names
+mydata$Districts[mydata$Districts == "BARISHAL"] <- "BARISAL"
+mydata$Districts[mydata$Districts == "BOGURA"] <- "BOGRA"
+mydata$Districts[mydata$Districts == "CHAPAI NAWABGANJ"] <- "CHAPAINAWABGANJ"
+mydata$Districts[mydata$Districts == "CHATTOGRAM"] <- "CHITTAGONG"
+mydata$Districts[mydata$Districts == "CUMILLA"] <- "COMILLA"
+mydata$Districts[mydata$Districts == "JASHORE"] <- "JESSORE"
+mydata$Districts[mydata$Districts == "KISHORGANJ"] <- "KISHOREGANJ"
+mydata$Districts[mydata$Districts == "NETROKONA"] <- "NETRAKONA"
+mydata$Districts[mydata$Districts == "JHALOKATHI"] <- "JHALOKATHI"
+
+# ============================================================
+# 3. MERGE DATA WITH SHAPEFILE
+# ============================================================
+merged <- districts %>%
+  left_join(mydata, by = c("ADM2_EN" = "Districts"))
+
+# ============================================================
+# 4. CREATE MAPS WITH Mean_SHAP
+# ============================================================
+
+
+
+
+# --- MAP 1: X24 ---
+df1 <- merged %>% mutate(Mean_SHAP = X24)
+map1 <- ggplot(df1) +
+  geom_sf(aes(fill = Mean_SHAP), color="gray30", size=0.2) +
+  scale_fill_gradient(name="Mean_SHAP", low="#ffffcc", high="#e60000", na.value="transparent") +
+  labs(title="X24") +
+  annotation_scale(location="bl", width_hint=0.25) +
+  annotation_north_arrow(location="tr", which_north="true", style = north_arrow_nautical()) +
+  theme_minimal(base_size=14) +
+  theme(plot.title=element_text(face="bold", hjust=0.5), legend.position="right")
+
+# --- MAP 2: X22 ---
+df2 <- merged %>% mutate(Mean_SHAP = X216)
+map2 <- ggplot(df2) +
+  geom_sf(aes(fill = Mean_SHAP), color="gray30", size=0.2) +
+  scale_fill_gradient(name="Mean_SHAP", low="#ffffcc", high="#e60000", na.value="transparent") +
+  labs(title="X216") +
+  annotation_scale(location="bl", width_hint=0.25) +
+  annotation_north_arrow(location="tr", which_north="true", style = north_arrow_nautical()) +
+  theme_minimal(base_size=14) +
+  theme(plot.title=element_text(face="bold", hjust=0.5), legend.position="right")
+
+# --- MAP 3: X216 ---
+df3 <- merged %>% mutate(Mean_SHAP = X22)
+map3 <- ggplot(df3) +
+  geom_sf(aes(fill = Mean_SHAP), color="gray30", size=0.2) +
+  scale_fill_gradient(name="Mean_SHAP", low="#ffffcc", high="#e60000", na.value="transparent") +
+  labs(title="X22") +
+  annotation_scale(location="bl", width_hint=0.25) +
+  annotation_north_arrow(location="tr", which_north="true", style = north_arrow_nautical()) +
+  theme_minimal(base_size=14) +
+  theme(plot.title=element_text(face="bold", hjust=0.5), legend.position="right")
+
+# --- MAP 4: X217 ---
+df4 <- merged %>% mutate(Mean_SHAP = X28)
+map4 <- ggplot(df4) +
+  geom_sf(aes(fill = Mean_SHAP), color="gray30", size=0.2) +
+  scale_fill_gradient(name="Mean_SHAP", low="#ffffcc", high="#e60000", na.value="transparent") +
+  labs(title="X28") +
+  annotation_scale(location="bl", width_hint=0.25) +
+  annotation_north_arrow(location="tr", which_north="true", style = north_arrow_nautical()) +
+  theme_minimal(base_size=14) +
+  theme(plot.title=element_text(face="bold", hjust=0.5), legend.position="right")
+
+# --- MAP 5: X213 ---
+df5 <- merged %>% mutate(Mean_SHAP = X212)
+map5 <- ggplot(df5) +
+  geom_sf(aes(fill = Mean_SHAP), color="gray30", size=0.2) +
+  scale_fill_gradient(name="Mean_SHAP", low="#ffffcc", high="#e60000", na.value="transparent") +
+  labs(title="X212") +
+  annotation_scale(location="bl", width_hint=0.25) +
+  annotation_north_arrow(location="tr", which_north="true", style = north_arrow_nautical()) +
+  theme_minimal(base_size=14) +
+  theme(plot.title=element_text(face="bold", hjust=0.5), legend.position="right")
+
+# --- MAP 6: X214 ---
+df6 <- merged %>% mutate(Mean_SHAP = X25)
+map6 <- ggplot(df6) +
+  geom_sf(aes(fill = Mean_SHAP), color="gray30", size=0.2) +
+  scale_fill_gradient(name="Mean_SHAP", low="#ffffcc", high="#e60000", na.value="transparent") +
+  labs(title="X25") +
+  annotation_scale(location="bl", width_hint=0.25) +
+  annotation_north_arrow(location="tr", which_north="true", style = north_arrow_nautical()) +
+  theme_minimal(base_size=14) +
+  theme(plot.title=element_text(face="bold", hjust=0.5), legend.position="right")
+
+# --- MAP 7: X25 ---
+df7 <- merged %>% mutate(Mean_SHAP = X220)
+map7 <- ggplot(df7) +
+  geom_sf(aes(fill = Mean_SHAP), color="gray30", size=0.2) +
+  scale_fill_gradient(name="Mean_SHAP", low="#ffffcc", high="#e60000", na.value="transparent") +
+  labs(title="X220") +
+  annotation_scale(location="bl", width_hint=0.25) +
+  annotation_north_arrow(location="tr", which_north="true", style = north_arrow_nautical()) +
+  theme_minimal(base_size=14) +
+  theme(plot.title=element_text(face="bold", hjust=0.5), legend.position="right")
+
+# --- MAP 8: X215 ---
+df8 <- merged %>% mutate(Mean_SHAP = X26)
+map8 <- ggplot(df8) +
+  geom_sf(aes(fill = Mean_SHAP), color="gray30", size=0.2) +
+  scale_fill_gradient(name="Mean_SHAP", low="#ffffcc", high="#e60000", na.value="transparent") +
+  labs(title="X26") +
+  annotation_scale(location="bl", width_hint=0.25) +
+  annotation_north_arrow(location="tr", which_north="true", style = north_arrow_nautical()) +
+  theme_minimal(base_size=14) +
+  theme(plot.title=element_text(face="bold", hjust=0.5), legend.position="right")
+
+# --- MAP 9: X212 ---
+df9 <- merged %>% mutate(Mean_SHAP = X21)
+map9 <- ggplot(df9) +
+  geom_sf(aes(fill = Mean_SHAP), color="gray30", size=0.2) +
+  scale_fill_gradient(name="Mean_SHAP", low="#ffffcc", high="#e60000", na.value="transparent") +
+  labs(title="X21") +
+  annotation_scale(location="bl", width_hint=0.25) +
+  annotation_north_arrow(location="tr", which_north="true", style = north_arrow_nautical()) +
+  theme_minimal(base_size=14) +
+  theme(plot.title=element_text(face="bold", hjust=0.5), legend.position="right")
+
+# --- MAP 10: X21 ---
+df10 <- merged %>% mutate(Mean_SHAP = X23)
+map10 <- ggplot(df10) +
+  geom_sf(aes(fill = Mean_SHAP), color="gray30", size=0.2) +
+  scale_fill_gradient(name="Mean_SHAP", low="#ffffcc", high="#e60000", na.value="transparent") +
+  labs(title="X23") +
+  annotation_scale(location="bl", width_hint=0.25) +
+  annotation_north_arrow(location="tr", which_north="true", style = north_arrow_nautical()) +
+  theme_minimal(base_size=14) +
+  theme(plot.title=element_text(face="bold", hjust=0.5), legend.position="right")
+
+# ============================================================
+# 5. COMBINE ALL MAPS
+# ============================================================
+final_map <- wrap_plots(
+  list(map1,map2,map3,map4,map5,map6,map7,map8,map9,map10),
+  ncol=5
+) +
+  plot_annotation(title="C") &
+  theme(plot.title=element_text(face="bold", size=24, hjust=0))
+
+# ============================================================
+# 6. SAVE OUTPUT
+# ============================================================
+ggsave("J:/Research/Research/denguebangladesh/0C22SHAP_Top10_Maps.png",
+       final_map, width=20, height=10, dpi=300)
+
+
+
+
+
+
+
+# ============================================================
+# LIBRARIES
+# ============================================================
+library(sf)
+library(dplyr)
+library(readxl)
+library(ggplot2)
+library(ggspatial)
+library(patchwork)
+
+# ============================================================
+# 1. LOAD SHAPEFILE
+# ============================================================
+shp_path <- "C:/R/LABSTAT/bgd_adm_bbs_20201113_SHP"
+districts <- st_read(shp_path, layer = "bgd_admbnda_adm2_bbs_20201113")
+districts$ADM2_EN <- toupper(trimws(districts$ADM2_EN))
+
+# ============================================================
+# 2. LOAD CATEGORY DATA
+# ============================================================
+file_path <- "J:/Research/Research/denguebangladesh/data/ABSDengueDataBD.xlsx"
+mydata <- read_excel(file_path, sheet = "distcat22")
+mydata$District <- toupper(trimws(mydata$District))
+
+# Fix district names to match shapefile
+mydata$District[mydata$District == "BARISHAL"] <- "BARISAL"
+mydata$District[mydata$District == "CHAPAI NAWABGANJ"] <- "CHAPAINAWABGANJ"
+mydata$District[mydata$District == "CHATTAGRAM"] <- "CHITTAGONG"
+mydata$District[mydata$District == "CUMILLA"] <- "COMILLA"
+mydata$District[mydata$District == "JASHORE"] <- "JESSORE"
+
+# ============================================================
+# 3. MERGE DATA WITH SHAPEFILE
+# ============================================================
+merged <- districts %>%
+  left_join(mydata, by = c("ADM2_EN" = "District"))
+
+# ============================================================
+# 4. CREATE CATEGORY MAPS
+# ============================================================
+
+# ============================================================
+# 4. CREATE CATEGORY MAPS (with NA → 0 for legend)
+# ============================================================
+
+# --- MAP 1: Climate & Environmental Factors ---
+df1 <- merged %>% mutate(Mean_SHAP = `Climate & Environmental Factors`)
+df1$Mean_SHAP[is.na(df1$Mean_SHAP)] <- 0  # Replace NA with 0
+map1 <- ggplot(df1) +
+  geom_sf(aes(fill = Mean_SHAP), color="gray30", size=0.2) +
+  scale_fill_gradient(name="% Contribution", low="steelblue", high="#e60000", limits=c(0, max(df1$Mean_SHAP))) +
+  labs(title="D1. Climate & environmental") +
+  annotation_scale(location="bl", width_hint=0.25) +
+  annotation_north_arrow(location="tr", which_north="true", style=north_arrow_nautical()) +
+  theme_minimal(base_size=14) +
+  theme(plot.title=element_text(face="bold", hjust=0), legend.position="right")
+
+# --- MAP 2: Socio-Demographic & Economic Indicators ---
+df2 <- merged %>% mutate(Mean_SHAP = `Socio-Demographic & Economic Indicators`)
+df2$Mean_SHAP[is.na(df2$Mean_SHAP)] <- 0
+map2 <- ggplot(df2) +
+  geom_sf(aes(fill = Mean_SHAP), color="gray30", size=0.2) +
+  scale_fill_gradient(name="% Contribution", low="steelblue", high="#e60000", limits=c(0, max(df2$Mean_SHAP))) +
+  labs(title="D2. Socio-demographic & economic") +
+  annotation_scale(location="bl", width_hint=0.25) +
+  annotation_north_arrow(location="tr", which_north="true", style=north_arrow_nautical()) +
+  theme_minimal(base_size=14) +
+  theme(plot.title=element_text(face="bold", hjust=0), legend.position="right")
+
+# --- MAP 3: Healthcare System Capacity & Resources ---
+df3 <- merged %>% mutate(Mean_SHAP = `Healthcare System Capacity & Resources`)
+df3$Mean_SHAP[is.na(df3$Mean_SHAP)] <- 0
+map3 <- ggplot(df3) +
+  geom_sf(aes(fill = Mean_SHAP), color="gray30", size=0.2) +
+  scale_fill_gradient(name="% Contribution", low="steelblue", high="#e60000", limits=c(0, max(df3$Mean_SHAP))) +
+  labs(title="D3. Healthcare system") +
+  annotation_scale(location="bl", width_hint=0.25) +
+  annotation_north_arrow(location="tr", which_north="true", style=north_arrow_nautical()) +
+  theme_minimal(base_size=14) +
+  theme(plot.title=element_text(face="bold", hjust=0), legend.position="right")
+
+# --- MAP 4: Land Use and Land Cover Indicators ---
+df4 <- merged %>% mutate(Mean_SHAP = `Land Use and Land Cover Indicators`)
+df4$Mean_SHAP[is.na(df4$Mean_SHAP)] <- 0
+map4 <- ggplot(df4) +
+  geom_sf(aes(fill = Mean_SHAP), color="gray30", size=0.2) +
+  scale_fill_gradient(name="% Contribution", low="steelblue", high="#e60000", limits=c(0, max(df4$Mean_SHAP))) +
+  labs(title="D4. Land use and land cover") +
+  annotation_scale(location="bl", width_hint=0.25) +
+  annotation_north_arrow(location="tr", which_north="true", style=north_arrow_nautical()) +
+  theme_minimal(base_size=14) +
+  theme(plot.title=element_text(face="bold", hjust=0.5), legend.position="right")
+
+# ============================================================
+# 5. COMBINE AND SAVE MAPS
+# ============================================================
+final_map <- wrap_plots(list(map1, map2, map3, map4), ncol=4) +
+  plot_annotation(title="D") &
+  theme(plot.title=element_text(face="bold", size=22, hjust=0))
+
+ggsave("J:/Research/Research/denguebangladesh/0D44Category_MeanSHAP_Maps.png",
+       final_map, width=25, height=8, dpi=300)
+
+
+
+
+
+
+
+
+
+##EWS
+
+# ============================================================
+# LIBRARIES
+# ============================================================
+library(sf)
+library(dplyr)
+library(readxl)
+library(ggplot2)
+library(ggspatial)
+library(patchwork)
+
+# ============================================================
+# 1. LOAD SHAPEFILE
+# ============================================================
+shp_path <- "C:/R/LABSTAT/bgd_adm_bbs_20201113_SHP"
+districts <- st_read(shp_path, layer = "bgd_admbnda_adm2_bbs_20201113")
+districts$ADM2_EN <- toupper(trimws(districts$ADM2_EN))
+
+# ============================================================
+# 2. LOAD EWS DATA
+# ============================================================
+file_path <- "J:/Research/Research/denguebangladesh/data/ABSDengueDataBD.xlsx"
+mydata <- read_excel(file_path, sheet = "EWS22")
+mydata$District <- toupper(trimws(mydata$District))
+
+# Fix district names
+mydata$District[mydata$District == "BARISHAL"] <- "BARISAL"
+mydata$District[mydata$District == "CHAPAI NAWABGANJ"] <- "CHAPAINAWABGANJ"
+mydata$District[mydata$District == "CHATTAGRAM"] <- "CHITTAGONG"
+mydata$District[mydata$District == "CUMILLA"] <- "COMILLA"
+mydata$District[mydata$District == "JASHORE"] <- "JESSORE"
+
+# ============================================================
+# 3. FILTER 2025 DATA
+# ============================================================
+d2025 <- mydata %>% filter(Year == 2026)
+
+# ============================================================
+# 4. CREATE 12 MAPS (NO FUNCTION / NO LOOP)
+# ============================================================
+
+# COLOR SCALE (binary)
+binary_scale <- scale_fill_manual(
+  name = "Warning Level",
+  values = c("0" = "skyblue", "1" = "red"),
+  labels = c("0" = "No warning", "1" = "High alert"),
+  drop = FALSE
+)
+
+# JANUARY
+d1 <- d2025 %>% filter(Month == 1)
+m1 <- districts %>% left_join(d1, by = c("ADM2_EN"="District"))
+m1$High_Alert[is.na(m1$High_Alert)] <- 0
+map1 <- ggplot(m1) + geom_sf(aes(fill=factor(High_Alert)), color="gray30", size=0.2) +
+  binary_scale +
+  labs(title="January") +
+  annotation_scale(location="bl") +
+  annotation_north_arrow(location="tr", style=north_arrow_nautical()) +
+  theme_minimal(base_size=14) +
+  theme(legend.position="bottom")
+
+# FEBRUARY
+d2 <- d2025 %>% filter(Month == 2)
+m2 <- districts %>% left_join(d2, by = c("ADM2_EN"="District"))
+m2$High_Alert[is.na(m2$High_Alert)] <- 0
+map2 <- ggplot(m2) + geom_sf(aes(fill=factor(High_Alert)), color="gray30", size=0.2) +
+  binary_scale +
+  labs(title="February") +
+  annotation_scale(location="bl") +
+  annotation_north_arrow(location="tr", style=north_arrow_nautical()) +
+  theme_minimal(base_size=14) +
+  theme(legend.position="bottom")
+
+# MARCH
+d3 <- d2025 %>% filter(Month == 3)
+m3 <- districts %>% left_join(d3, by = c("ADM2_EN"="District"))
+m3$High_Alert[is.na(m3$High_Alert)] <- 0
+map3 <- ggplot(m3) + geom_sf(aes(fill=factor(High_Alert)), color="gray30", size=0.2) +
+  binary_scale +
+  labs(title="March") +
+  annotation_scale(location="bl") +
+  annotation_north_arrow(location="tr", style=north_arrow_nautical()) +
+  theme_minimal(base_size=14) +
+  theme(legend.position="bottom")
+
+# APRIL
+d4 <- d2025 %>% filter(Month == 4)
+m4 <- districts %>% left_join(d4, by = c("ADM2_EN"="District"))
+m4$High_Alert[is.na(m4$High_Alert)] <- 0
+map4 <- ggplot(m4) + geom_sf(aes(fill=factor(High_Alert)), color="gray30", size=0.2) +
+  binary_scale +
+  labs(title="April") +
+  annotation_scale(location="bl") +
+  annotation_north_arrow(location="tr", style=north_arrow_nautical()) +
+  theme_minimal(base_size=14) +
+  theme(legend.position="bottom")
+
+# MAY
+d5 <- d2025 %>% filter(Month == 5)
+m5 <- districts %>% left_join(d5, by = c("ADM2_EN"="District"))
+m5$High_Alert[is.na(m5$High_Alert)] <- 0
+map5 <- ggplot(m5) + geom_sf(aes(fill=factor(High_Alert)), color="gray30", size=0.2) +
+  binary_scale +
+  labs(title="May") +
+  annotation_scale(location="bl") +
+  annotation_north_arrow(location="tr", style=north_arrow_nautical()) +
+  theme_minimal(base_size=14) +
+  theme(legend.position="bottom")
+
+# JUNE
+d6 <- d2025 %>% filter(Month == 6)
+m6 <- districts %>% left_join(d6, by = c("ADM2_EN"="District"))
+m6$High_Alert[is.na(m6$High_Alert)] <- 0
+map6 <- ggplot(m6) + geom_sf(aes(fill=factor(High_Alert)), color="gray30", size=0.2) +
+  binary_scale +
+  labs(title="June") +
+  annotation_scale(location="bl") +
+  annotation_north_arrow(location="tr", style=north_arrow_nautical()) +
+  theme_minimal(base_size=14) +
+  theme(legend.position="bottom")
+
+# JULY
+d7 <- d2025 %>% filter(Month == 7)
+m7 <- districts %>% left_join(d7, by = c("ADM2_EN"="District"))
+m7$High_Alert[is.na(m7$High_Alert)] <- 0
+map7 <- ggplot(m7) + geom_sf(aes(fill=factor(High_Alert)), color="gray30", size=0.2) +
+  binary_scale +
+  labs(title="July") +
+  annotation_scale(location="bl") +
+  annotation_north_arrow(location="tr", style=north_arrow_nautical()) +
+  theme_minimal(base_size=14) +
+  theme(legend.position="bottom")
+
+# AUGUST
+d8 <- d2025 %>% filter(Month == 8)
+m8 <- districts %>% left_join(d8, by = c("ADM2_EN"="District"))
+m8$High_Alert[is.na(m8$High_Alert)] <- 0
+map8 <- ggplot(m8) + geom_sf(aes(fill=factor(High_Alert)), color="gray30", size=0.2) +
+  binary_scale +
+  labs(title="August") +
+  annotation_scale(location="bl") +
+  annotation_north_arrow(location="tr", style=north_arrow_nautical()) +
+  theme_minimal(base_size=14) +
+  theme(legend.position="bottom")
+
+# SEPTEMBER
+d9 <- d2025 %>% filter(Month == 9)
+m9 <- districts %>% left_join(d9, by = c("ADM2_EN"="District"))
+m9$High_Alert[is.na(m9$High_Alert)] <- 0
+map9 <- ggplot(m9) + geom_sf(aes(fill=factor(High_Alert)), color="gray30", size=0.2) +
+  binary_scale +
+  labs(title="September") +
+  annotation_scale(location="bl") +
+  annotation_north_arrow(location="tr", style=north_arrow_nautical()) +
+  theme_minimal(base_size=14) +
+  theme(legend.position="bottom")
+
+# OCTOBER
+d10 <- d2025 %>% filter(Month == 10)
+m10 <- districts %>% left_join(d10, by = c("ADM2_EN"="District"))
+m10$High_Alert[is.na(m10$High_Alert)] <- 0
+map10 <- ggplot(m10) + geom_sf(aes(fill=factor(High_Alert)), color="gray30", size=0.2) +
+  binary_scale +
+  labs(title="October") +
+  annotation_scale(location="bl") +
+  annotation_north_arrow(location="tr", style=north_arrow_nautical()) +
+  theme_minimal(base_size=14) +
+  theme(legend.position="bottom")
+
+# NOVEMBER
+d11 <- d2025 %>% filter(Month == 11)
+m11 <- districts %>% left_join(d11, by = c("ADM2_EN"="District"))
+m11$High_Alert[is.na(m11$High_Alert)] <- 0
+map11 <- ggplot(m11) + geom_sf(aes(fill=factor(High_Alert)), color="gray30", size=0.2) +
+  binary_scale +
+  labs(title="November") +
+  annotation_scale(location="bl") +
+  annotation_north_arrow(location="tr", style=north_arrow_nautical()) +
+  theme_minimal(base_size=14) +
+  theme(legend.position="bottom")
+
+# DECEMBER
+d12 <- d2025 %>% filter(Month == 12)
+m12 <- districts %>% left_join(d12, by = c("ADM2_EN"="District"))
+m12$High_Alert[is.na(m12$High_Alert)] <- 0
+map12 <- ggplot(m12) + geom_sf(aes(fill=factor(High_Alert)), color="gray30", size=0.2) +
+  binary_scale +
+  labs(title="December") +
+  annotation_scale(location="bl") +
+  annotation_north_arrow(location="tr", style=north_arrow_nautical()) +
+  theme_minimal(base_size=14) +
+  theme(legend.position="bottom")
+
+# ============================================================
+# 5. COMBINE ALL 12 MAPS
+# ============================================================
+final_map <- wrap_plots(
+  list(map1, map2, map3, map4, map5, map6,
+       map7, map8, map9, map10, map11, map12),
+  ncol = 6
+) +
+  plot_annotation(title = "B: 2026") &
+  theme(plot.title = element_text(face="bold", size=22, hjust=0))
+
+# ============================================================
+# 6. SAVE PNG
+# ============================================================
+ggsave("J:/Research/Research/denguebangladesh/2026_EWS_12_Month_Maps.png",
+       final_map, width=26, height=14, dpi=300)
+
+
+
+
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+library(tidyr)
+
+# -----------------------------
+# 1. Prepare updated data
+# -----------------------------
+df <- data.frame(
+  Model = rep(c("GLM", "ConvLSTM", "MLP", "LSTM", "SVM", "XGB", "GWNNR", "DT"), each=3),
+  Threshold = rep(c(0.1, 0.3, 0.5), times=8),
+  
+  # Train metrics
+  Train_Accuracy = c(
+    0.826, 0.916, 0.938,  # GLM
+    0.907, 0.951, 0.951,  # ConvLSTM
+    0.956, 0.978, 0.980,  # MLP
+    0.911, 0.951, 0.958,  # LSTM
+    0.914, 0.924, 0.936,  # SVM
+    0.924, 0.960, 0.970,  # XGB
+    0.902, 0.951, 0.969,  # GWNNR
+    0.853, 0.933, 0.933   # DT
+  ),
+  Train_Precision = c(
+    0.748,0.883,0.941,0.850,0.934,0.942,
+    0.939,0.981,0.985,0.868,0.938,0.965,
+    0.879,0.910,0.932,0.868,0.966,0.970,
+    0.819,0.910,0.974,0.752,0.941,0.941
+  ),
+  Train_Recall = c(
+    0.97,0.96,0.936,0.980,0.970,0.961,
+    0.981,0.980,0.977,0.971,0.966,0.951,
+    0.96,0.94,0.94,0.96,0.97,0.975,
+    0.95,0.96,0.954,0.97,0.903,0.903
+  ),
+  Train_F1 = c(
+    0.85,0.92,0.938,0.913,0.952,0.951,
+    0.957,0.978,0.972,0.917,0.952,0.958,
+    0.918,0.926,0.937,0.93,0.961,0.968,
+    0.899,0.946,0.964,0.855,0.922,0.922
+  ),
+  Train_AUC = c(
+    0.97,0.97,0.97,0.98,0.98,0.98,
+    0.991,0.991,0.991,0.98,0.98,0.98,
+    0.983,0.983,0.983,0.96,0.96,0.96,
+    0.98,0.98,0.98,0.978,0.978,0.978
+  ),
+  
+  # Test metrics
+  Test_Accuracy = c(
+    0.83,0.91,0.89,0.873,0.89,0.9,
+    0.9,0.92,0.93,0.88,0.9,0.893,
+    0.844,0.902,0.912,0.815,0.893,0.893,
+    0.89,0.91,0.828,0.89,0.91,0.922
+  ),
+  Test_Precision = c(
+    0.75,0.862,0.87,0.806,0.844,0.872,
+    0.844,0.87,0.865,0.809,0.861,0.864,
+    0.777,0.86,0.861,0.742,0.857,0.857,
+    0.83,0.87,0.85,0.83,0.837,0.837
+  ),
+  Test_Recall = c(
+    0.95,0.96,0.92,0.97,0.96,0.94,
+    0.98,0.97,0.95,0.96,0.92,0.9,
+    0.96,0.94,0.94,0.96,0.94,0.94,
+    0.95,0.96,0.883,0.97,0.96,0.95
+  ),
+  Test_F1 = c(
+    0.857,0.901,0.895,0.884,0.899,0.905,
+    0.91,0.911,0.902,0.89,0.9,0.89,
+    0.86,0.9,0.9,0.84,0.89,0.89,
+    0.89,0.9,0.9,0.9,0.901,0.9
+  ),
+  Test_AUC = c(
+    0.96,0.963,0.967,0.962,0.962,0.962,
+    0.97,0.97,0.97,0.955,0.955,0.955,
+    0.957,0.957,0.957,0.957,0.957,0.957,
+    0.654,0.654,0.654,0.692,0.692,0.692
+  )
+)
+
+# -----------------------------
+# 2. Convert to long format
+# -----------------------------
+df_long_train <- df %>%
+  select(Model, Threshold, starts_with("Train")) %>%
+  pivot_longer(cols = -c(Model, Threshold),
+               names_to = "Metric",
+               values_to = "Value") %>%
+  mutate(Metric = sub("Train_", "", Metric),
+         Dataset = "Train")
+
+df_long_test <- df %>%
+  select(Model, Threshold, starts_with("Test")) %>%
+  pivot_longer(cols = -c(Model, Threshold),
+               names_to = "Metric",
+               values_to = "Value") %>%
+  mutate(Metric = sub("Test_", "", Metric),
+         Dataset = "Test")
+
+df_long <- bind_rows(df_long_train, df_long_test)
+
+# -----------------------------
+# 3. Define deep colors for all models
+# -----------------------------
+model_colors <- c(
+  "GLM"       = "cyan2",
+  "ConvLSTM"  = "darkgreen",
+  "MLP"       = "steelblue",
+  "LSTM"      = "darkred",
+  "SVM"       = "darkorange",
+  "XGB"       = "darkkhaki",
+  "GWNNR"     = "purple4",
+  "DT"        = "brown2"
+)
+
+# -----------------------------
+# 4. Train plots (points only)
+# -----------------------------
+train_plots <- ggplot(df_long %>% filter(Dataset=="Train"),
+                      aes(x=Threshold, y=Value, color=Model)) +
+  geom_point(size=4) +
+  facet_wrap(~Metric, nrow=1, scales="free_y") +
+  scale_color_manual(values = model_colors) +
+  scale_x_continuous(breaks=c(0.1,0.3,0.5)) +
+  scale_y_continuous(limits=c(0.6,1), breaks=seq(0.6,1,0.1)) +
+  labs(title="", x="Threshold", y="Train Metrics (2017-23)") +
+  theme_minimal(base_size=14) +
+  theme(legend.position="none")
+
+# -----------------------------
+# 5. Test plots (points only)
+# -----------------------------
+test_plots <- ggplot(df_long %>% filter(Dataset=="Test"),
+                     aes(x=Threshold, y=Value, color=Model)) +
+  geom_point(size=4) +
+  facet_wrap(~Metric, nrow=1, scales="free_y") +
+  scale_color_manual(values = model_colors) +
+  scale_x_continuous(breaks=c(0.1,0.3,0.5)) +
+  scale_y_continuous(limits=c(0.6,1), breaks=seq(0.6,1,0.1)) +
+  labs(title="", x="Threshold", y="Test Metrics (2024)") +
+  theme_minimal(base_size=14) +
+  theme(
+    legend.position="bottom",
+    legend.title = element_blank(),
+    legend.text = element_text(size=12),
+    legend.key.width = unit(2, "lines")
+  ) +
+  guides(color = guide_legend(nrow=1))
+
+# -----------------------------
+# 6. Combine vertically
+# -----------------------------
+final_plot <- train_plots / test_plots + 
+  plot_annotation(title="A") &
+  theme(plot.title = element_text(face="bold", size=20, hjust=0))
+
+# -----------------------------
+# 7. Display & save
+# -----------------------------
+print(final_plot)
+
+ggsave("J:/Research/Research/denguebangladesh/MLP_Train_Test_Clean_Points_Updated.png",
+       final_plot, width=12, height=8, dpi=300)
+
+
+
+
+
+
+
+
+
+
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+library(tidyr)
+library(grid)
+
+# ============================
+# 1. Prepare DATASET_2 (8 Models)
+# ============================
+
+df2 <- data.frame(
+  Model = rep(c("XGB","GLM","SVM","LSTM","ConvLSTM","MLP","GWNNR","DT"), each=3),
+  Threshold = rep(c(0.1,0.3,0.5), times=8),
+  
+  # ---- Train ----
+  Train_Accuracy = c(
+    0.52,0.801,0.85,            # XGB
+    0.63,0.742,0.76,            # GLM
+    0.67,0.806,0.847,           # SVM
+    0.69,0.796,0.827,           # LSTM
+    0.70,0.811,0.86,            # ConvLSTM
+    0.68,0.803,0.85,            # MLP
+    0.690,0.800,0.850,          # GWNNR
+    0.826,0.891,0.909           # DT
+  ),
+  
+  Train_Precision = c(
+    0.51,0.726,0.808,
+    0.579,0.684,0.752,
+    0.606,0.837,0.810,
+    0.624,0.733,0.842,
+    0.810,0.840,0.844,
+    0.608,0.731,0.837,
+    0.609,0.763,0.830,
+    0.717,0.828,0.899
+  ),
+  
+  Train_Recall = c(
+    0.988,0.941,0.809,
+    0.988,0.886,0.768,
+    0.989,0.941,0.887,
+    0.991,0.926,0.801,
+    0.996,0.960,0.924,
+    0.995,0.951,0.866,
+    0.970,0.936,0.868,
+    0.990,0.946,0.891
+  ),
+  
+  Train_F1 = c(
+    0.675,0.827,0.810,
+    0.730,0.772,0.760,
+    0.732,0.802,0.801,
+    0.766,0.819,0.821,
+    0.771,0.831,0.821,
+    0.755,0.827,0.805,
+    0.751,0.830,0.810,
+    0.831,0.883,0.895
+  ),
+  
+  Train_AUC = c(
+    0.901,0.901,0.901,
+    0.868,0.868,0.868,
+    0.91,0.91,0.91,
+    0.919,0.919,0.919,
+    0.921,0.921,0.921,
+    0.903,0.903,0.903,
+    0.910,0.910,0.910,
+    0.972,0.972,0.972
+  ),
+  
+  # ---- Test ----
+  Test_Accuracy = c(
+    0.729,0.704,0.684,
+    0.727,0.714,0.700,
+    0.720,0.711,0.682,
+    0.721,0.694,0.691,
+    0.741,0.731,0.711,
+    0.730,0.721,0.686,
+    0.620,0.620,0.620,
+    0.707,0.701,0.699
+  ),
+  
+  Test_Precision = c(
+    0.729,0.780,0.871,
+    0.732,0.768,0.808,
+    0.706,0.771,0.817,
+    0.739,0.780,0.830,
+    0.741,0.781,0.840,
+    0.730,0.780,0.813,
+    0.630,0.700,0.800,
+    0.720,0.771,0.803
+  ),
+  
+  Test_Recall = c(
+    0.980,0.889,0.664,
+    0.986,0.870,0.740,
+    0.938,0.814,0.727,
+    0.945,0.809,0.711,
+    0.996,0.881,0.760,
+    0.952,0.852,0.739,
+    0.980,0.880,0.750,
+    0.876,0.746,0.692
+  ),
+  
+  Test_F1 = c(
+    0.843,0.829,0.754,
+    0.840,0.816,0.796,
+    0.843,0.804,0.769,
+    0.832,0.794,0.771,
+    0.851,0.831,0.800,
+    0.837,0.817,0.775,
+    0.773,0.773,0.773,
+    0.790,0.758,0.744
+  ),
+  
+  Test_AUC = c(
+    0.763,0.763,0.763,
+    0.722,0.722,0.722,
+    0.738,0.738,0.738,
+    0.719,0.719,0.719,
+    0.810,0.810,0.810,
+    0.731,0.731,0.731,
+    0.564,0.564,0.564,
+    0.747,0.747,0.747
+  )
+)
+
+# ============================
+# 2. Convert to Long Format
+# ============================
+
+df2_long_train <- df2 %>%
+  select(Model, Threshold, starts_with("Train")) %>%
+  pivot_longer(cols = -c(Model, Threshold),
+               names_to = "Metric",
+               values_to = "Value") %>%
+  mutate(Metric = sub("Train_", "", Metric),
+         Dataset = "Train")
+
+df2_long_test <- df2 %>%
+  select(Model, Threshold, starts_with("Test")) %>%
+  pivot_longer(cols = -c(Model, Threshold),
+               names_to = "Metric",
+               values_to = "Value") %>%
+  mutate(Metric = sub("Test_", "", Metric),
+         Dataset = "Test")
+
+df2_long <- bind_rows(df2_long_train, df2_long_test)
+
+# ============================
+# 3. Model Colors (8 Models)
+# ============================
+
+model_colors <- c(
+  "XGB" = "darkkhaki",
+  "GLM" = "cyan2",
+  "SVM" = "darkorange",
+  "LSTM" = "darkgreen",
+  "ConvLSTM" = "darkred",
+  "MLP" = "steelblue",
+  "GWNNR" = "purple",
+  "DT" = "brown"
+)
+
+# ============================
+# 4. Train Plot
+# ============================
+
+train_plots2 <- ggplot(df2_long %>% filter(Dataset=="Train"),
+                       aes(x=Threshold, y=Value, color=Model)) +
+  geom_point(size=4) +
+  facet_wrap(~Metric, nrow=1, scales="free_y") +
+  scale_color_manual(values=model_colors) +
+  scale_x_continuous(breaks=c(0.1,0.3,0.5)) +
+  scale_y_continuous(limits=c(0.4,1), breaks=seq(0.4,1,0.1)) +
+  labs(x="Threshold", y="Train Metrics (2022–23)") +
+  theme_minimal(base_size=14) +
+  theme(legend.position="none")
+
+# ============================
+# 5. Test Plot
+# ============================
+
+test_plots2 <- ggplot(df2_long %>% filter(Dataset=="Test"),
+                      aes(x=Threshold, y=Value, color=Model)) +
+  geom_point(size=4) +
+  facet_wrap(~Metric, nrow=1, scales="free_y") +
+  scale_color_manual(values=model_colors) +
+  scale_x_continuous(breaks=c(0.1,0.3,0.5)) +
+  scale_y_continuous(limits=c(0.4,1), breaks=seq(0.4,1,0.1)) +
+  labs(x="Threshold", y="Test Metrics (2024)") +
+  theme_minimal(base_size=14) +
+  theme(
+    legend.position="bottom",
+    legend.title=element_blank(),
+    legend.text=element_text(size=12),
+    legend.key.width=unit(2,"lines")
+  ) +
+  guides(color=guide_legend(nrow=1))
+
+# ============================
+# 6. Combine
+# ============================
+
+final_plot2 <- train_plots2 / test_plots2 +
+  plot_annotation(title="B") &
+  theme(plot.title = element_text(face="bold", size=20, hjust=0))
+
+print(final_plot2)
+
+# ============================
+# 7. Save
+# ============================
+
+ggsave("J:/Research/Research/denguebangladesh/Dataset2_Train_Test_Points_AllModels.png",
+       final_plot2, width=12, height=9, dpi=300)
+
+
+
+
+
+
+
+
+library(ggplot2)
+library(dplyr)
+
+# -----------------------------
+# 1. Prepare data
+# -----------------------------
+shap_df <- data.frame(
+  Feature = c(
+    "X12", "X11", "X111", "X120", "X14",
+    "X13", "X116", "X112", "X15", "X16"
+  ),
+  Mean_SHAP = c(
+    0.145,
+    0.137,
+    0.077,
+    0.062,
+    0.049,
+    0.044,
+    0.044,
+    0.022,
+    0.017,
+    0.013
+  )
+)
+
+
+# -----------------------------
+# 2. Order factors by importance
+# -----------------------------
+shap_df <- shap_df %>%
+  arrange(Mean_SHAP) %>%
+  mutate(Feature = factor(Feature, levels = Feature))
+
+# -----------------------------
+# 3. SHAP Bar Plot (without values)
+# -----------------------------
+p_1 <- ggplot(shap_df, aes(x=Feature, y=Mean_SHAP, fill=Mean_SHAP)) +
+  geom_bar(stat="identity") +
+  coord_flip() +  # horizontal bars
+  scale_fill_gradient(low="lightblue", high="darkblue") +
+  labs(title="C",
+       x="Feature",
+       y="Mean |SHAP| value") +
+  theme_minimal(base_size=14) +
+  theme(legend.position="none",
+        plot.title = element_text(face="bold", size=16, hjust=-0.08))
+
+p_1
+
+
+library(ggplot2)
+library(dplyr)
+
+# -----------------------------
+# 1. Prepare data
+# -----------------------------
+shap_cat <- data.frame(
+  Category = c("Climate & environmental", 
+               "Socio-demographic & economic", 
+               "Healthcare system", 
+               "Land use & land Cover"),
+  Contribution = c(66.354, 16.268, 7.171, 10.207)
+)
+
+# -----------------------------
+# 2. Order factors by contribution
+# -----------------------------
+shap_cat <- shap_cat %>%
+  arrange(Contribution) %>%
+  mutate(Category = factor(Category, levels = Category))
+
+# -----------------------------
+# 3. SHAP % Contribution Bar Plot
+# -----------------------------
+p_2 <- ggplot(shap_cat, aes(x=Category, y=Contribution, fill=Contribution)) +
+  geom_bar(stat="identity") +
+  coord_flip() +  # horizontal bars
+  scale_fill_gradient(low="lightblue", high="darkblue") +
+  labs(title="D",
+       x="Category",
+       y="Contribution (%)") +
+  theme_minimal(base_size=14) +
+  theme(legend.position="none",
+        plot.title = element_text(face="bold", size=16, hjust=-.8))
+
+p_2
+
+
+
+
+# ============================================================
+# LIBRARIES
+# ============================================================
+library(readxl)
+library(ggplot2)
+library(dplyr)
+
+# ============================================================
+# 1. Load Data
+# ============================================================
+file_path <- "J:/Research/Research/denguebangladesh/data/ABSDengueDataBD.xlsx"
+mydata <- read_excel(file_path, sheet = "senario11")
+
+# ============================================================
+# 2. Prepare Data
+# ============================================================
+# Ensure Feature is a factor to preserve order in legend
+mydata$Feature <- factor(mydata$Feature, levels = unique(mydata$Feature))
+
+# ============================================================
+# 3. Scenario Analysis Plot
+# ============================================================
+p_scenario <- ggplot(mydata, aes(x=`Change_%`, y=Predicted_Probability, color=Feature)) +
+  geom_line(size=1.2) +     # line for each feature
+  geom_point(size=2) +      # points
+  scale_x_continuous(breaks=seq(-50, 50, 10)) +
+  scale_y_continuous(limits=c(min(mydata$Predicted_Probability)-0.005,
+                              max(mydata$Predicted_Probability)+0.005)) +
+  labs(title="E",
+       x="Feature Change (%)",
+       y="Predicted Probability") +
+  theme_minimal(base_size=14) +
+  theme(
+    legend.position="right",
+    legend.title = element_blank(),
+    plot.title = element_text(face="bold", size=16, hjust=0)
+  )
+
+# ============================================================
+# 4. Display Plot
+# ============================================================
+print(p_scenario)
+
+# ============================================================
+
+
+
+
+
+library(patchwork)
+
+# Combine all three plots in one row
+combined_plot <- p_1 + p_2 + p_scenario + 
+  plot_layout(nrow = 1) & 
+  theme(plot.title = element_text(face="bold", size=16))
+
+# Display the combined plot
+print(combined_plot)
+
+# Optional: save the combined plot
+ggsave("J:/Research/Research/denguebangladesh/000Combined_SHAP_Scenario.png",
+       combined_plot, width=14, height=5, dpi=300)
+
+
+
+
+
+
+
+
+
+
+library(ggplot2)
+library(dplyr)
+
+# -----------------------------
+# 1. Prepare Data
+# -----------------------------
+shap_contrib <- data.frame(
+  Feature = c(
+    "X24", "X216", "X22", "X28", "X212",
+    "X25", "X220", "X26", "X21", "X23"
+  ),
+  Contribution = c(
+    28.002,
+    23.811,
+    15.545,
+    10.233,
+    4.865,
+    4.393,
+    4.228,
+    3.766,
+    2.605,
+    2.551
+  )
+)
+
+
+# Ensure features appear in order
+shap_contrib$Feature <- factor(shap_contrib$Feature, levels = rev(shap_contrib$Feature))
+
+# -----------------------------
+# 2. SHAP Contribution Plot
+# -----------------------------
+p22 <- ggplot(shap_contrib, aes(x=Feature, y=Contribution, fill=Contribution)) +
+  geom_bar(stat="identity") +
+  coord_flip() +  # horizontal bars
+  scale_fill_gradient(low="darkgreen", high="darkred") +
+  labs(title="F",
+       x="Feature",
+       y="Contribution (%)") +
+  theme_minimal(base_size=14) +
+  theme(
+    legend.position="none",
+    plot.title = element_text(face="bold", size=16, hjust=0)
+  )
+
+# -----------------------------
+# 3. Display Plot
+# -----------------------------
+print(p22)
+
+
+
+
+library(ggplot2)
+library(dplyr)
+
+# -----------------------------
+# 1. Prepare Data
+# -----------------------------
+shap_cat <- data.frame(
+  Category = c("Climate & environmental",
+               "Socio-demographic & economic",
+               "Healthcare system",
+               "Land use and land Cover"),
+  Contribution = c(54.435, 17.209, 22.794, 5.562)
+)
+
+# Ensure the order you want
+shap_cat$Category <- factor(shap_cat$Category, levels = rev(shap_cat$Category))
+
+# -----------------------------
+# 2. SHAP Category Contribution Plot
+# -----------------------------
+p23 <- ggplot(shap_cat, aes(x=Category, y=Contribution, fill=Contribution)) +
+  geom_bar(stat="identity") +
+  coord_flip() +  # horizontal bars
+  scale_fill_gradient(low="darkgreen", high="darkred") +
+  labs(title="G",
+       x="Category",
+       y="Contribution (%)") +
+  theme_minimal(base_size=14) +
+  theme(
+    legend.position="none",
+    plot.title = element_text(face="bold", size=16, hjust=-.8)
+  )
+
+# -----------------------------
+# 3. Display Plot
+# -----------------------------
+print(p23)
+
+
+
+
+
+# ============================================================
+# LIBRARIES
+# ============================================================
+library(readxl)
+library(ggplot2)
+library(dplyr)
+
+# ============================================================
+# 1. Load Data
+# ============================================================
+file_path <- "J:/Research/Research/denguebangladesh/data/ABSDengueDataBD.xlsx"
+mydata <- read_excel(file_path, sheet = "sen22")
+
+# ============================================================
+# 2. Prepare Data
+# ============================================================
+# Ensure Feature is a factor to preserve order in legend
+mydata$Feature <- factor(mydata$Feature, levels = unique(mydata$Feature))
+
+# ============================================================
+# 3. Scenario Analysis Plot
+# ============================================================
+p33 <- ggplot(mydata, aes(x=`Change_%`, y=Predicted_Probability, color=Feature)) +
+  geom_line(size=1.2) +     # line for each feature
+  geom_point(size=2) +      # points
+  scale_x_continuous(breaks=seq(-50, 50, 10)) +
+  scale_y_continuous(limits=c(min(mydata$Predicted_Probability)-0.005,
+                              max(mydata$Predicted_Probability)+0.005)) +
+  labs(title="H",
+       x="Feature Change (%)",
+       y="Predicted Probability") +
+  theme_minimal(base_size=14) +
+  theme(
+    legend.position="right",
+    legend.title = element_blank(),
+    plot.title = element_text(face="bold", size=16, hjust=0)
+  )
+
+# ============================================================
+# 4. Display Plot
+# ============================================================
+print(p33)
+
+
+
+
+library(patchwork)
+
+# Combine all three plots in one row
+combined_plot <- p22 + p23 + p33 + 
+  plot_layout(nrow = 1) & 
+  theme(plot.title = element_text(face="bold", size=16))
+
+# Display the combined plot
+print(combined_plot)
+
+# Optional: save the combined plot
+ggsave("J:/Research/Research/denguebangladesh/0111Combined_SHAP_Scenario.png",
+       combined_plot, width=14, height=5, dpi=300)
+
+
+
+
+###Sumarry###########
+
+
+
+# ============================================
+# Year-wise Summary of Yearly Dengue Cases
+# ============================================
+
+# ============================================================
+# LIBRARIES
+# ============================================================
+library(dplyr)
+library(readxl)
+library(openxlsx)
+
+# ============================================================
+# 1. Load Data
+# ============================================================
+file_path <- "J:/Research/Research/denguebangladesh/data/ABSDengueDataBD.xlsx"
+mydata <- read_excel(file_path, sheet = "data11")
+
+# ============================================================
+# 2. Year-wise Summary Calculation
+# ============================================================
+summary_year <- mydata %>%
+  group_by(Year) %>%
+  summarise(
+    Min = min(Yearly_cases, na.rm = TRUE),
+    Q1 = quantile(Yearly_cases, 0.25, na.rm = TRUE),
+    Median = median(Yearly_cases, na.rm = TRUE),
+    Q3 = quantile(Yearly_cases, 0.75, na.rm = TRUE),
+    Max = max(Yearly_cases, na.rm = TRUE),
+    Mean = mean(Yearly_cases, na.rm = TRUE),
+    SD = sd(Yearly_cases, na.rm = TRUE),
+    Mean_SD = paste0(round(Mean, 2), " ± ", round(SD, 2))
+  )
+
+# ============================================================
+# 3. Save Output to Excel
+# ============================================================
+output_path <- "J:/Research/Research/denguebangladesh/111Yearwise_summary.xlsx"
+
+write.xlsx(summary_year,
+           file = output_path,
+           sheetName = "Yearly Summary",
+           rowNames = FALSE)
+
+# ============================================================
+# 4. Message
+# ============================================================
+cat("File saved successfully at:\n", output_path)
+
+
+
+
+
+# ============================================================
+# LIBRARIES
+# ============================================================
+library(dplyr)
+library(readxl)
+library(openxlsx)
+
+# ============================================================
+# 1. Load Data
+# ============================================================
+file_path <- "J:/Research/Research/denguebangladesh/data/ABSDengueDataBD.xlsx"
+mydata <- read_excel(file_path, sheet = "data11")
+
+# ============================================================
+# 2. District-wise Summary
+# ============================================================
+district_summary <- mydata %>%
+  group_by(District) %>%
+  summarise(
+    Min = min(Yearly_cases, na.rm = TRUE),
+    Q1 = quantile(Yearly_cases, 0.25, na.rm = TRUE),
+    Median = median(Yearly_cases, na.rm = TRUE),
+    Q3 = quantile(Yearly_cases, 0.75, na.rm = TRUE),
+    Max = max(Yearly_cases, na.rm = TRUE),
+    Mean = mean(Yearly_cases, na.rm = TRUE),
+    SD = sd(Yearly_cases, na.rm = TRUE),
+    Mean_SD = paste0(round(Mean, 2), " ± ", round(SD, 2)),
+    
+    # Highest year (year with max cases)
+    Highest_Year = Year[which.max(Yearly_cases)],
+    
+    # Lowest year (year with min cases)
+    Lowest_Year = Year[which.min(Yearly_cases)]
+  ) %>%
+  ungroup()
+
+# ============================================================
+# 3. Save to Excel
+# ============================================================
+output_path <- "J:/Research/Research/denguebangladesh/Districtwise_summary.xlsx"
+
+write.xlsx(district_summary,
+           file = output_path,
+           sheetName = "District Summary",
+           rowNames = FALSE)
+
+# ============================================================
+# 4. Message
+# ============================================================
+cat("District-wise summary saved successfully at:\n", output_path)
+
+
+
+
+
+
+# ============================================================
+# LIBRARIES
+# ============================================================
+library(dplyr)
+library(readxl)
+library(openxlsx)
+
+# ============================================================
+# 1. Load Data
+# ============================================================
+file_path <- "J:/Research/Research/denguebangladesh/data/ABSDengueDataBD.xlsx"
+mydata <- read_excel(file_path, sheet = "data11")
+
+# ============================================================
+# 2. Calculate Yearly Total for Percentages
+# ============================================================
+yearly_total <- mydata %>%
+  group_by(Year) %>%
+  summarise(Total = sum(DENV1 + DENV2 + DENV3 + DENV4, na.rm = TRUE))
+
+# ============================================================
+# 3. Function to Generate Summary for Each DENV
+# ============================================================
+generate_summary <- function(df, denv_col, yearly_total_df) {
+  
+  summary_df <- df %>%
+    group_by(Year) %>%
+    summarise(
+      Min = round(min(.data[[denv_col]], na.rm = TRUE)),
+      Q1 = round(quantile(.data[[denv_col]], 0.25, na.rm = TRUE)),
+      Median = round(median(.data[[denv_col]], na.rm = TRUE)),
+      Q3 = round(quantile(.data[[denv_col]], 0.75, na.rm = TRUE)),
+      Max = round(max(.data[[denv_col]], na.rm = TRUE)),
+      Mean = round(mean(.data[[denv_col]], na.rm = TRUE)),
+      SD = round(sd(.data[[denv_col]], na.rm = TRUE)),
+      Mean_SD = paste0(round(mean(.data[[denv_col]], na.rm = TRUE), 0),
+                       " ± ",
+                       round(sd(.data[[denv_col]], na.rm = TRUE), 0))
+    ) %>%
+    left_join(yearly_total_df, by = "Year") %>%
+    mutate(
+      Percentage = round((Mean / Total) * 100, 2)
+    ) %>%
+    select(-Total)
+  
+  return(summary_df)
+}
+
+# ============================================================
+# 4. Generate Summary for DENV1-4
+# ============================================================
+summary_DENV1 <- generate_summary(mydata, "DENV1", yearly_total)
+summary_DENV2 <- generate_summary(mydata, "DENV2", yearly_total)
+summary_DENV3 <- generate_summary(mydata, "DENV3", yearly_total)
+summary_DENV4 <- generate_summary(mydata, "DENV4", yearly_total)
+
+# ============================================================
+# 5. Save to Excel with 4 Sheets
+# ============================================================
+output_path <- "J:/Research/Research/denguebangladesh/Yearwise_DENV1_4_Summary.xlsx"
+wb <- createWorkbook()
+
+addWorksheet(wb, "DENV1_Summary")
+writeData(wb, "DENV1_Summary", summary_DENV1)
+
+addWorksheet(wb, "DENV2_Summary")
+writeData(wb, "DENV2_Summary", summary_DENV2)
+
+addWorksheet(wb, "DENV3_Summary")
+writeData(wb, "DENV3_Summary", summary_DENV3)
+
+addWorksheet(wb, "DENV4_Summary")
+writeData(wb, "DENV4_Summary", summary_DENV4)
+
+saveWorkbook(wb, file = output_path, overwrite = TRUE)
+
+# ============================================================
+# 6. Message
+# ============================================================
+cat("Year-wise DENV1-4 summaries saved successfully at:\n", output_path)
+
+
+
+###############################DATA22
+# ============================================================
+# LIBRARIES
+# ============================================================
+library(dplyr)
+library(readxl)
+library(openxlsx)
+
+# ============================================================
+# 1. Load Data
+# ============================================================
+file_path <- "J:/Research/Research/denguebangladesh/data/ABSDengueDataBD.xlsx"
+mydata <- read_excel(file_path, sheet = "data22")
+
+# ============================================================
+# 2. Calculate Monthly Total for Percentages
+# ============================================================
+monthly_total <- mydata %>%
+  group_by(Year, Month1) %>%
+  summarise(Total = sum(Monthly_cases, na.rm = TRUE)) %>%
+  ungroup()
+
+# ============================================================
+# 3. Calculate Monthly Summary
+# ============================================================
+monthly_summary <- mydata %>%
+  group_by(Year, Month1, Month) %>%
+  summarise(
+    Min = round(min(Monthly_cases, na.rm = TRUE)),
+    Q1 = round(quantile(Monthly_cases, 0.25, na.rm = TRUE)),
+    Median = round(median(Monthly_cases, na.rm = TRUE)),
+    Q3 = round(quantile(Monthly_cases, 0.75, na.rm = TRUE)),
+    Max = round(max(Monthly_cases, na.rm = TRUE)),
+    Mean = round(mean(Monthly_cases, na.rm = TRUE)),
+    SD = round(sd(Monthly_cases, na.rm = TRUE)),
+    Mean_SD = paste0(round(mean(Monthly_cases, na.rm = TRUE), 0),
+                     " ± ",
+                     round(sd(Monthly_cases, na.rm = TRUE), 0))
+  ) %>%
+  left_join(monthly_total, by = c("Year", "Month1")) %>%
+  mutate(
+    Percentage = round((Mean / Total) * 100, 2)
+  ) %>%
+  select(Year, Month, Min, Q1, Median, Q3, Max, Mean, SD, Mean_SD, Percentage)
+
+# ============================================================
+# 4. Save to Excel
+# ============================================================
+output_path <- "J:/Research/Research/denguebangladesh/Monthly_Summary.xlsx"
+write.xlsx(monthly_summary, file = output_path, sheetName = "Monthly Summary", rowNames = FALSE)
+
+# ============================================================
+# 5. Message
+# ============================================================
+cat("Monthly summary saved successfully at:\n", output_path)
+
+
+
+
+
+
+# ============================================================
+# LIBRARIES
+# ============================================================
+library(dplyr)
+library(readxl)
+library(openxlsx)
+
+# ============================================================
+# 1. Load Data
+# ============================================================
+file_path <- "J:/Research/Research/denguebangladesh/data/ABSDengueDataBD.xlsx"
+mydata <- read_excel(file_path, sheet = "data22")
+
+# ============================================================
+# 2. Aggregate Monthly Cases Across All Districts
+# ============================================================
+monthly_agg <- mydata %>%
+  group_by(Year, Month1, Month) %>%
+  summarise(Total_Cases = sum(Monthly_cases, na.rm = TRUE)) %>%
+  ungroup()
+
+# ============================================================
+# 3. Calculate Monthly Summary Across Years
+# ============================================================
+monthly_summary_agg <- monthly_agg %>%
+  group_by(Month1, Month) %>%
+  summarise(
+    Min = round(min(Total_Cases, na.rm = TRUE)),
+    Q1 = round(quantile(Total_Cases, 0.25, na.rm = TRUE)),
+    Median = round(median(Total_Cases, na.rm = TRUE)),
+    Q3 = round(quantile(Total_Cases, 0.75, na.rm = TRUE)),
+    Max = round(max(Total_Cases, na.rm = TRUE)),
+    Mean = round(mean(Total_Cases, na.rm = TRUE)),
+    SD = round(sd(Total_Cases, na.rm = TRUE)),
+    Mean_SD = paste0(round(mean(Total_Cases, na.rm = TRUE), 0),
+                     " ± ",
+                     round(sd(Total_Cases, na.rm = TRUE), 0)),
+    # Highest year for this month
+    Highest_Year = Year[which.max(Total_Cases)],
+    # Lowest year for this month
+    Lowest_Year = Year[which.min(Total_Cases)],
+    # Percentage of total across all years for this month
+    Percentage = round((Mean / sum(Total_Cases)) * 100, 2)
+  ) %>%
+  ungroup() %>%
+  arrange(Month1) %>%
+  select(Month, Min, Q1, Median, Q3, Max, Mean, SD, Mean_SD, Percentage, Highest_Year, Lowest_Year)
+
+# ============================================================
+# 4. Save to Excel
+# ============================================================
+output_path <- "J:/Research/Research/denguebangladesh/Monthly_Aggregated_Summary.xlsx"
+write.xlsx(monthly_summary_agg, file = output_path, sheetName = "Monthly Summary", rowNames = FALSE)
+
+# ============================================================
+# 5. Message
+# ============================================================
+cat("Monthly aggregated summary saved successfully at:\n", output_path)
+
+
+
+
+
+# ============================================================
+# LIBRARIES
+# ============================================================
+library(dplyr)
+library(readxl)
+library(openxlsx)
+
+# ============================================================
+# 1. Load Data
+# ============================================================
+file_path <- "J:/Research/Research/denguebangladesh/data/ABSDengueDataBD.xlsx"
+mydata <- read_excel(file_path, sheet = "data22")
+
+# ============================================================
+# 2. District-wise Monthly Summary
+# ============================================================
+district_monthly_summary <- mydata %>%
+  group_by(District, Month1, Month, Year) %>%
+  summarise(Total_Cases = sum(Monthly_cases, na.rm = TRUE), .groups = 'drop') %>%
+  group_by(District, Month1, Month) %>%
+  summarise(
+    Min = round(min(Total_Cases, na.rm = TRUE)),
+    Q1 = round(quantile(Total_Cases, 0.25, na.rm = TRUE)),
+    Median = round(median(Total_Cases, na.rm = TRUE)),
+    Q3 = round(quantile(Total_Cases, 0.75, na.rm = TRUE)),
+    Max = round(max(Total_Cases, na.rm = TRUE)),
+    Mean = round(mean(Total_Cases, na.rm = TRUE)),
+    SD = round(sd(Total_Cases, na.rm = TRUE)),
+    Mean_SD = paste0(round(mean(Total_Cases, na.rm = TRUE),0),
+                     " ± ",
+                     round(sd(Total_Cases, na.rm = TRUE),0)),
+    # Month-Year with highest and lowest cases
+    Highest_Year = Year[which.max(Total_Cases)],
+    Lowest_Year = Year[which.min(Total_Cases)],
+    .groups = 'drop'
+  ) %>%
+  ungroup() %>%
+  arrange(District, Month1) %>%
+  select(District, Month, Min, Q1, Median, Q3, Max, Mean, SD, Mean_SD, Highest_Year, Lowest_Year)
+
+# ============================================================
+# 3. Save to Excel
+# ============================================================
+output_path <- "J:/Research/Research/denguebangladesh/Districtwise_Monthly_Summary.xlsx"
+write.xlsx(district_monthly_summary, file = output_path, sheetName = "District-Monthly Summary", rowNames = FALSE)
+
+cat("District-wise monthly summary saved successfully at:\n", output_path)
+
+
+
+
+
+
+
+
+
+# ============================================================
+# LIBRARIES
+# ============================================================
+library(dplyr)
+library(readxl)
+library(openxlsx)
+
+# ============================================================
+# 1. Load Data
+# ============================================================
+file_path <- "J:/Research/Research/denguebangladesh/data/ABSDengueDataBD.xlsx"
+mydata <- read_excel(file_path, sheet = "data22")
+
+# ============================================================
+# 2. District-wise Aggregate Monthly Summary
+# ============================================================
+district_summary <- mydata %>%
+  group_by(District) %>%
+  summarise(
+    Min = round(min(Monthly_cases, na.rm = TRUE)),
+    Q1 = round(quantile(Monthly_cases, 0.25, na.rm = TRUE)),
+    Median = round(median(Monthly_cases, na.rm = TRUE)),
+    Q3 = round(quantile(Monthly_cases, 0.75, na.rm = TRUE)),
+    Max = round(max(Monthly_cases, na.rm = TRUE)),
+    Mean = round(mean(Monthly_cases, na.rm = TRUE)),
+    SD = round(sd(Monthly_cases, na.rm = TRUE)),
+    Mean_SD = paste0(round(mean(Monthly_cases, na.rm = TRUE),0),
+                     " ± ",
+                     round(sd(Monthly_cases, na.rm = TRUE),0)),
+    # Month-Year with highest monthly cases
+    Highest_Cases = max(Monthly_cases, na.rm = TRUE),
+    Highest_Month = Month[which.max(Monthly_cases)],
+    Highest_Year = Year[which.max(Monthly_cases)],
+    # Month-Year with lowest monthly cases
+    Lowest_Cases = min(Monthly_cases, na.rm = TRUE),
+    Lowest_Month = Month[which.min(Monthly_cases)],
+    Lowest_Year = Year[which.min(Monthly_cases)],
+    .groups = 'drop'
+  ) %>%
+  ungroup()
+
+# ============================================================
+# 3. Save to Excel
+# ============================================================
+output_path <- "J:/Research/Research/denguebangladesh/Districtwise_Aggregate_Monthly_Summary.xlsx"
+write.xlsx(district_summary, file = output_path, sheetName = "District Summary", rowNames = FALSE)
+
+cat("District-wise aggregate monthly summary saved successfully at:\n", output_path)
+
+
+
+
+
+
+
+##############CORRELATION
+
+# ============================================================
+# 0. Libraries
+# ============================================================
+library(sf)
+library(dplyr)
+library(spdep)
+library(openxlsx)
+library(tidyr)
+library(ggplot2)
+
+# ============================================================
+# 1. Load shapefile
+# ============================================================
+shapefile_path <- "C:/R/LABSTAT/bgd_adm_bbs_20201113_SHP"
+districts <- st_read(shapefile_path, layer = "bgd_admbnda_adm2_bbs_20201113")
+districts$ADM2_EN <- toupper(trimws(districts$ADM2_EN))
+
+# ============================================================
+# 2. Load dengue dataset
+# ============================================================
+file_path <- "J:/Research/Research/denguebangladesh/data/ABSDengueDataBD.xlsx"
+mydata <- readxl::read_excel(file_path, sheet = "data11")
+mydata$District <- toupper(trimws(mydata$District))
+
+# Keep only districts present in shapefile
+mydata <- mydata %>% filter(District %in% districts$ADM2_EN)
+
+# ============================================================
+# 3. Create Spatial Weights (Queen contiguity)
+# ============================================================
+nb <- poly2nb(districts, queen = TRUE)
+W_space <- nb2listw(nb, style = "W")
+S <- length(nb)
+
+# ============================================================
+# 4. Create Temporal Weights (lag-1 adjacency)
+# ============================================================
+years <- sort(unique(mydata$Year))
+T <- length(years)
+W_time <- matrix(0, nrow = T, ncol = T)
+for (i in 1:(T-1)) {
+  W_time[i, i+1] <- 1
+  W_time[i+1, i] <- 1
+}
+row_sums <- rowSums(W_time)
+row_sums[row_sums == 0] <- 1
+W_time <- W_time / row_sums
+
+# ============================================================
+# 5. Spatio-Temporal Weight Matrix
+# ============================================================
+W_ST <- kronecker(W_time, listw2mat(W_space))  # (S*T) x (S*T)
+
+# ============================================================
+# 6. Prepare panel data in district-year order
+# ============================================================
+district_order <- districts$ADM2_EN
+year_order <- years
+
+grid <- expand.grid(District = district_order, Year = year_order)
+
+mydata_ordered <- grid %>%
+  left_join(mydata, by = c("District", "Year"))
+
+# Replace NA with 0
+mydata_ordered[is.na(mydata_ordered)] <- 0
+
+# ============================================================
+# 7. Select numeric variables, exclude unwanted ones
+# ============================================================
+exclude_vars <- c("Latitude","Longitude","DENV1","DENV2","DENV3","DENV4",
+                  "X17","X110","X119","X114","X115","X117","X113", "X18", "Year")
+
+num_vars <- names(mydata_ordered)[sapply(mydata_ordered, is.numeric) & !(names(mydata_ordered) %in% exclude_vars)]
+X <- as.matrix(mydata_ordered[, num_vars])
+
+# Standardize predictors (z-score)
+X_scaled <- scale(X)
+
+# Identify Yearly_cases column
+y_idx <- which(colnames(X_scaled) == "Yearly_cases")
+yearly_cases <- X_scaled[, y_idx]
+
+# ============================================================
+# 8. Compute Spatio-Temporal Weighted Correlations
+# ============================================================
+results <- data.frame()
+
+for (i in 1:ncol(X_scaled)) {
+  if (i == y_idx) next
+  
+  x_var <- X_scaled[, i]
+  y_var <- yearly_cases
+  
+  # Lagged values
+  x_lag <- W_ST %*% x_var
+  y_lag <- W_ST %*% y_var
+  
+  # Pearson correlation
+  st_cor <- cor(y_lag, x_lag, use = "complete.obs")
+  
+  # p-value
+  test <- cor.test(y_lag, x_lag, method = "pearson")
+  p_val <- test$p.value
+  
+  # 95% CI using Fisher Z
+  n_obs <- sum(!is.na(x_lag) & !is.na(y_lag))
+  fisher_z <- 0.5 * log((1 + st_cor)/(1 - st_cor))
+  se_z <- 1 / sqrt(n_obs - 3)
+  z_crit <- qnorm(0.975)
+  lower_z <- fisher_z - z_crit * se_z
+  upper_z <- fisher_z + z_crit * se_z
+  lower_r <- (exp(2*lower_z) - 1) / (exp(2*lower_z) + 1)
+  upper_r <- (exp(2*upper_z) - 1) / (exp(2*upper_z) + 1)
+  
+  # Significance stars
+  if (p_val < 0.01) {
+    sig <- "**"
+  } else if (p_val < 0.05) {
+    sig <- "*"
+  } else {
+    sig <- ""
+  }
+  
+  results <- rbind(results, data.frame(
+    Variable = colnames(X_scaled)[i],
+    ST_Correlation = round(st_cor, 3),
+    CI_95 = paste0("(", round(lower_r,3), ", ", round(upper_r,3), ")"),
+    P_value = round(p_val, 3),
+    Significance = sig
+  ))
+}
+
+# ============================================================
+# 9. Format results for CSV (Correlation + 95% CI, P-value with stars)
+# ============================================================
+results_formatted <- results %>%
+  mutate(
+    Correlation_CI = paste0(ST_Correlation, " ", CI_95),
+    P_value_star = ifelse(P_value < 0.01, "<0.01**",
+                          ifelse(P_value < 0.05, "<0.05*", formatC(P_value, format = "f", digits = 3)))
+  ) %>%
+  select(Variable, Correlation_CI, P_value_star)
+
+# ============================================================
+# 10. Save formatted CSV
+# ============================================================
+output_csv_formatted <- "J:/Research/Research/denguebangladesh/yearlyST_correlation_results_formatted.csv"
+write.csv(results_formatted, file = output_csv_formatted, row.names = FALSE)
+
+# ============================================================
+# 11. Plot significant variables
+# ============================================================
+sig_results <- results %>% filter(Significance != "")
+
+sig_results <- sig_results %>%
+  tidyr::separate(CI_95, into = c("Lower_CI", "Upper_CI"), sep = ", ", remove = FALSE) %>%
+  mutate(
+    Lower_CI = as.numeric(gsub("\\(|\\)", "", Lower_CI)),
+    Upper_CI = as.numeric(gsub("\\)|\\(", "", Upper_CI))
+  ) %>%
+  arrange(ST_Correlation) %>%
+  mutate(Variable = factor(Variable, levels = Variable))
+
+# Plot
+p <- ggplot(sig_results, aes(x = reorder(Variable, ST_Correlation), y = ST_Correlation, fill = Significance)) +
+  geom_bar(stat = "identity") +
+  geom_errorbar(aes(ymin = Lower_CI, ymax = Upper_CI), width = 0.3, color = "black") +
+  coord_flip() +
+  scale_fill_manual(values = c("*" = "skyblue", "**" = "steelblue")) +
+  labs(
+    title = "A",
+    x = "Variables",
+    y = "ST weighted correlation",
+    fill = "Significance"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    axis.text.y = element_text(face = "bold"),
+    axis.title.y = element_text(face = "bold"),
+    axis.title.x = element_text(face = "bold"),
+    plot.title = element_text(face = "bold", hjust = 0),
+    legend.position = "bottom",
+    legend.title = element_text(face = "bold"),
+    legend.text = element_text(face = "bold")
+  )
+
+# Show plot
+print(p)
+
+# Save plot
+ggsave("J:/Research/Research/denguebangladesh/yearlystSignificant_Correlations.png",
+       plot = p, width = 10, height = 5, dpi = 300)
+
+cat("ST correlation analysis complete.\nFormatted CSV and plot saved.\n")
+
+
+
+
+
+# ============================================================
+# 0. Libraries
+# ============================================================
+library(sf)
+library(dplyr)
+library(spdep)
+library(openxlsx)
+
+# ============================================================
+# 1. Load shapefile
+# ============================================================
+shapefile_path <- "C:/R/LABSTAT/bgd_adm_bbs_20201113_SHP"
+districts <- st_read(shapefile_path, layer = "bgd_admbnda_adm2_bbs_20201113")
+districts$ADM2_EN <- toupper(trimws(districts$ADM2_EN))
+
+# ============================================================
+# 2. Load monthly dengue dataset
+# ============================================================
+file_path <- "J:/Research/Research/denguebangladesh/data/ABSDengueDataBD.xlsx"
+mydata <- readxl::read_excel(file_path, sheet = "data22")
+mydata$District <- toupper(trimws(mydata$District))
+
+# Keep only districts present in shapefile
+mydata <- mydata %>% filter(District %in% districts$ADM2_EN)
+
+# ============================================================
+# 3. Convert Month names to numeric
+# ============================================================
+month_levels <- c("January","February","March","April","May","June",
+                  "July","August","September","October","November","December")
+mydata$Month <- match(mydata$Month, month_levels)
+
+# ============================================================
+# 4. Arrange by District, Year, Month
+# ============================================================
+mydata <- mydata %>% arrange(District, Year, Month)
+
+# ============================================================
+# 5. Create Spatial Weights (Queen contiguity)
+# ============================================================
+nb <- poly2nb(districts, queen = TRUE)
+W_space <- nb2listw(nb, style = "W")
+S <- length(nb)
+
+# ============================================================
+# 6. Create Temporal Weights (lag-1 adjacency)
+# ============================================================
+years <- sort(unique(mydata$Year))
+T <- length(years) * 12  # total months
+
+# Temporal adjacency matrix
+W_time <- matrix(0, nrow = T, ncol = T)
+for (i in 1:(T-1)) {
+  W_time[i, i+1] <- 1
+  W_time[i+1, i] <- 1
+}
+row_sums <- rowSums(W_time)
+row_sums[row_sums == 0] <- 1
+W_time <- W_time / row_sums
+
+# ============================================================
+# 7. Spatio-Temporal Weight Matrix (Kronecker product)
+# ============================================================
+W_ST <- kronecker(W_time, listw2mat(W_space))  # (S*T) x (S*T)
+
+# ============================================================
+# 8. Prepare panel data (district × month-year)
+# ============================================================
+district_order <- districts$ADM2_EN
+grid <- expand.grid(District = district_order,
+                    Year = years,
+                    Month = 1:12)
+
+mydata_ordered <- grid %>%
+  left_join(mydata, by = c("District", "Year", "Month"))
+
+# Replace NA with 0
+mydata_ordered[is.na(mydata_ordered)] <- 0
+
+# ============================================================
+# 9. Select numeric variables, exclude unwanted ones
+# ============================================================
+exclude_vars <- c("Latitude","Longitude",
+                  "X27","X210","X219","X214","X215","X217","X213","X28",
+                  "Year","Month1","Monthly_cases", "Month")
+num_vars <- names(mydata_ordered)[sapply(mydata_ordered, is.numeric) & !(names(mydata_ordered) %in% exclude_vars)]
+X <- as.matrix(mydata_ordered[, num_vars])
+
+# Standardize predictors
+X_scaled <- scale(X)
+
+# Target variable
+if("Monthly_cases" %in% names(mydata_ordered)) {
+  monthly_cases <- mydata_ordered$Monthly_cases
+  monthly_cases <- scale(monthly_cases)
+} else {
+  stop("Monthly_cases column not found in the data.")
+}
+
+# ============================================================
+# 10. Compute Spatio-Temporal Weighted Correlations
+# ============================================================
+results <- data.frame()
+
+y_vec <- as.numeric(monthly_cases)
+
+for (i in 1:ncol(X_scaled)) {
+  
+  x_vec <- X_scaled[, i]
+  
+  # Lagged WX–WY
+  x_lag <- W_ST %*% x_vec
+  y_lag <- W_ST %*% y_vec
+  
+  # Pearson correlation
+  st_cor <- cor(y_lag, x_lag, use = "complete.obs")
+  
+  # p-value
+  test <- cor.test(y_lag, x_lag, method = "pearson")
+  p_val <- test$p.value
+  
+  # 95% CI using Fisher Z
+  n_obs <- sum(!is.na(x_lag) & !is.na(y_lag))
+  fisher_z <- 0.5 * log((1 + st_cor)/(1 - st_cor))
+  se_z <- 1 / sqrt(n_obs - 3)
+  z_crit <- qnorm(0.975)
+  lower_z <- fisher_z - z_crit * se_z
+  upper_z <- fisher_z + z_crit * se_z
+  lower_r <- (exp(2*lower_z) - 1) / (exp(2*lower_z) + 1)
+  upper_r <- (exp(2*upper_z) - 1) / (exp(2*upper_z) + 1)
+  
+  # Significance stars
+  if (p_val < 0.01) {
+    sig <- "**"
+  } else if (p_val < 0.05) {
+    sig <- "*"
+  } else {
+    sig <- ""
+  }
+  
+  results <- rbind(results, data.frame(
+    Variable = colnames(X_scaled)[i],
+    ST_Correlation = round(st_cor,4),
+    CI_95 = paste0("(", round(lower_r,4), ", ", round(upper_r,4), ")"),
+    P_value = round(p_val,4),
+    Significance = sig
+  ))
+}
+
+# ============================================================
+# 11. Export results
+# ============================================================
+output_excel <- "J:/Research/Research/denguebangladesh/ST_correlation_monthly_scaled.xlsx"
+write.xlsx(results, file = output_excel, sheetName = "ST_Correlation", rowNames = FALSE)
+
+cat("Spatio-Temporal Weighted Correlation completed.\n")
+cat("Results saved to:\n", output_excel, "\n")
+
+
+
+results_formatted <- results %>%
+  mutate(
+    Correlation_CI = paste0(round(ST_Correlation,3), " ", CI_95),
+    P_value_star = ifelse(P_value < 0.01, "<0.01**",
+                          ifelse(P_value < 0.05, "<0.05*", formatC(P_value, format = "f", digits = 3)))
+  ) %>%
+  select(Variable, Correlation_CI, P_value_star)
+
+# ============================================================
+# 12. Save formatted CSV
+# ============================================================
+output_csv_formatted <- "J:/Research/Research/denguebangladesh/ST_correlation_monthly_formatted.csv"
+write.csv(results_formatted, file = output_csv_formatted, row.names = FALSE)
+
+cat("Monthly ST correlation analysis complete.\nFormatted CSV saved to:\n", output_csv_formatted, "\n")
+
+# ============================================================
+# 13. Bar Plot for significant variables
+# ============================================================
+sig_results <- results %>% filter(Significance != "")
+
+sig_results <- sig_results %>%
+  tidyr::separate(CI_95, into = c("Lower_CI", "Upper_CI"), sep = ", ", remove = FALSE) %>%
+  mutate(
+    Lower_CI = as.numeric(gsub("\\(|\\)", "", Lower_CI)),
+    Upper_CI = as.numeric(gsub("\\)|\\(", "", Upper_CI))
+  ) %>%
+  arrange(ST_Correlation) %>%
+  mutate(Variable = factor(Variable, levels = Variable))
+
+# Plot
+q <- ggplot(sig_results, aes(x = reorder(Variable, ST_Correlation), 
+                             y = ST_Correlation, fill = Significance)) +
+  geom_bar(stat = "identity", width = 0.7) +
+  geom_errorbar(aes(ymin = Lower_CI, ymax = Upper_CI), width = 0.3, color = "black") +
+  coord_flip() +
+  scale_fill_manual(values = c("*" = "orange", "**" = "red")) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(
+    title = "B",
+    x = "Variable",
+    y = "ST weighted correlation",
+    fill = "Significance"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    axis.text.y = element_text(face = "bold"),
+    axis.title.y = element_text(face = "bold"),
+    axis.title.x = element_text(face = "bold"),
+    plot.title = element_text(face = "bold", hjust = 0),
+    legend.position = "bottom",
+    legend.title = element_text(face = "bold"),
+    legend.text = element_text(face = "bold")
+  )
+
+# Display plot
+print(q)
+
+# Save plot
+ggsave("J:/Research/Research/denguebangladesh/monthlySTSignificant_Correlations_Manual.png",
+       plot = q,
+       width = 10, height = 5, dpi = 300)
+
+cat("Monthly plot saved successfully.\n")
+
+
+
+
+
+
+# ============================================================
+# LIBRARIES
+# ============================================================
+library(sf)
+library(dplyr)
+library(ggplot2)
+library(ggspatial)
+
+# ============================================================
+# 1. Load SHAPEFILE
+# ============================================================
+shp_path <- "C:/R/LABSTAT/bgd_adm_bbs_20201113_SHP"
+districts <- st_read(shp_path, layer = "bgd_admbnda_adm2_bbs")
+
+# Fix district names to match your standards
+districts$District <- toupper(districts$ADM2_EN)
+districts$District[districts$District == "CHAPAI NAWABGANJ"] <- "CHAPAINAWABGANJ"
+districts$District[districts$District == "CUMILLA"] <- "COMILLA"
+districts$District[districts$District == "JASHORE"] <- "JESSORE"
+districts$District[districts$District == "CHATTAGRAM"] <- "CHITTAGONG"
+districts$District[districts$District == "BARISHAL"] <- "BARISAL"
+
+# ============================================================
+# 2. Create a Standard Color Palette for 64 Districts
+# ============================================================
+set.seed(123)  # Ensures colors remain same every time
+district_colors <- colorRampPalette(c("#00429d", "#73a2c6", "#f4777f", "#93003a"))(64)
+
+# Assign color per district
+districts$FillColor <- district_colors[as.numeric(as.factor(districts$District))]
+
+# ============================================================
+# 3. Bangladesh Map with Nautical Arrow + Scale Bar + Bottom Legend
+# ============================================================
+p_map <- ggplot() +
+  geom_sf(data = districts, aes(fill = District), color = "black", size = 0.25) +
+  
+  scale_fill_manual(values = district_colors) +
+  
+  # Nautical north arrow on top-right
+  annotation_north_arrow(
+    location = "tr",
+    which_north = "true",
+    style = north_arrow_nautical(fill = c("grey40", "white"), line_col = "black")
+  ) +
+  
+  # Scale bar on bottom-left
+  annotation_scale(location = "bl", width_hint = 0.45) +
+  
+  labs(
+    title = "Bangladesh",
+    x = "Longitude",
+    y = "Latitude",
+    fill  = "District"
+  ) +
+  
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold", size = 16, hjust = 0.5),
+    axis.text = element_text(size = 10, color = "black"),
+    axis.ticks = element_line(color = "black"),
+    panel.grid = element_line(color = "grey85", size = 0.2),
+    legend.position = "none",
+    legend.key.size = unit(5, "mm"),
+    legend.text = element_text(size = 8)
+  )
+
+# Show map
+p_map
+
+# ============================================================
+# 4. Save Map
+# ============================================================
+ggsave("J:/Research/Research/denguebangladesh/Bangladesh_64District_NauticalMap.png",
+       p_map, width = 4, height = 4, dpi = 300)
+
+cat("Bangladesh 64-district map with nautical arrow saved successfully!\n")
+
+
+
+
+
+library(readxl)
+
+file_path <- "J:/Research/Research/denguebangladesh/data/ABSDengueDataBD.xlsx"
+mydata <- read_excel(file_path, sheet = "data11")
+
+library(dplyr)
+library(ggplot2)
+
+# Create 64 colors
+district_colors <- scales::hue_pal()(length(unique(mydata$District)))
+names(district_colors) <- unique(mydata$District)
+
+# Create the plot object
+p <- ggplot(mydata, aes(x = Year, 
+                        y = District, 
+                        size = Yearly_cases,
+                        color = District)) +
+  geom_point(alpha = 0.8) +
+  scale_color_manual(values = district_colors) +
+  scale_size(range = c(1, 15), name = "Yearly Cases") +
+  scale_x_continuous(breaks = sort(unique(mydata$Year))) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "A",
+    x = "Year",
+    y = "District",
+    color = "District"
+  ) +
+  guides(color = guide_legend(ncol = 2)) +
+  theme(
+    legend.position = "right",
+    legend.key.size = unit(0.5, "lines"),
+    axis.text.y = element_text(size = 10)
+  )
+p
+
+
+
+ggsave("J:/Research/Research/denguebangladesh/bubble_plot_district_yearly_cases.png", 
+       plot = p, 
+       width = 8, height = 10, dpi = 300)
+
+
+
+
+
+
+
+
+
+
+
+
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(scales)
+
+# -----------------------------
+# 1. Load Data
+# -----------------------------
+file_path <- "J:/Research/Research/denguebangladesh/data/ABSDengueDataBD.xlsx"
+mydata <- read_excel(file_path, sheet = "data22")
+
+# -----------------------------
+# 2. Convert Month to ordered factor
+# -----------------------------
+mydata$Month <- factor(mydata$Month,
+                       levels = c("January", "February", "March", "April", "May", "June",
+                                  "July", "August", "September", "October", "November", "December"),
+                       ordered = TRUE)
+
+# -----------------------------
+# 3. Create 64 distinct district colors
+# -----------------------------
+district_colors <- scales::hue_pal()(length(unique(mydata$District)))
+names(district_colors) <- unique(mydata$District)
+
+# -----------------------------
+# 4. Create a new x-axis combining Month + Year
+# -----------------------------
+mydata <- mydata %>%
+  mutate(Month_Year = paste(Month, Year, sep = "-"))
+
+mydata$Month_Year <- factor(mydata$Month_Year,
+                            levels = unique(mydata$Month_Year),
+                            ordered = TRUE)
+
+# -----------------------------
+# 5. Create Bubble Plot
+# -----------------------------
+p <- ggplot(mydata, aes(x = Month_Year, y = District)) +
+  geom_point(aes(size = Monthly_cases, color = District), alpha = 0.8) +
+  scale_color_manual(values = district_colors) +
+  scale_size(range = c(1, 10), name = "Monthly Cases") +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "B",
+    x = "Month-Year",
+    y = "District",
+    color = "District"
+  ) +
+  guides(color = guide_legend(ncol = 2)) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.text.y = element_text(size = 6),
+    legend.key.size = unit(0.4, "lines")
+  )
+
+p
+
+# -----------------------------
+# 6. Save the Plot
+# -----------------------------
+ggsave("J:/Research/Research/denguebangladesh/bubble_plot_monthly_2022_2024.png",
+       plot = p,
+       width = 12, height = 10, dpi = 300)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#####BAYSIAN ST
+
+
+##DATA11
+###BASE model based on all variate
+# ============================================================
+# 0. Libraries
+# ============================================================
+library(INLA)
+library(dplyr)
+library(readxl)
+library(sf)
+library(spdep)
+library(openxlsx)
+
+# ============================================================
+# 1. Load dataset
+# ============================================================
+data <- read_excel("J:/Research/Research/denguebangladesh/data/ABSDengueDataBD.xlsx", 
+                   sheet = "data11")
+
+data$District <- as.factor(data$District)
+data$Year <- as.factor(data$Year)
+
+# ============================================================
+# 2. Load shapefile
+# ============================================================
+shp_file <- "C:/R/LABSTAT/bgd_adm_bbs_20201113_SHP/bgd_admbnda_adm2_bbs_20201113.shp"
+districts <- st_read(shp_file)
+districts <- districts[!st_is_empty(districts$geometry), ]
+
+districts$District <- toupper(districts$ADM2_EN)
+
+# Fix mismatches
+districts$District[districts$District=="CHAPAI NAWABGANJ"] <- "CHAPAINAWABGANJ"
+districts$District[districts$District=="CUMILLA"] <- "COMILLA"
+districts$District[districts$District=="JASHORE"] <- "JESSORE"
+districts$District[districts$District=="CHATTAGRAM"] <- "CHITTAGONG"
+districts$District[districts$District=="BARISHAL"] <- "BARISAL"
+
+# ============================================================
+# 3. Map data districts
+# ============================================================
+district_map <- c(
+  "BARISHAL"         = "BARISAL",
+  "CHATTOGRAM"       = "CHITTAGONG",
+  "CUMILLA"          = "COMILLA",
+  "JASHORE"          = "JESSORE",
+  "CHAPAI NAWABGANJ" = "CHAPAINAWABGANJ"
+)
+
+data$District_upper <- toupper(data$District)
+data$District_upper <- ifelse(data$District_upper %in% names(district_map),
+                              district_map[data$District_upper],
+                              data$District_upper)
+
+common_districts <- intersect(unique(data$District_upper), districts$District)
+data <- data[data$District_upper %in% common_districts, ]
+districts <- districts[districts$District %in% common_districts, ]
+districts <- districts[match(common_districts, districts$District), ]
+
+# ============================================================
+# 4. Re-encode IDs
+# ============================================================
+data$District_new <- factor(data$District_upper, levels = common_districts)
+data$DistrictID <- as.numeric(data$District_new)
+data$YearID <- as.numeric(factor(data$Year))
+
+# ============================================================
+# 5. Standardize predictors (skip selected columns)
+# ============================================================
+skip_cols <- c("X17","X110","X119","X114","X115","X117","X113")
+
+X_cols <- grep("^X", names(data), value = TRUE)
+X_cols <- setdiff(X_cols, skip_cols)   # <-- remove skipped columns
+
+# scale only selected columns
+data[X_cols] <- scale(data[X_cols])
+
+# ============================================================
+# 6. Create spatial graph
+# ============================================================
+nb <- poly2nb(districts, row.names = districts$District)
+nb2INLA("bngraph.graph", nb)
+
+# ============================================================
+# 7. Define base models
+# ============================================================
+formulas_base <- list(
+  IID_IID   = as.formula(paste("Yearly_cases ~", paste(X_cols, collapse = " + "),
+                               "+ f(DistrictID, model='iid') + f(YearID, model='iid')")),
+  IID_RW1   = as.formula(paste("Yearly_cases ~", paste(X_cols, collapse = " + "),
+                               "+ f(DistrictID, model='iid') + f(YearID, model='rw1')")),
+  IID_AR1   = as.formula(paste("Yearly_cases ~", paste(X_cols, collapse = " + "),
+                               "+ f(DistrictID, model='iid') + f(YearID, model='ar1')")),
+  BYM2_IID  = as.formula(paste("Yearly_cases ~", paste(X_cols, collapse = " + "),
+                               "+ f(DistrictID, model='bym2', graph='bngraph.graph') + f(YearID, model='iid')")),
+  BYM2_RW1  = as.formula(paste("Yearly_cases ~", paste(X_cols, collapse = " + "),
+                               "+ f(DistrictID, model='bym2', graph='bngraph.graph') + f(YearID, model='rw1')")),
+  BYM2_AR1  = as.formula(paste("Yearly_cases ~", paste(X_cols, collapse = " + "),
+                               "+ f(DistrictID, model='bym2', graph='bngraph.graph') + f(YearID, model='ar1')")),
+  IID_RW2   = as.formula(paste("Yearly_cases ~", paste(X_cols, collapse = " + "),
+                               "+ f(DistrictID, model='iid') + f(YearID, model='rw2')")),
+  BYM2_RW2  = as.formula(paste("Yearly_cases ~", paste(X_cols, collapse = " + "),
+                               "+ f(DistrictID, model='bym2', graph='bngraph.graph') + f(YearID, model='rw2')"))
+)
+
+# ============================================================
+# 8. Fit base models
+# ============================================================
+results_base <- list()
+
+for(model_name in names(formulas_base)){
+  cat("\nFitting base model:", model_name, "\n")
+  results_base[[model_name]] <- inla(
+    formulas_base[[model_name]],
+    data = data,
+    family = "nbinomial",
+    control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE)
+  )
+}
+
+# ============================================================
+# 9. Collect metrics
+# ============================================================
+base_metrics <- data.frame(
+  Model = names(results_base),
+  DIC = sapply(results_base, function(x) x$dic$dic),
+  WAIC = sapply(results_base, function(x) x$waic$waic),
+  meanCPO = sapply(results_base, function(x) mean(-log(x$cpo$cpo))),
+  MargLogLik = sapply(results_base, function(x) x$mlik[1,1])
+)
+
+print(base_metrics)
+
+best_base <- base_metrics$Model[which.min(base_metrics$DIC)]
+cat("\nBest base model:", best_base, "\n")
+
+# ============================================================
+# 10. Save results
+# ============================================================
+
+write.csv(base_metrics, "J:/Research/Research/denguebangladesh/results_inla/11.1Base_INLA_Model_Metrics_filtered.csv", row.names = FALSE)
+
+
+
+###TOP SHAP variables 
+# ============================================================
+# 0. Libraries
+# ============================================================
+library(INLA)
+library(dplyr)
+library(readxl)
+library(sf)
+library(spdep)
+library(openxlsx)
+
+# ============================================================
+# 1. Load dataset
+# ============================================================
+data <- read_excel("J:/Research/Research/denguebangladesh/data/ABSDengueDataBD.xlsx", 
+                   sheet = "data11")
+
+data$District <- as.factor(data$District)
+data$Year <- as.factor(data$Year)
+
+# ============================================================
+# 2. Load shapefile
+# ============================================================
+shp_file <- "C:/R/LABSTAT/bgd_adm_bbs_20201113_SHP/bgd_admbnda_adm2_bbs_20201113.shp"
+districts <- st_read(shp_file)
+districts <- districts[!st_is_empty(districts$geometry), ]
+
+districts$District <- toupper(districts$ADM2_EN)
+
+# Fix mismatches
+districts$District[districts$District=="CHAPAI NAWABGANJ"] <- "CHAPAINAWABGANJ"
+districts$District[districts$District=="CUMILLA"] <- "COMILLA"
+districts$District[districts$District=="JASHORE"] <- "JESSORE"
+districts$District[districts$District=="CHATTOGRAM"] <- "CHITTAGONG"
+districts$District[districts$District=="BARISHAL"] <- "BARISAL"
+
+# ============================================================
+# 3. Map data districts to shapefile
+# ============================================================
+district_map <- c(
+  "BARISHAL"         = "BARISAL",
+  "CHATTOGRAM"       = "CHITTAGONG",
+  "CUMILLA"          = "COMILLA",
+  "JASHORE"          = "JESSORE",
+  "CHAPAI NAWABGANJ" = "CHAPAINAWABGANJ"
+)
+
+data$District_upper <- toupper(data$District)
+data$District_upper <- ifelse(data$District_upper %in% names(district_map),
+                              district_map[data$District_upper],
+                              data$District_upper)
+
+common_districts <- intersect(unique(data$District_upper), districts$District)
+data <- data[data$District_upper %in% common_districts, ]
+districts <- districts[districts$District %in% common_districts, ]
+districts <- districts[match(common_districts, districts$District), ]
+
+# ============================================================
+# 4. Re-encode IDs
+# ============================================================
+data$District_new <- factor(data$District_upper, levels = common_districts)
+data$DistrictID <- as.numeric(data$District_new)
+data$YearID <- as.numeric(factor(data$Year))
+
+# ============================================================
+# 5. Select ONLY the required predictors
+# ============================================================
+selected_X <- c("X19","X116","X118","X120","X13","X14","X121","X111","X18","X12")
+
+# Check if all exist
+selected_X <- selected_X[selected_X %in% names(data)]
+
+# Standardize selected predictors only
+data[selected_X] <- scale(data[selected_X])
+
+# ============================================================
+# 6. Create spatial graph
+# ============================================================
+nb <- poly2nb(districts, row.names = districts$District)
+nb2INLA("bngraph.graph", nb)
+
+# ============================================================
+# 7. Define base models using ONLY selected predictors
+# ============================================================
+formulas_base <- list(
+  IID_IID   = as.formula(paste("Yearly_cases ~", paste(selected_X, collapse = " + "),
+                               "+ f(DistrictID, model='iid') + f(YearID, model='iid')")),
+  IID_RW1   = as.formula(paste("Yearly_cases ~", paste(selected_X, collapse = " + "),
+                               "+ f(DistrictID, model='iid') + f(YearID, model='rw1')")),
+  IID_AR1   = as.formula(paste("Yearly_cases ~", paste(selected_X, collapse = " + "),
+                               "+ f(DistrictID, model='iid') + f(YearID, model='ar1')")),
+  BYM2_IID  = as.formula(paste("Yearly_cases ~", paste(selected_X, collapse = " + "),
+                               "+ f(DistrictID, model='bym2', graph='bngraph.graph') + f(YearID, model='iid')")),
+  BYM2_RW1  = as.formula(paste("Yearly_cases ~", paste(selected_X, collapse = " + "),
+                               "+ f(DistrictID, model='bym2', graph='bngraph.graph') + f(YearID, model='rw1')")),
+  BYM2_AR1  = as.formula(paste("Yearly_cases ~", paste(selected_X, collapse = " + "),
+                               "+ f(DistrictID, model='bym2', graph='bngraph.graph') + f(YearID, model='ar1')")),
+  IID_RW2   = as.formula(paste("Yearly_cases ~", paste(selected_X, collapse = " + "),
+                               "+ f(DistrictID, model='iid') + f(YearID, model='rw2')")),
+  BYM2_RW2  = as.formula(paste("Yearly_cases ~", paste(selected_X, collapse = " + "),
+                               "+ f(DistrictID, model='bym2', graph='bngraph.graph') + f(YearID, model='rw2')"))
+)
+
+# ============================================================
+# 8. Fit base models
+# ============================================================
+results_base <- list()
+
+for(model_name in names(formulas_base)){
+  cat("\nFitting base model:", model_name, "\n")
+  results_base[[model_name]] <- inla(
+    formulas_base[[model_name]],
+    data = data,
+    family = "nbinomial",
+    control.compute = list(dic=TRUE, waic=TRUE, cpo=TRUE)
+  )
+}
+
+# ============================================================
+# 9. Collect metrics
+# ============================================================
+base_metrics <- data.frame(
+  Model = names(results_base),
+  DIC = sapply(results_base, function(x) x$dic$dic),
+  WAIC = sapply(results_base, function(x) x$waic$waic),
+  meanCPO = sapply(results_base, function(x) mean(-log(x$cpo$cpo))),
+  MargLogLik = sapply(results_base, function(x) x$mlik[1,1])
+)
+
+print(base_metrics)
+
+best_base <- base_metrics$Model[which.min(base_metrics$DIC)]
+cat("\nBest base model:", best_base, "\n")
+
+# ============================================================
+# 10. Save results
+# ============================================================
+
+write.csv(base_metrics, "J:/Research/Research/denguebangladesh/results_inla/11.2Base_INLA_Model_Metrics_Selected_X.csv", row.names = FALSE)
+
+
+
+
+### LAG model based on best base model
+
+
+
+
+
+
+# ============================================================
+# 0. Libraries
+# ============================================================
+library(INLA)
+library(dplyr)
+library(readxl)
+library(sf)
+library(spdep)
+
+# ============================================================
+# 1. Load dataset
+# ============================================================
+data <- read_excel("J:/Research/Research/denguebangladesh/data/ABSDengueDataBD.xlsx", sheet = "data11")
+data$District <- as.factor(data$District)
+data$Year <- as.factor(data$Year)
+
+# ============================================================
+# 2. Load shapefile
+# ============================================================
+shp_file <- "C:/R/LABSTAT/bgd_adm_bbs_20201113_SHP/bgd_admbnda_adm2_bbs_20201113.shp"
+districts <- st_read(shp_file)
+districts <- districts[!st_is_empty(districts$geometry), ]
+districts$District <- toupper(districts$ADM2_EN)
+
+# Correct known mismatches
+districts$District[districts$District == "CHAPAI NAWABGANJ"] <- "CHAPAINAWABGANJ"
+districts$District[districts$District == "CUMILLA"] <- "COMILLA"
+districts$District[districts$District == "JASHORE"] <- "JESSORE"
+districts$District[districts$District == "CHATTAGRAM"] <- "CHITTAGONG"
+districts$District[districts$District == "BARISHAL"] <- "BARISAL"
+
+# ============================================================
+# 3. Map data districts to shapefile districts
+# ============================================================
+district_map <- c(
+  "BARISHAL"         = "BARISAL",
+  "CHATTOGRAM"       = "CHITTAGONG",
+  "CUMILLA"          = "COMILLA",
+  "JASHORE"          = "JESSORE",
+  "CHAPAI NAWABGANJ" = "CHAPAINAWABGANJ",
+  "BOGURA"           = "BOGURA",
+  "BRAHMANBARIA"     = "BRAHMANBARIA",
+  "JHALOKATHI"       = "JHALOKATHI",
+  "KISHORGANJ"       = "KISHOREGANJ",
+  "MOULVIBAZAR"      = "MAULVIBAZAR",
+  "NETROKONA"        = "NETRAKONA"
+)
+
+data$District_upper <- toupper(as.character(data$District))
+data$District_upper <- ifelse(data$District_upper %in% names(district_map),
+                              district_map[data$District_upper],
+                              data$District_upper)
+
+common_districts <- intersect(unique(data$District_upper), districts$District)
+data <- data[data$District_upper %in% common_districts, ]
+districts <- districts[districts$District %in% common_districts, ]
+districts <- districts[match(common_districts, districts$District), ]
+
+# ============================================================
+# 4. Re-encode DistrictID and YearID
+# ============================================================
+data$District_new <- factor(data$District_upper, levels = common_districts)
+data$DistrictID <- as.numeric(data$District_new)
+data$YearID <- as.numeric(factor(data$Year))
+
+# ============================================================
+# 5. Standardize top 10 predictors
+# ============================================================
+top10_vars <- c("X19","X116","X118","X120","X13","X14","X121","X111","X18","X12")
+data[top10_vars] <- scale(data[top10_vars])
+
+# ============================================================
+# 6. Create spatial neighbors and INLA graph
+# ============================================================
+nb <- poly2nb(districts, row.names = districts$District)
+nb2INLA("bngraph.graph", nb)
+
+# ============================================================
+# 7. Helper function for lagged responses
+# ============================================================
+lag_response <- function(df, lags = 1:3, vars){
+  df <- df %>% arrange(District_upper, Year)
+  for(l in lags){
+    for(v in vars){
+      df[[paste0(v, "_lag", l)]] <- ave(df[[v]], df$District_upper, FUN = function(x) dplyr::lag(x, l))
+    }
+  }
+  df <- df %>% filter(complete.cases(.))
+  return(df)
+}
+
+# ============================================================
+# 8. Generate lagged dataset (1, 2, 3 lags)
+# ============================================================
+lag_options <- list(
+  "Lag1"   = 1,
+  "Lag12"  = 1:2,
+  "Lag123" = 1:3
+)
+
+results_lagged <- list()
+
+for(lag_name in names(lag_options)){
+  df_lag <- lag_response(data, lags = lag_options[[lag_name]], vars = top10_vars)
+  
+  # Build formula including lagged predictors
+  lag_terms <- unlist(lapply(top10_vars, function(v) paste0(v, "_lag", lag_options[[lag_name]])), use.names = FALSE)
+  lag_formula <- paste(lag_terms, collapse = " + ")
+  
+  formula_lag <- as.formula(paste(
+    "Yearly_cases ~", lag_formula,
+    "+ f(DistrictID, model='bym2', graph='bngraph.graph') + f(YearID, model='rw2')"
+  ))
+  
+  cat("Fitting lagged model:", lag_name, "\n")
+  results_lagged[[lag_name]] <- inla(formula_lag,
+                                     data = df_lag,
+                                     family = "nbinomial",
+                                     control.compute = list(dic=TRUE, waic=TRUE, cpo=TRUE))
+}
+
+# ============================================================
+# 9. Summarize lagged model metrics
+# ============================================================
+lagged_metrics <- data.frame(
+  Model = names(results_lagged),
+  DIC = sapply(results_lagged, function(x) x$dic$dic),
+  WAIC = sapply(results_lagged, function(x) x$waic$waic),
+  meanCPO = sapply(results_lagged, function(x) mean(-log(x$cpo$cpo))),
+  MargLogLik = sapply(results_lagged, function(x) x$mlik[1,1])
+)
+
+print(lagged_metrics)
+
+# Select overall best lagged model
+overall_best <- lagged_metrics$Model[which.min(lagged_metrics$DIC)]
+cat("Best lagged model (top 10 variables):", overall_best, "\n")
+
+# ============================================================
+# 10. Save lagged model metrics
+# ============================================================
+write.csv(lagged_metrics, 
+          file = "J:/Research/Research/denguebangladesh/results_inla/11.3lagged_BYM2_RW2_top10_metrics.csv",
+          row.names = FALSE)
+
+cat("Lagged model metrics saved successfully.\n")
+
+
+
+
+
+#####RRD11
+# ============================================================
+# 0. Libraries
+# ============================================================
+library(INLA)
+library(dplyr)
+library(readxl)
+library(sf)
+library(spdep)
+library(writexl)
+
+# ============================================================
+# 1. Load dataset
+# ============================================================
+data <- read_excel("J:/Research/Research/denguebangladesh/data/ABSDengueDataBD.xlsx",
+                   sheet = "data11")
+
+data$District <- as.factor(data$District)
+data$Year <- as.factor(data$Year)
+
+# ============================================================
+# 2. Load shapefile
+# ============================================================
+shp_file <- "C:/R/LABSTAT/bgd_adm_bbs_20201113_SHP/bgd_admbnda_adm2_bbs_20201113.shp"
+districts <- st_read(shp_file)
+districts <- districts[!st_is_empty(districts$geometry), ]
+districts$District <- toupper(districts$ADM2_EN)
+
+# Fix name mismatches
+districts$District[districts$District == "CHAPAI NAWABGANJ"] <- "CHAPAINAWABGANJ"
+districts$District[districts$District == "CUMILLA"] <- "COMILLA"
+districts$District[districts$District == "JASHORE"] <- "JESSORE"
+districts$District[districts$District == "CHATTAGRAM"] <- "CHITTAGONG"
+districts$District[districts$District == "BARISHAL"] <- "BARISAL"
+
+# ============================================================
+# 3. Clean district names in data
+# ============================================================
+data$District_upper <- toupper(as.character(data$District))
+
+district_map <- c(
+  "BARISHAL"         = "BARISAL",
+  "CHATTOGRAM"       = "CHITTAGONG",
+  "CUMILLA"          = "COMILLA",
+  "JASHORE"          = "JESSORE",
+  "CHAPAI NAWABGANJ" = "CHAPAINAWABGANJ"
+)
+
+data$District_upper <- ifelse(
+  data$District_upper %in% names(district_map),
+  district_map[data$District_upper],
+  data$District_upper
+)
+
+common_districts <- intersect(unique(data$District_upper), districts$District)
+data <- data[data$District_upper %in% common_districts, ]
+districts <- districts[districts$District %in% common_districts, ]
+districts <- districts[match(common_districts, districts$District), ]
+
+# ============================================================
+# 4. Create IDs
+# ============================================================
+data$District_new <- factor(data$District_upper, levels = common_districts)
+data$DistrictID <- as.numeric(data$District_new)
+data$YearID <- as.numeric(factor(data$Year))
+
+# ============================================================
+# 5. Select ONLY TOP-10 variables
+# ============================================================
+top10 <- c("X12","X11","X111","X120","X14","X13","X116","X112","X15","X16")
+
+# Keep ONLY: District, Year, Yearly_cases, DistrictID, YearID, District_upper + TOP10
+data <- data %>%
+  select(District_upper, DistrictID, Year, YearID, Yearly_cases, all_of(top10))
+
+# Standardize top-10
+data[top10] <- scale(data[top10])
+
+# ============================================================
+# 6. Create spatial neighbors + INLA graph
+# ============================================================
+nb <- poly2nb(districts, row.names = districts$District)
+nb2INLA("bngraph.graph", nb)
+
+# ============================================================
+# 7. Create lags 1–3
+# ============================================================
+lag_response <- function(df){
+  df <- df %>% arrange(District_upper, Year)
+  for(l in 1:3){
+    df[[paste0("lag", l)]] <- ave(df$Yearly_cases, df$District_upper,
+                                  FUN = function(x) dplyr::lag(x, l))
+  }
+  df <- df %>% filter(complete.cases(.))
+  return(df)
+}
+
+df_lag <- lag_response(data)
+
+# ============================================================
+# 8. Build model formula
+# ============================================================
+formula_best <- as.formula(
+  paste(
+    "Yearly_cases ~",
+    paste(top10, collapse=" + "),
+    "+ lag1 + lag2 + lag3 +",
+    "f(DistrictID, model='bym2', graph='bngraph.graph') +",
+    "f(YearID, model='rw2')"
+  )
+)
+
+# ============================================================
+# 9. Fit BYM2_RW2_Lag123 model
+# ============================================================
+model_best <- inla(
+  formula_best,
+  data = df_lag,
+  family = "nbinomial",
+  control.predictor = list(compute = TRUE),
+  control.compute = list(dic=TRUE, waic=TRUE, cpo=TRUE)
+)
+
+# ============================================================
+# 10. Extract Relative Risk (RR)
+# ============================================================
+lp <- model_best$summary.linear.predictor
+
+RR_df <- df_lag %>%
+  mutate(
+    RR_mean = exp(lp$mean),
+    RR_low  = exp(lp$`0.025quant`),
+    RR_high = exp(lp$`0.975quant`)
+  )
+
+write_xlsx(RR_df,
+           "J:/Research/Research/denguebangladesh/results_inla/11.4BYM2_RW2_Lag123_RR.xlsx")
+
+# ============================================================
+# 11. Spatial effects
+# ============================================================
+write_xlsx(model_best$summary.random$DistrictID,
+           "J:/Research/Research/denguebangladesh/results_inla/11.4BYM2_RW2_Lag123_SpatialEffects.xlsx")
+
+# ============================================================
+# 12. Temporal effects
+# ============================================================
+write_xlsx(model_best$summary.random$YearID,
+           "J:/Research/Research/denguebangladesh/results_inla/11.4BYM2_RW2_Lag123_TemporalEffects.xlsx")
+
+# ============================================================
+# 13. Fitted vs Observed
+# ============================================================
+write_xlsx(
+  data.frame(Observed=df_lag$Yearly_cases,
+             Fitted=model_best$summary.fitted.values$mean),
+  "J:/Research/Research/denguebangladesh/results_inla/11.4BYM2_RW2_Lag123_Fitted_vs_Observed.xlsx"
+)
+
+cat("✔ All outputs saved with ONLY selected top-10 variables.\n")
+
+
+
+
+
+###
+# ============================================================
+# 0. Libraries
+# ============================================================
+library(INLA)
+library(dplyr)
+library(readxl)
+library(sf)
+library(spdep)
+library(writexl)
+library(tibble)
+library(scales)       # for rescaling
+library(stringdist)   # for automatic district matching
+library(ggplot2)
+library(viridis)
+library(patchwork)    # For combining plots
+
+# ============================================================
+# 1. Paths
+# ============================================================
+data_path  <- "J:/Research/Research/denguebangladesh/data/ABSDengueDataBD.xlsx"
+sheet_name <- "data11"
+shp_file   <- "C:/R/LABSTAT/bgd_adm_bbs_20201113_SHP/bgd_admbnda_adm2_bbs_20201113.shp"
+out_dir    <- "J:/Research/Research/denguebangladesh/results_inla/"
+if(!dir.exists(out_dir)) dir.create(out_dir, recursive = TRUE)
+
+# ============================================================
+# 2. Load dataset
+# ============================================================
+data <- read_excel(data_path, sheet = sheet_name)
+data$District <- as.factor(data$District)
+data$Year     <- as.factor(data$Year)
+data$District_upper <- toupper(trimws(as.character(data$District)))
+
+# ============================================================
+# 3. Load shapefile
+# ============================================================
+districts <- st_read(shp_file)
+districts <- districts[!st_is_empty(districts$geometry), ]
+districts$District <- toupper(trimws(districts$ADM2_EN))
+
+# ============================================================
+# 4. Automatic district matching
+# ============================================================
+match_districts <- function(x, shapefile_names){
+  distances <- stringdist::stringdistmatrix(x, shapefile_names, method="jw")
+  closest <- apply(distances, 1, function(row) shapefile_names[which.min(row)])
+  return(closest)
+}
+
+unmatched <- setdiff(unique(data$District_upper), districts$District)
+if(length(unmatched) > 0){
+  cat("⚠ Unmatched districts detected. Attempting automatic matching...\n")
+  corrections <- match_districts(unmatched, districts$District)
+  names(corrections) <- unmatched
+  print(corrections)
+  data$District_upper <- ifelse(data$District_upper %in% names(corrections),
+                                corrections[data$District_upper],
+                                data$District_upper)
+} else {
+  cat("✔ All districts match shapefile.\n")
+}
+
+# Keep only common districts
+common_districts <- intersect(unique(data$District_upper), districts$District)
+data <- data[data$District_upper %in% common_districts, ]
+districts <- districts[districts$District %in% common_districts, ]
+districts <- districts[match(common_districts, districts$District), ]
+
+# ============================================================
+# 5. Create consecutive IDs
+# ============================================================
+data$DistrictID <- as.integer(factor(data$District_upper, levels = common_districts))
+data$YearID     <- as.integer(factor(data$Year))
+
+# ============================================================
+# 6. Standardize continuous predictors (exclude target)
+# ============================================================
+predictor_vars <- c("X12","X11","X120","X14","X13","X112","X15","X16")
+predictor_vars <- predictor_vars[predictor_vars %in% names(data)]
+data <- data %>% mutate(across(all_of(predictor_vars), ~scale(.x)))
+
+# ============================================================
+# 7. Create spatial graph
+# ============================================================
+nb <- poly2nb(districts, row.names = districts$District, snap = 0.0001)
+graph_file <- file.path(out_dir, "bngraph.graph")
+nb2INLA(graph_file, nb)
+
+# ============================================================
+# 8. Create lagged responses (1–3)
+# ============================================================
+data <- data %>% arrange(District_upper, Year)
+for(l in 1:3){
+  data[[paste0("lag", l)]] <- ave(data$Yearly_cases, data$District_upper, FUN = function(x) dplyr::lag(x, l))
+}
+
+# Filter complete cases
+df_lag <- data %>%
+  filter(complete.cases(.[c(predictor_vars, "Yearly_cases", "DistrictID", "YearID", "lag1","lag2","lag3")]))
+
+# ============================================================
+# 9. Build formula for BYM2 + RW2 + lags
+# ============================================================
+formula_best <- as.formula(
+  paste("Yearly_cases ~",
+        paste(predictor_vars, collapse = " + "),
+        "+ lag1 + lag2 + lag3 +",
+        "f(DistrictID, model='bym2', graph='", graph_file, "') +",
+        "f(YearID, model='rw2')", sep="")
+)
+
+# ============================================================
+# 10. Fit Negative Binomial model
+# ============================================================
+model_best <- inla(formula_best,
+                   data = df_lag,
+                   family = "nbinomial",
+                   control.predictor = list(compute=TRUE),
+                   control.compute = list(dic=TRUE, waic=TRUE, cpo=TRUE))
+
+# ============================================================
+# 11. Extract fixed effects
+# ============================================================
+fixed_effects <- as.data.frame(model_best$summary.fixed) %>% rownames_to_column(var="Variable")
+fixed_effects <- fixed_effects %>%
+  mutate(RR       = exp(mean),
+         RR_lower = exp(`0.025quant`),
+         RR_upper = exp(`0.975quant`),
+         P_gt0    = pnorm(mean / sd, lower.tail = FALSE),
+         BayesSig = pmax(P_gt0, 1-P_gt0),
+         Pval     = 2 * pmin(P_gt0, 1-P_gt0))
+write_xlsx(fixed_effects, file.path(out_dir, "BYM2_RW2_Lag123_FixedEffects_Standardized.xlsx"))
+
+# ============================================================
+# 12. Spatial random effects
+# ============================================================
+spatial_effect <- model_best$summary.random$DistrictID
+district_names <- df_lag %>%
+  distinct(DistrictID, District_upper) %>%
+  arrange(DistrictID)
+spatial_effect <- merge(spatial_effect, district_names, by.x = "ID", by.y = "DistrictID", all.x = TRUE)
+write_xlsx(spatial_effect, file.path(out_dir, "BYM2_RW2_Lag123_SpatialEffects.xlsx"))
+
+# ============================================================
+# 13. Temporal RW2 effects
+# ============================================================
+temporal_effect <- model_best$summary.random$YearID
+temporal_effect$Year <- levels(data$Year)[temporal_effect$ID]
+write_xlsx(temporal_effect, file.path(out_dir, "BYM2_RW2_Lag123_TemporalEffects.xlsx"))
+
+# ============================================================
+# 14. Fitted vs observed
+# ============================================================
+fitted_df <- df_lag %>%
+  mutate(Fitted = model_best$summary.fitted.values$mean) %>%
+  select(Year, District_upper, Yearly_cases, Fitted)
+write_xlsx(fitted_df, file.path(out_dir, "BYM2_RW2_Lag123_Fitted_vs_Observed.xlsx"))
+
+# ============================================================
+# 15A. Plot fixed effects (RR with 95% CI)
+fixed_plot <- fixed_effects %>%
+  filter(Variable != "(Intercept)") %>%  # remove intercept
+  ggplot(aes(x = reorder(Variable, RR), y = RR)) +
+  geom_point(color = "blue", size = 3) +
+  geom_errorbar(aes(ymin = RR_lower, ymax = RR_upper), width = 0.2, color = "blue") +
+  coord_flip() +
+  theme_minimal() +
+  labs(title = "A",
+       x = "Predictors",
+       y = "Relative Risk (RR)")+
+  theme_minimal(base_size=14) +
+  theme(plot.title = element_text(face="bold", hjust=-.01),
+        legend.position="right")
+# ============================================================
+# 15B. Spatial random effects map
+# ============================================================
+districts_map <- districts %>%
+  left_join(spatial_effect, by = c("District" = "District_upper"))
+spatial_plot <- ggplot(districts_map) +
+  geom_sf(aes(fill = mean)) +
+  scale_fill_viridis(option = "D", name = "Spatial effect") +
+  theme_minimal() +
+  labs(title = "B") +
+  annotation_scale(location="bl", width_hint=0.25) +
+  annotation_north_arrow(location="tr", which_north="true",
+                         style = north_arrow_nautical()) +
+  theme_minimal(base_size=14) +
+  theme(plot.title = element_text(face="bold", hjust=0),
+        legend.position="bottom")
+
+# ============================================================
+# 15C. Temporal RW2 effects
+# ============================================================
+temporal_plot <- ggplot(temporal_effect, aes(x = as.numeric(Year), y = mean)) +
+  geom_line(color = "darkgreen", size = 1) +
+  geom_ribbon(aes(ymin = `0.025quant`, ymax = `0.975quant`), alpha = 0.2, fill = "green") +
+  theme_minimal() +
+  labs(title = "C", x = "Year", y = "Effect")+
+  theme_minimal(base_size=14) +
+  theme(plot.title = element_text(face="bold", hjust=0),
+        legend.position="right")
+
+
+# ============================================================
+
+
+
+library(patchwork)
+
+# Combine plots
+combined_plot <- fixed_plot + spatial_plot + temporal_plot + 
+  plot_layout(ncol = 3)  # stacked vertically
+
+# Save combined plot
+ggsave(filename = file.path(out_dir, "Combined_BYM2_RW2_Plots.png"),
+       plot = combined_plot,
+       width = 14, height = 5, dpi = 300)
+
+
+##MATRICS
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(forcats)
+
+# Your data (replace with your actual data frame)
+df <- read.table(header=TRUE, text='
+Covariates	Model	DIC	WAIC	meanCPO	MargLogLik
+All_variables_used	IID_IID	4985.702 	4994.885 	5.528 	-2623.170
+All_variables_used	IID_RW1	4985.461 	4994.626 	5.528 	-2625.894
+All_variables_used	IID_AR1	4987.212 	4996.510 	5.530 	-2624.461
+All_variables_used	BYM2_IID	4984.975 	4994.108 	5.527 	-2579.337
+All_variables_used	BYM2_RW1	4984.540 	4993.642 	5.527 	-2582.092
+All_variables_used	BYM2_AR1	4984.909 	4994.068 	5.527 	-2580.838
+All_variables_used	IID_RW2	4985.554 	4994.798 	5.528 	-2624.652
+All_variables_used	BYM2_RW2	4984.298 	4993.463 	5.526 	-2580.830
+Top_10_selected_variable_used	IID_IID	4986.532 	4994.249 	5.533 	-2608.668
+Top_10_selected_variable_used	IID_RW1	4986.177 	4993.892 	5.532 	-2611.463
+Top_10_selected_variable_used	IID_AR1	4988.684 	4996.496 	5.534 	-2609.289
+Top_10_selected_variable_used	BYM2_IID	4983.320 	4991.184 	5.526 	-2563.538
+Top_10_selected_variable_used	BYM2_RW1	4983.430 	4991.155 	5.526 	-2566.322
+Top_10_selected_variable_used	BYM2_AR1	4983.828 	4991.788 	5.527 	-2564.706
+Top_10_selected_variable_used	IID_RW2	4986.541 	4994.437 	5.533 	-2610.071
+Top_10_selected_variable_used	BYM2_RW2	4983.317 	4991.185 	5.526 	-2564.923
+Top_10_selected_variable_used	BYM2_RW2_Lag1	4950.211 	4961.448 	5.962 	-2542.058
+Top_10_selected_variable_used	BYM2_RW2_Lag12	4550.611 	4556.168 	6.478 	-2347.707
+Top_10_selected_variable_used	BYM2_RW2_Lag123	3671.055 	3675.390 	6.557 	-1911.331
+')
+
+# Convert Model to factor to preserve order
+df$Model <- factor(df$Model, levels = unique(df$Model))
+
+# Gather metrics into long format
+df_long <- df %>%
+  pivot_longer(cols = c(DIC, WAIC, meanCPO, MargLogLik),
+               names_to = "Metric",
+               values_to = "Value")
+
+library(ggplot2)
+library(dplyr)
+library(forcats)
+library(patchwork)
+
+# Convert Model to factor to preserve order
+df$Model <- factor(df$Model, levels = unique(df$Model))
+
+# ============================================================
+# 1. DIC dot plot
+# ============================================================
+plot_dic <- ggplot(df, aes(x = fct_reorder(Model, DIC), y = DIC, color = Covariates)) +
+  geom_point(size = 3) +
+  coord_flip() +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "bottom") +
+  labs(x = "Model", y = "DIC", title = "A: DIC")
+
+# ============================================================
+# 2. WAIC dot plot
+# ============================================================
+plot_waic <- ggplot(df, aes(x = fct_reorder(Model, WAIC), y = WAIC, color = Covariates)) +
+  geom_point(size = 3) +
+  coord_flip() +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "bottom") +
+  labs(x = "Model", y = "WAIC", title = "B: WAIC")
+
+# ============================================================
+# 3. meanCPO dot plot
+# ============================================================
+plot_cpo <- ggplot(df, aes(x = fct_reorder(Model, meanCPO), y = meanCPO, color = Covariates)) +
+  geom_point(size = 3) +
+  coord_flip() +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "bottom") +
+  labs(x = "Model", y = "meanCPO", title = "C: meanCPO")
+
+# ============================================================
+# 4. Marginal Log-Likelihood dot plot
+# ============================================================
+plot_marglog <- ggplot(df, aes(x = fct_reorder(Model, MargLogLik), y = MargLogLik, color = Covariates)) +
+  geom_point(size = 3) +
+  coord_flip() +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "bottom") +
+  labs(x = "Model", y = "MargLogLik", title = "D: MargLogLik")
+
+# ============================================================
+# Combine 4 plots using patchwork
+# ============================================================
+combined_plot <- (plot_dic | plot_waic) / (plot_cpo | plot_marglog) +
+  plot_layout(guides = "collect") & theme(legend.position = "bottom")
+
+# Save combined plot
+ggsave(filename = file.path(out_dir, "Model_Metrics_Combined.png"),
+       plot = combined_plot, width = 16, height = 12, dpi = 300)
+
+
+
+
+
+
+###DATA22
+
+# ============================================================
+# 0. Load libraries
+# ============================================================
+library(INLA)
+library(dplyr)
+library(readxl)
+library(sf)
+library(spdep)
+
+# ============================================================
+# 1. Load data
+# ============================================================
+data <- read_excel("J:/Research/Research/denguebangladesh/data/ABSDengueDataBD.xlsx", sheet = "data22")
+
+# Standardize district names
+data$District <- toupper(data$District)
+
+# Create Month-Year factor
+data$MonthYear <- factor(paste(data$Year, sprintf("%02d", data$Month1), sep = "-"))
+
+# ============================================================
+# 2. Load shapefile
+# ============================================================
+shp_file <- "C:/R/LABSTAT/bgd_adm_bbs_20201113_SHP/bgd_admbnda_adm2_bbs_20201113.shp"
+districts <- st_read(shp_file)
+districts <- districts[!st_is_empty(districts$geometry), ]
+districts$District <- toupper(districts$ADM2_EN)
+
+# Correct known mismatches
+districts$District[districts$District == "CHAPAI NAWABGANJ"] <- "CHAPAINAWABGANJ"
+districts$District[districts$District == "CUMILLA"] <- "COMILLA"
+districts$District[districts$District == "JASHORE"] <- "JESSORE"
+districts$District[districts$District == "CHATTAGRAM"] <- "CHITTAGONG"
+districts$District[districts$District == "BARISHAL"] <- "BARISAL"
+
+# Keep only common districts
+common_districts <- intersect(unique(data$District), districts$District)
+districts <- districts[districts$District %in% common_districts, ]
+districts <- districts[match(common_districts, districts$District), ]
+
+# ============================================================
+# 3. Create spatial neighbors and INLA graph
+# ============================================================
+nb <- poly2nb(districts, row.names = districts$District)
+nb2INLA("bngraph.graph", nb)
+
+# ============================================================
+# 4. Create numeric IDs for INLA
+# ============================================================
+data <- data[data$District %in% common_districts, ]
+data$District <- factor(data$District, levels = common_districts)
+data$DistrictID <- as.numeric(data$District)
+data$TimeID <- as.numeric(data$MonthYear)
+
+# ============================================================
+# 5. Standardize predictors (exclude specified covariates)
+# ============================================================
+exclude_vars <- c("X27", "X210", "X219", "X214", "X215", "X217", "X213")
+X_cols <- grep("^X", names(data), value = TRUE)
+X_cols <- setdiff(X_cols, exclude_vars)
+data[X_cols] <- scale(data[X_cols])
+
+# ============================================================
+# 6. Define 8 base model formulas
+# ============================================================
+formulas_base <- list(
+  IID_IID   = as.formula(paste("Monthly_cases ~", paste(X_cols, collapse = " + "),
+                               "+ f(DistrictID, model='iid') + f(TimeID, model='iid')")),
+  IID_RW1   = as.formula(paste("Monthly_cases ~", paste(X_cols, collapse = " + "),
+                               "+ f(DistrictID, model='iid') + f(TimeID, model='rw1')")),
+  IID_AR1   = as.formula(paste("Monthly_cases ~", paste(X_cols, collapse = " + "),
+                               "+ f(DistrictID, model='iid') + f(TimeID, model='ar1')")),
+  IID_RW2   = as.formula(paste("Monthly_cases ~", paste(X_cols, collapse = " + "),
+                               "+ f(DistrictID, model='iid') + f(TimeID, model='rw2')")),
+  BYM2_IID  = as.formula(paste("Monthly_cases ~", paste(X_cols, collapse = " + "),
+                               "+ f(DistrictID, model='bym2', graph='bngraph.graph') + f(TimeID, model='iid')")),
+  BYM2_RW1  = as.formula(paste("Monthly_cases ~", paste(X_cols, collapse = " + "),
+                               "+ f(DistrictID, model='bym2', graph='bngraph.graph') + f(TimeID, model='rw1')")),
+  BYM2_AR1  = as.formula(paste("Monthly_cases ~", paste(X_cols, collapse = " + "),
+                               "+ f(DistrictID, model='bym2', graph='bngraph.graph') + f(TimeID, model='ar1')")),
+  BYM2_RW2  = as.formula(paste("Monthly_cases ~", paste(X_cols, collapse = " + "),
+                               "+ f(DistrictID, model='bym2', graph='bngraph.graph') + f(TimeID, model='rw2')"))
+)
+
+data_list <- lapply(formulas_base, function(x) data)
+
+# ============================================================
+# 7. Fit base models and store results
+# ============================================================
+results_base <- list()
+for(model_name in names(formulas_base)){
+  cat("Fitting base model:", model_name, "\n")
+  results_base[[model_name]] <- inla(
+    formulas_base[[model_name]],
+    data = data_list[[model_name]],
+    family = "nbinomial",
+    control.compute = list(dic=TRUE, waic=TRUE, cpo=TRUE)
+  )
+}
+
+# ============================================================
+# 8. Summarize metrics for base models
+# ============================================================
+base_metrics <- data.frame(
+  Model = names(results_base),
+  DIC = sapply(results_base, function(x) x$dic$dic),
+  WAIC = sapply(results_base, function(x) x$waic$waic),
+  meanCPO = sapply(results_base, function(x) mean(-log(x$cpo$cpo))),
+  MargLogLik = sapply(results_base, function(x) x$mlik[1,1])
+)
+
+# View metrics
+print(base_metrics)
+
+# ============================================================
+# 9. Save metrics
+# ============================================================
+write.csv(base_metrics, "J:/Research/Research/denguebangladesh/results_inla/22.1BaseModelMetrics_data22.csv", row.names = FALSE)
+
+
+
+
+
+
+# ============================================================
+# 0. Load libraries
+# ============================================================
+library(INLA)
+library(dplyr)
+library(readxl)
+library(sf)
+library(spdep)
+
+# ============================================================
+# 1. Load data
+# ============================================================
+data <- read_excel("J:/Research/Research/denguebangladesh/data/ABSDengueDataBD.xlsx", sheet = "data22")
+
+# Standardize district names
+data$District <- toupper(data$District)
+
+# Create Month-Year factor
+data$MonthYear <- factor(paste(data$Year, sprintf("%02d", data$Month1), sep = "-"))
+
+# ============================================================
+# 2. Load shapefile
+# ============================================================
+shp_file <- "C:/R/LABSTAT/bgd_adm_bbs_20201113_SHP/bgd_admbnda_adm2_bbs_20201113.shp"
+districts <- st_read(shp_file)
+districts <- districts[!st_is_empty(districts$geometry), ]
+districts$District <- toupper(districts$ADM2_EN)
+
+# Correct known mismatches
+districts$District[districts$District == "CHAPAI NAWABGANJ"] <- "CHAPAINAWABGANJ"
+districts$District[districts$District == "CUMILLA"] <- "COMILLA"
+districts$District[districts$District == "JASHORE"] <- "JESSORE"
+districts$District[districts$District == "CHATTAGRAM"] <- "CHITTAGONG"
+districts$District[districts$District == "BARISHAL"] <- "BARISAL"
+
+# Keep only common districts
+common_districts <- intersect(unique(data$District), districts$District)
+districts <- districts[districts$District %in% common_districts, ]
+districts <- districts[match(common_districts, districts$District), ]
+
+# ============================================================
+# 3. Create spatial neighbors and INLA graph
+# ============================================================
+nb <- poly2nb(districts, row.names = districts$District)
+nb2INLA("bngraph.graph", nb)
+
+# ============================================================
+# 4. Create numeric IDs for INLA
+# ============================================================
+data <- data[data$District %in% common_districts, ]
+data$District <- factor(data$District, levels = common_districts)
+data$DistrictID <- as.numeric(data$District)
+data$TimeID <- as.numeric(data$MonthYear)
+
+# ============================================================
+# 5. Standardize only top 10 predictors
+# ============================================================
+top10_vars <- c("X24","X216","X22","X28","X212","X25","X220","X26","X21","X23")
+data[top10_vars] <- scale(data[top10_vars])
+
+# ============================================================
+# 6. Define 8 base model formulas with only top 10 predictors
+# ============================================================
+formulas_top10 <- list(
+  IID_IID   = as.formula(paste("Monthly_cases ~", paste(top10_vars, collapse = " + "),
+                               "+ f(DistrictID, model='iid') + f(TimeID, model='iid')")),
+  IID_RW1   = as.formula(paste("Monthly_cases ~", paste(top10_vars, collapse = " + "),
+                               "+ f(DistrictID, model='iid') + f(TimeID, model='rw1')")),
+  IID_AR1   = as.formula(paste("Monthly_cases ~", paste(top10_vars, collapse = " + "),
+                               "+ f(DistrictID, model='iid') + f(TimeID, model='ar1')")),
+  IID_RW2   = as.formula(paste("Monthly_cases ~", paste(top10_vars, collapse = " + "),
+                               "+ f(DistrictID, model='iid') + f(TimeID, model='rw2')")),
+  BYM2_IID  = as.formula(paste("Monthly_cases ~", paste(top10_vars, collapse = " + "),
+                               "+ f(DistrictID, model='bym2', graph='bngraph.graph') + f(TimeID, model='iid')")),
+  BYM2_RW1  = as.formula(paste("Monthly_cases ~", paste(top10_vars, collapse = " + "),
+                               "+ f(DistrictID, model='bym2', graph='bngraph.graph') + f(TimeID, model='rw1')")),
+  BYM2_AR1  = as.formula(paste("Monthly_cases ~", paste(top10_vars, collapse = " + "),
+                               "+ f(DistrictID, model='bym2', graph='bngraph.graph') + f(TimeID, model='ar1')")),
+  BYM2_RW2  = as.formula(paste("Monthly_cases ~", paste(top10_vars, collapse = " + "),
+                               "+ f(DistrictID, model='bym2', graph='bngraph.graph') + f(TimeID, model='rw2')"))
+)
+
+data_list <- lapply(formulas_top10, function(x) data)
+
+# ============================================================
+# 7. Fit base models and store results
+# ============================================================
+results_top10 <- list()
+for(model_name in names(formulas_top10)){
+  cat("Fitting top 10 base model:", model_name, "\n")
+  results_top10[[model_name]] <- inla(
+    formulas_top10[[model_name]],
+    data = data_list[[model_name]],
+    family = "nbinomial",
+    control.compute = list(dic=TRUE, waic=TRUE, cpo=TRUE)
+  )
+}
+
+# ============================================================
+# 8. Summarize metrics for top 10 base models
+# ============================================================
+metrics_top10 <- data.frame(
+  Model = names(results_top10),
+  DIC = sapply(results_top10, function(x) x$dic$dic),
+  WAIC = sapply(results_top10, function(x) x$waic$waic),
+  meanCPO = sapply(results_top10, function(x) mean(-log(x$cpo$cpo))),
+  MargLogLik = sapply(results_top10, function(x) x$mlik[1,1])
+)
+
+# View metrics
+print(metrics_top10)
+
+# ============================================================
+# 9. Save metrics
+# ============================================================
+write.csv(metrics_top10, "J:/Research/Research/denguebangladesh/results_inla/22.2Top10BaseModelMetrics_data22.csv", row.names = FALSE)
+
+
+
+
+
+
+#LAG
+
+# ============================================================
+# 0. Load libraries
+# ============================================================
+library(INLA)
+library(dplyr)
+library(readxl)
+
+# ============================================================
+# 1. Load data
+# ============================================================
+data <- read_excel("J:/Research/Research/denguebangladesh/data/ABSDengueDataBD.xlsx", sheet = "data22")
+data$District <- toupper(data$District)
+data$MonthYear <- factor(paste(data$Year, sprintf("%02d", data$Month1), sep = "-"))
+
+# Standardize district IDs
+districts_unique <- sort(unique(data$District))
+data$District <- factor(data$District, levels = districts_unique)
+data$DistrictID <- as.numeric(data$District)
+data$TimeID <- as.numeric(data$MonthYear)
+
+# ============================================================
+# 2. Select top 10 variables
+# ============================================================
+top10_vars <- c("X24","X216","X22","X28","X212","X25","X220","X21","X23")
+data[top10_vars] <- scale(data[top10_vars])
+
+# ============================================================
+# 3. Helper function to create lagged responses
+# ============================================================
+lag_response <- function(df, lags = 1:3) {
+  df <- df %>% arrange(District, Year, Month1)
+  for(l in lags){
+    df[[paste0("lag", l)]] <- ave(df$Monthly_cases, df$District, FUN = function(x) {
+      if(length(x) <= l) return(rep(NA, length(x)))
+      dplyr::lag(x, l)
+    })
+  }
+  df <- df %>% filter(rowSums(is.na(df[paste0("lag", lags)])) == 0)
+  return(df)
+}
+
+# ============================================================
+# 4. Define lag options
+# ============================================================
+lag_options <- list(
+  "Lag1"   = 1,
+  "Lag12"  = 1:2,
+  "Lag123" = 1:3
+)
+
+# ============================================================
+# 5. Fit lagged models
+# ============================================================
+results_lagged <- list()
+for(lag_name in names(lag_options)){
+  
+  df_lag <- lag_response(data, lags = lag_options[[lag_name]])
+  
+  if(nrow(df_lag) == 0){
+    cat("Skipping", lag_name, "because dataset is empty after lagging\n")
+    next
+  }
+  
+  lag_terms <- paste0("lag", lag_options[[lag_name]], collapse = " + ")
+  
+  formula_lag <- as.formula(
+    paste("Monthly_cases ~", paste(top10_vars, collapse = " + "), "+", lag_terms,
+          "+ f(DistrictID, model='iid') + f(TimeID, model='rw1')")  # IID_RW1 base
+  )
+  
+  cat("Fitting lagged model:", lag_name, "\n")
+  
+  results_lagged[[lag_name]] <- inla(
+    formula_lag,
+    data = df_lag,
+    family = "nbinomial",
+    control.compute = list(dic=TRUE, waic=TRUE, cpo=TRUE)
+  )
+}
+
+# ============================================================
+# 6. Summarize metrics
+# ============================================================
+lagged_metrics <- data.frame(
+  Model = names(results_lagged),
+  DIC = sapply(results_lagged, function(x) x$dic$dic),
+  WAIC = sapply(results_lagged, function(x) x$waic$waic),
+  meanCPO = sapply(results_lagged, function(x) mean(-log(x$cpo$cpo))),
+  MargLogLik = sapply(results_lagged, function(x) x$mlik[1,1])
+)
+
+# View metrics
+print(lagged_metrics)
+
+# ============================================================
+# 7. Save metrics
+# ============================================================
+write.csv(lagged_metrics, "J:/Research/Research/denguebangladesh/results_inla/22.3LagModelsMetrics_IID_RW1.csv", row.names = FALSE)
+
+
+
+
+##################
+# ============================================================
+# Full INLA analysis for Data22 (IID_RW1_Lag123)
+# ============================================================
+library(INLA)
+library(dplyr)
+library(readxl)
+library(sf)
+library(spdep)
+library(ggplot2)
+library(ggspatial)
+library(cowplot)
+library(viridis)
+library(writexl)
+library(tibble)
+
+# ============================================================
+# 0. Paths & config
+# ============================================================
+data_path  <- "J:/Research/Research/denguebangladesh/data/ABSDengueDataBD.xlsx"
+sheet_name <- "data22"
+shp_file   <- "C:/R/LABSTAT/bgd_adm_bbs_20201113_SHP/bgd_admbnda_adm2_bbs_20201113.shp"
+out_dir    <- "J:/Research/Research/denguebangladesh/results_inla/"
+if (!dir.exists(out_dir)) dir.create(out_dir, recursive = TRUE)
+
+# ============================================================
+# 1. Load data
+# ============================================================
+data <- read_excel(data_path, sheet = sheet_name)
+data$District <- toupper(trimws(as.character(data$District)))
+data$Year <- as.integer(data$Year)
+data$Month1 <- as.integer(data$Month1)
+data$MonthYear <- factor(paste0(data$Year, "-", sprintf("%02d", data$Month1)),
+                         levels = sort(unique(paste0(data$Year, "-", sprintf("%02d", data$Month1)))))
+
+# ============================================================
+# 2. Load shapefile & harmonize names
+# ============================================================
+districts <- st_read(shp_file, quiet = TRUE)
+districts <- districts[!st_is_empty(districts$geometry), ]
+districts$District <- toupper(trimws(districts$ADM2_EN))
+districts$District[districts$District == "CHAPAI NAWABGANJ"] <- "CHAPAINAWABGANJ"
+districts$District[districts$District == "CUMILLA"] <- "COMILLA"
+districts$District[districts$District == "JASHORE"] <- "JESSORE"
+districts$District[districts$District == "CHATTAGRAM"] <- "CHITTAGONG"
+districts$District[districts$District == "BARISHAL"] <- "BARISAL"
+
+# ============================================================
+# 3. Keep common districts
+# ============================================================
+common_districts <- intersect(unique(data$District), districts$District)
+districts <- districts %>% filter(District %in% common_districts) %>% arrange(match(District, common_districts))
+data <- data %>% filter(District %in% common_districts)
+
+# ============================================================
+# 4. Spatial neighbors & INLA graph
+# ============================================================
+nb <- poly2nb(districts, row.names = districts$District, snap = 0.0001)
+graph_file <- file.path(out_dir, "bngraph.graph")
+nb2INLA(graph_file, nb)
+
+# ============================================================
+# 5. Create IDs for INLA
+# ============================================================
+data$District <- factor(data$District, levels = common_districts)
+data$DistrictID <- as.integer(data$District)
+data$TimeID <- as.integer(data$MonthYear)
+
+# ============================================================
+# 6. Top-10 predictors and standardize
+# ============================================================
+top10_vars <- c("X24","X216","X22","X212","X25","X220","X26","X21","X23")
+top10_vars <- top10_vars[top10_vars %in% names(data)]
+data <- data %>% mutate(across(all_of(top10_vars), ~ as.numeric(scale(.x))))
+
+# ============================================================
+# 7. Create lagged dataset
+# ============================================================
+data <- data %>% arrange(District, Year, Month1) %>%
+  group_by(District) %>%
+  mutate(
+    lag1 = dplyr::lag(Monthly_cases, 1, default = 0),
+    lag2 = dplyr::lag(Monthly_cases, 2, default = 0),
+    lag3 = dplyr::lag(Monthly_cases, 3, default = 0)
+  ) %>% ungroup()
+data_lag123 <- data
+data_lag123$DistrictID <- as.integer(data_lag123$District)
+data_lag123$TimeID <- as.integer(data_lag123$MonthYear)
+
+# ============================================================
+# 8. Build formula
+# ============================================================
+lag_terms <- paste0("lag", 1:3, collapse = " + ")
+formula_lag123 <- as.formula(
+  paste("Monthly_cases ~", paste(top10_vars, collapse = " + "), "+", lag_terms,
+        "+ f(DistrictID, model='iid') + f(TimeID, model='rw1')")
+)
+
+# ============================================================
+# 9. Fit model
+# ============================================================
+model_lag123 <- inla(
+  formula_lag123,
+  data = data_lag123,
+  family = "nbinomial",
+  control.predictor = list(compute = TRUE),
+  control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE),
+  verbose = FALSE
+)
+saveRDS(model_lag123, file.path(out_dir, "IID_RW1_Lag123_model_data22.rds"))
+
+# ============================================================
+# 10. Model metrics
+# ============================================================
+lag123_metrics <- data.frame(
+  Model = "IID_RW1_Lag123",
+  DIC = model_lag123$dic$dic,
+  WAIC = model_lag123$waic$waic,
+  meanCPO = mean(-log(model_lag123$cpo$cpo), na.rm = TRUE),
+  MargLogLik = model_lag123$mlik[1,1]
+)
+write.csv(lag123_metrics, file.path(out_dir, "IID_RW1_Lag123_metrics_data22.csv"), row.names = FALSE)
+
+# ============================================================
+# 11. Fixed effects with RR
+# ============================================================
+fixed_summary <- as.data.frame(model_lag123$summary.fixed) %>%
+  rownames_to_column(var = "Variable") %>%
+  dplyr::select(Variable, mean, sd, `0.025quant`, `0.5quant`, `0.975quant`) %>%
+  filter(Variable != "(Intercept)") %>%
+  mutate(
+    RR = exp(mean),
+    RR_lower = exp(`0.025quant`),
+    RR_upper = exp(`0.975quant`)
+  )
+write.csv(fixed_summary, file.path(out_dir, "IID_RW1_Lag123_FixedEffects_RR_data22.csv"), row.names = FALSE)
+
+# ============================================================
+# 12. Spatial random effects
+# ============================================================
+spatial_effect <- model_lag123$summary.random$DistrictID
+district_names <- data_lag123 %>% distinct(DistrictID, District) %>% arrange(DistrictID)
+spatial_effect$ID <- as.integer(spatial_effect$ID)
+district_names$DistrictID <- as.integer(district_names$DistrictID)
+spatial_effect_named <- merge(spatial_effect, district_names, by.x = "ID", by.y = "DistrictID", all.x = TRUE, sort = FALSE)
+write.csv(spatial_effect_named, file.path(out_dir, "IID_RW1_Lag123_SpatialRandomEffects_data22.csv"), row.names = FALSE)
+
+# ============================================================
+# 13. Temporal effect
+# ============================================================
+temporal_effect <- model_lag123$summary.random$TimeID
+time_labels <- data_lag123 %>% distinct(TimeID, MonthYear) %>% arrange(TimeID)
+temporal_effect <- temporal_effect %>% left_join(time_labels, by = c("ID" = "TimeID"))
+write.csv(temporal_effect, file.path(out_dir, "IID_RW1_Lag123_TemporalEffect_data22.csv"), row.names = FALSE)
+
+# ============================================================
+# 14. Fitted vs observed
+# ============================================================
+fitted_df <- data_lag123 %>%
+  mutate(Fitted = model_lag123$summary.fitted.values$mean) %>%
+  select(Year, Month1, MonthYear, District, Monthly_cases, Fitted)
+write.csv(fitted_df, file.path(out_dir, "IID_RW1_Lag123_Fitted_vs_Observed_data22.csv"), row.names = FALSE)
+
+# ============================================================
+# 15. Plots
+# ============================================================
+fixed_plot <- ggplot(fixed_summary, aes(x = reorder(Variable, RR), y = RR)) +
+  geom_point(color = "steelblue", size = 3) +
+  geom_errorbar(aes(ymin = RR_lower, ymax = RR_upper), width = 0.2, color = "steelblue") +
+  coord_flip() + theme_minimal() +
+  labs(title = "D", x = "Predictor", y = "Relative Risk (RR)") +
+  theme(plot.title = element_text(face = "bold", size = 12))
+
+# Spatial map
+library(sf)
+library(dplyr)
+library(ggplot2)
+library(viridis)
+library(ggspatial)
+
+# ===============================
+# 1. Load shapefile
+# ===============================
+shp_file <- "C:/R/LABSTAT/bgd_adm_bbs_20201113_SHP/bgd_admbnda_adm2_bbs_20201113.shp"
+districts <- st_read(shp_file, quiet = TRUE) %>%
+  filter(!st_is_empty(geometry)) %>%
+  mutate(District = toupper(trimws(ADM2_EN)))
+
+# Correct known shapefile names
+districts$District[districts$District == "CHAPAI NAWABGANJ"] <- "CHAPAINAWABGANJ"
+districts$District[districts$District == "CUMILLA"] <- "COMILLA"
+districts$District[districts$District == "JASHORE"] <- "JESSORE"
+districts$District[districts$District == "CHATTAGRAM"] <- "CHITTAGONG"
+districts$District[districts$District == "BARISHAL"] <- "BARISAL"
+
+# ===============================
+# 2. Load CSV
+# ===============================
+s <- read.csv("J:/Research/Research/denguebangladesh/results_inla/IID_RW1_Lag123_SpatialRandomEffects_data22.csv")
+
+# ===============================
+# 3. Merge shapefile with CSV
+# ===============================
+districts_map <- districts %>%
+  left_join(s %>% select(District, mean), by = "District") %>%
+  mutate(mean = ifelse(is.na(mean), 0, mean))  # assign 0 for missing districts
+
+# ===============================
+# 4. Plot raw spatial effect
+# ===============================
+spatial_plot= ggplot(districts_map) +
+  geom_sf(aes(fill = mean), color = "grey40") +
+  scale_fill_viridis_c(option = "D", na.value = "grey90", name = "Spatial Effect") +
+  theme_minimal() +
+  labs(title = "E") +
+  annotation_scale(location="bl", width_hint = 0.25) +
+  annotation_north_arrow(location="tr", which_north="true",
+                         style=north_arrow_nautical()) +
+  theme(plot.title = element_text(face="bold", size=14),
+        legend.position="bottom")
+
+
+
+
+temporal_effect$MonthYear <- factor(temporal_effect$MonthYear, levels = time_labels$MonthYear)
+temporal_plot <- ggplot(temporal_effect, aes(x = MonthYear, y = mean, group = 1)) +
+  geom_line(color = "darkgreen", size = 0.9) +
+  geom_ribbon(aes(ymin = `0.025quant`, ymax = `0.975quant`), alpha = 0.2, fill = "green") +
+  theme_minimal() +
+  labs(title = "F", x = "Month-Year", y = "Effect") +
+  theme(axis.text.x = element_text(angle=90, vjust=0.5, hjust=1),
+        plot.title = element_text(face="bold", size=12))
+
+
+
+
+
+
+
+
+library(patchwork)
+
+# Combine plots
+combined_plot <- fixed_plot + spatial_plot + temporal_plot + 
+  plot_layout(ncol = 3)  # stacked vertically
+ggsave(file.path(out_dir, "IID_RW1_Lag123_combined_DEF_data22.png"),
+       plot = combined_plot, width = 14, height = 5, dpi = 300)
+
+
+
+##EWS
+
+# ============================================================
+# 0. Libraries
+# ============================================================
+library(INLA)
+library(dplyr)
+library(readxl)
+library(sf)
+library(ggplot2)
+library(viridis)
+library(ggspatial)
+library(cowplot)
+library(tibble)
+library(tidyr)
+
+# ============================================================
+# 1. Paths & config
+# ============================================================
+out_dir <- "J:/Research/Research/denguebangladesh/results_inla/"
+if(!dir.exists(out_dir)) dir.create(out_dir, recursive = TRUE)
+
+model_file <- file.path(out_dir, "IID_RW1_Lag123_model_data22.rds")
+shp_file   <- "C:/R/LABSTAT/bgd_adm_bbs_20201113_SHP/bgd_admbnda_adm2_bbs_20201113.shp"
+data_path  <- "J:/Research/Research/denguebangladesh/data/ABSDengueDataBD.xlsx"
+sheet_name <- "data22"
+
+# Top predictors
+top10_vars <- c("X24","X216","X22","X212","X25","X220","X26","X21","X23")
+
+# Full Bangladesh district list
+all_bd_districts <- toupper(c(
+  "BAGERHAT","BANDARBAN","BARGUNA","BHOLA","CHANDPUR","CHUADANGA",
+  "COX'S BAZAR","DHAKA","DINAJPUR","FARIDPUR","FENI","GAIBANDHA",
+  "GAZIPUR","GOPALGANJ","HABIGANJ","JAMALPUR","JHENAIDAH","JOYPURHAT",
+  "KHAGRACHHARI","KHULNA","KURIGRAM","KUSHTIA","LAKSHMIPUR","LALMONIRHAT",
+  "MADARIPUR","MAGURA","MANIKGANJ","MEHERPUR","MUNSHIGANJ","MYMENSINGH",
+  "NAOGAON","NARAIL","NARAYANGANJ","NARSINGDI","NATORE","NILPHAMARI",
+  "NOAKHALI","PABNA","PANCHAGARH","PATUAKHALI","PIROJPUR","RAJBARI",
+  "RAJSHAHI","RANGAMATI","RANGPUR","SATKHIRA","SHARIATPUR","SHERPUR",
+  "SIRAJGANJ","SUNAMGANJ","SYLHET","TANGAIL","THAKURGAON",
+  "BRAHMANBARIA","CHAPAINAWABGANJ","COMILLA","CHITTAGONG","JESSORE","JHALOKATI"
+))
+
+# ============================================================
+# 2. Load model and data
+# ============================================================
+model_lag123 <- readRDS(model_file)
+data_orig <- read_excel(data_path, sheet = sheet_name)
+
+data_orig$District <- toupper(trimws(as.character(data_orig$District)))
+data_orig$Year <- as.integer(data_orig$Year)
+data_orig$Month1 <- as.integer(data_orig$Month1)
+data_orig$MonthYear <- factor(
+  paste0(data_orig$Year, "-", sprintf("%02d", data_orig$Month1)),
+  levels = sort(unique(paste0(data_orig$Year, "-", sprintf("%02d", data_orig$Month1))))
+)
+
+# Standardize top predictors
+top10_vars <- top10_vars[top10_vars %in% names(data_orig)]
+data_orig <- data_orig %>% mutate(across(all_of(top10_vars), ~ as.numeric(scale(.x))))
+
+# ============================================================
+# 3. Prepare future 24 months dataset
+# ============================================================
+last_year <- max(data_orig$Year)
+last_month <- max(data_orig$Month1[data_orig$Year == last_year])
+future_months <- 1:24
+future_dates <- data.frame(
+  Year = ((last_month + future_months - 1) %/% 12) + last_year,
+  Month1 = ((last_month + future_months - 1) %% 12) + 1
+)
+future_dates$MonthYear <- factor(
+  paste0(future_dates$Year, "-", sprintf("%02d", future_dates$Month1)),
+  levels = c(levels(data_orig$MonthYear),
+             paste0(future_dates$Year, "-", sprintf("%02d", future_dates$Month1)))
+)
+
+future_df <- expand.grid(
+  District = all_bd_districts,
+  Year = future_dates$Year,
+  Month1 = future_dates$Month1
+)
+future_df$MonthYear <- factor(paste0(future_df$Year, "-", sprintf("%02d", future_df$Month1)),
+                              levels = levels(future_dates$MonthYear))
+future_df$DistrictID <- as.integer(factor(future_df$District, levels = all_bd_districts))
+future_df$TimeID <- as.integer(future_df$MonthYear)
+
+# Use last observed lags for each district
+lag_last <- data_orig %>%
+  group_by(District) %>%
+  arrange(Year, Month1) %>%
+  summarise(
+    lag1 = tail(Monthly_cases, 1),
+    lag2 = tail(Monthly_cases, 2)[1] %>% replace_na(0),
+    lag3 = tail(Monthly_cases, 3)[1] %>% replace_na(0),
+    .groups = "drop"
+  )
+future_df <- future_df %>% left_join(lag_last, by = "District")
+future_df <- future_df %>% mutate(
+  lag1 = ifelse(is.na(lag1), 0, lag1),
+  lag2 = ifelse(is.na(lag2), 0, lag2),
+  lag3 = ifelse(is.na(lag3), 0, lag3)
+)
+
+# Set top predictors to 0 (mean) for future
+for(v in top10_vars) future_df[[v]] <- 0
+
+# ============================================================
+# 4. Compute predictions manually
+# ============================================================
+
+# Fixed effects
+beta <- model_lag123$summary.fixed$mean
+names(beta) <- rownames(model_lag123$summary.fixed)
+
+# Model matrix
+X <- model.matrix(~ X24 + X216 + X22 + X212 + X25 + X220 + X26 + X21 + X23 +
+                    lag1 + lag2 + lag3, data = future_df)
+# ensure columns match beta
+missing_cols <- setdiff(names(beta), colnames(X))
+for(mc in missing_cols) X[, mc] <- 0
+
+X <- X[, names(beta), drop=FALSE]
+
+eta <- as.vector(X %*% beta)
+
+# Spatial effect
+spatial_mean <- model_lag123$summary.random$DistrictID$mean
+spatial_mean <- setNames(spatial_mean, 1:length(spatial_mean))
+eta <- eta + spatial_mean[as.character(future_df$DistrictID)]
+
+# Temporal effect: set new months to 0
+temporal_mean <- model_lag123$summary.random$TimeID$mean
+temporal_mean <- setNames(temporal_mean, 1:length(temporal_mean))
+eta <- eta + ifelse(future_df$TimeID <= length(temporal_mean),
+                    temporal_mean[as.character(future_df$TimeID)], 0)
+
+# Response scale
+future_df$Predicted <- exp(eta)
+
+future_df$LowerCI <- exp(eta - 1.96 * 0.1)  # crude approx
+future_df$UpperCI <- exp(eta + 1.96 * 0.1)
+
+# Save predictions
+write.csv(future_df, file.path(out_dir, "IID_RW1_Lag123_EWS_24Month_Forecast.csv"), row.names = FALSE)
+
+# ============================================================
+# 5. Plot example: top 6 districts
+# ============================================================
+top_districts <- head(all_bd_districts, 20)
+future_plot <- future_df %>%
+  filter(District %in% top_districts) %>%
+  ggplot(aes(x = MonthYear, y = Predicted, color = District, group = District)) +
+  geom_line(size = 1) +
+  geom_ribbon(aes(ymin = LowerCI, ymax = UpperCI, fill = District), alpha = 0.2, color = NA) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+  labs(title = "24-Month EWS Forecast: Predicted Dengue Cases",
+       x = "Month-Year", y = "Predicted Cases")
+
+ggsave(file.path(out_dir, "IID_RW1_Lag123_EWS_24Month_Plot.png"), future_plot,
+       width = 14, height = 6, dpi = 300)
+
+
+
+
+
+
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+
+# Corrected dataset with BYM2_RW2_Lag* at the end
+df_yearly <- data.frame(
+  Covariates = c(rep("All variables", 8), rep("Top 10 selected", 8), rep("Top 10 selected", 3)),
+  Model = c("IID_IID","IID_RW1","IID_AR1","BYM2_IID","BYM2_RW1","BYM2_AR1","IID_RW2","BYM2_RW2",
+            "IID_IID","IID_RW1","IID_AR1","BYM2_IID","BYM2_RW1","BYM2_AR1","IID_RW2","BYM2_RW2",
+            "BYM2_RW2_Lag1","BYM2_RW2_Lag12","BYM2_RW2_Lag123"),
+  DIC = c(4985.702,4985.461,4987.212,4984.975,4984.540,4984.909,4985.554,4984.298,
+          4986.532,4986.177,4988.684,4983.320,4983.430,4983.828,4986.541,4983.317,
+          4950.211,4550.611,3671.055),
+  WAIC = c(4994.885,4994.626,4996.510,4994.108,4993.642,4994.068,4994.798,4993.463,
+           4994.249,4993.892,4996.496,4991.184,4991.155,4991.788,4994.437,4991.185,
+           4961.448,4556.168,3675.390),
+  meanCPO = c(5.528,5.528,5.530,5.527,5.527,5.527,5.528,5.526,
+              5.533,5.532,5.534,5.526,5.526,5.527,5.533,5.526,
+              5.962,6.478,6.557),
+  MargLogLik = c(-2623.170,-2625.894,-2624.461,-2579.337,-2582.092,-2580.838,-2624.652,-2580.830,
+                 -2608.668,-2611.463,-2609.289,-2563.538,-2566.322,-2564.706,-2610.071,-2564.923,
+                 -2542.058,-2347.707,-1911.331)
+)
+
+# Pivot to long format
+df_long <- df_yearly %>%
+  pivot_longer(
+    cols = c(DIC, WAIC, meanCPO, MargLogLik),
+    names_to = "Metric",
+    values_to = "Value"
+  )
+
+# Function for rounded breaks
+get_rounded_breaks <- function(x, n=12) {
+  rng <- range(x)
+  step <- (rng[2] - rng[1]) / (n - 1)
+  breaks <- seq(floor(rng[1]/step)*step, ceiling(rng[2]/step)*step, by=step)
+  round(breaks, 0)
+}
+
+# Plot
+C <- ggplot(df_long, aes(x=factor(Model, levels = unique(Model)), y=Value, fill=Covariates)) +
+  geom_bar(stat="identity", position=position_dodge(width=0.8), width=0.7) +
+  facet_wrap(~Metric, scales="free_y", ncol=1) +
+  scale_fill_manual(values=c("All variables"="#1f77b4", "Top 10 selected"="#ff7f0e")) +
+  labs(title="C",
+       y="Value", x="Model", fill="Covariates") +
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(angle=45, hjust=1, vjust=1, size=10),  # vjust ensures proper bottom alignment
+    axis.title.x = element_text(margin = margin(t = 10)),             # add margin above x-axis title
+    strip.text = element_text(size=12, face="bold"),
+    plot.title = element_text(size=16, face="bold"), 
+    legend.position="bottom"
+  ) +
+  scale_y_continuous(breaks = function(x) get_rounded_breaks(x, n=8))
+
+# Print the plot
+print(C)
+
+
+
+# Save the plot as PNG
+ggsave(filename = "J:/Research/Research/denguebangladesh/Yearly_Model_Comparison.png",
+       plot = C,
+       width = 5,      # width in inches
+       height = 8,      # height in inches
+       dpi = 300)       # resolution
+
+
+
+
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+
+# Corrected dataset with lag models at the end
+df <- data.frame(
+  Covariates = c(rep("All variables", 8), rep("Top 10 selected", 8), rep("Top 10 selected", 3)),
+  Model = c("IID_IID","IID_RW1","IID_AR1","IID_RW2","BYM2_IID","BYM2_RW1","BYM2_AR1","BYM2_RW2",
+            "IID_IID","IID_RW1","IID_AR1","IID_RW2","BYM2_IID","BYM2_RW1","BYM2_AR1","BYM2_RW2",
+            "IID_RW1_Lag1","IID_RW1_Lag12","IID_RW1_Lag123"),
+  DIC = c(14690.741,14689.013,14689.103,14689.544,14690.484,14688.706,14688.833,14689.293,
+          14687.851,14686.041,14686.564,14686.586,14687.827,14686.135,14686.557,14686.682,
+          17680.871,17561.980,17434.506),
+  WAIC = c(14702.201,14700.480,14700.514,14701.280,14702.124,14700.350,14700.368,14701.181,
+           14698.167,14696.242,14697.365,14697.093,14698.824,14697.111,14697.717,14697.922,
+           17691.398,17573.858,17447.737),
+  meanCPO = c(3.855,3.854,3.854,3.854,3.855,3.854,3.854,3.854,
+              3.854,3.853,3.853,3.853,3.854,3.853,3.854,3.853,4.039,4.542,4.901),
+  MargLogLik = c(-7596.058,-7573.269,-7577.012,-7576.609,-7546.895,-7524.094,-7527.861,-7527.445,
+                 -7588.125,-7565.340,-7569.092,-7568.681,-7538.953,-7516.170,-7519.886,-7519.471,
+                 -9093.603,-9047.197,-8996.363)
+)
+
+# Pivot to long format
+df_long <- df %>%
+  pivot_longer(
+    cols = c(DIC, WAIC, meanCPO, MargLogLik),
+    names_to = "Metric",
+    values_to = "Value"
+  )
+
+# Function for rounded breaks
+get_rounded_breaks <- function(x, n=12) {
+  rng <- range(x)
+  step <- (rng[2] - rng[1]) / (n - 1)
+  breaks <- seq(floor(rng[1]/step)*step, ceiling(rng[2]/step)*step, by=step)
+  round(breaks, 0)
+}
+
+# Plot
+d= ggplot(df_long, aes(x=factor(Model, levels = unique(Model)), y=Value, fill=Covariates)) +
+  geom_bar(stat="identity", position=position_dodge(width=0.8), width=0.7) +
+  facet_wrap(~Metric, scales="free_y", ncol=1) +
+  scale_fill_manual(values=c("All variables"="#1f77b4", "Top 10 selected"="#ff7f0e")) +
+  labs(title="D",
+       y="Value", x="Model", fill="Covariates") +
+  theme_bw()  +
+  theme(
+    axis.text.x = element_text(angle=45, hjust=1, vjust=1, size=10),  # vjust ensures proper bottom alignment
+    axis.title.x = element_text(margin = margin(t = 10)),             # add margin above x-axis title
+    strip.text = element_text(size=12, face="bold"),
+    plot.title = element_text(size=16, face="bold"), 
+    legend.position="bottom"
+  ) +
+  scale_y_continuous(breaks = function(x) get_rounded_breaks(x, n=8))
+
+
+
+# Save the plot as PNG
+ggsave(filename = "J:/Research/Research/denguebangladesh/Monthly_Model_Comparison.png",
+       plot = d,
+       width = 5,      # width in inches
+       height = 8,      # height in inches
+       dpi = 300)       # resolution
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
